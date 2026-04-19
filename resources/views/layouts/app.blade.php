@@ -19,6 +19,60 @@
 	<link rel="stylesheet" type="text/css" href="{{ asset('frontend/vendor/perfect-scrollbar/perfect-scrollbar.css') }}">
 	<link rel="stylesheet" type="text/css" href="{{ asset('frontend/css/util.css') }}">
 	<link rel="stylesheet" type="text/css" href="{{ asset('frontend/css/main.css') }}">
+	<style>
+		.cart-wrap { position: relative; cursor: pointer; }
+		.cart-wrap > .cart-trigger { color: inherit; text-decoration: none; display: block; }
+		.cart-dropdown {
+			position: absolute;
+			top: 100%;
+			right: -15px;
+			width: 360px;
+			background: #fff;
+			border: 1px solid #e6e6e6;
+			box-shadow: 0 10px 30px rgba(0,0,0,.12);
+			padding: 18px 20px 14px;
+			opacity: 0;
+			visibility: hidden;
+			transform: translateY(10px);
+			transition: opacity .2s ease, transform .2s ease, visibility 0s linear .2s;
+			z-index: 1100;
+		}
+		.cart-wrap:hover .cart-dropdown {
+			opacity: 1;
+			visibility: visible;
+			transform: translateY(0);
+			transition: opacity .2s ease, transform .2s ease;
+		}
+		.cart-dropdown:before {
+			content: '';
+			position: absolute;
+			top: -8px;
+			right: 28px;
+			width: 14px;
+			height: 14px;
+			background: #fff;
+			border-top: 1px solid #e6e6e6;
+			border-left: 1px solid #e6e6e6;
+			transform: rotate(45deg);
+		}
+		.cart-dropdown-title { color: #888; font-size: 13px; padding-bottom: 10px; border-bottom: 1px solid #eee; }
+		.cart-dropdown-list { list-style: none; padding: 0; margin: 0; max-height: 340px; overflow-y: auto; }
+		.cart-dropdown-item { padding: 12px 0; border-bottom: 1px solid #f4f4f4; }
+		.cart-dropdown-item:last-child { border-bottom: 0; }
+		.cart-dropdown-item-link { display: flex; align-items: center; text-decoration: none; color: inherit; }
+		.cart-dropdown-item-link:hover { text-decoration: none; }
+		.cart-dropdown-item-img { flex: 0 0 50px; width: 50px; height: 50px; margin-right: 12px; overflow: hidden; background: #f4f4f4; }
+		.cart-dropdown-item-img img { width: 100%; height: 100%; object-fit: cover; }
+		.cart-dropdown-item-info { flex: 1 1 auto; min-width: 0; }
+		.cart-dropdown-item-name { font-size: 13.5px; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+		.cart-dropdown-item-qty { font-size: 12px; color: #999; padding-top: 2px; }
+		.cart-dropdown-item-price { flex: 0 0 auto; color: #c29e5c; font-size: 13.5px; margin-left: 12px; font-weight: 500; white-space: nowrap; }
+		.cart-dropdown-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 14px; border-top: 1px solid #eee; margin-top: 4px; }
+		.cart-dropdown-footer-info { color: #888; font-size: 13px; }
+		.cart-dropdown-btn { background: #c29e5c; color: #fff; padding: 9px 20px; font-size: 13px; font-weight: 500; border-radius: 2px; text-decoration: none; transition: background .2s; }
+		.cart-dropdown-btn:hover { background: #a88541; color: #fff; text-decoration: none; }
+		.cart-dropdown-empty { padding: 36px 0; text-align: center; color: #888; font-size: 14px; }
+	</style>
 	@stack('styles')
 </head>
 <body class="animsition">
@@ -58,8 +112,40 @@
 							<i class="zmdi zmdi-search"></i>
 						</div>
 
-						<div class="icon-header-item cl2 hov-cl1 trans-04 p-l-22 p-r-11 icon-header-noti js-show-cart" data-notify="2">
-							<i class="zmdi zmdi-shopping-cart"></i>
+						<div class="icon-header-item cl2 hov-cl1 trans-04 p-l-22 p-r-11 icon-header-noti cart-wrap" data-notify="{{ count($cartItems) }}">
+							<a href="{{ route('keranjang') }}" class="cart-trigger">
+								<i class="zmdi zmdi-shopping-cart"></i>
+							</a>
+
+							<div class="cart-dropdown">
+								<div class="cart-dropdown-title">Baru Ditambahkan</div>
+
+								@if(count($cartItems))
+									<ul class="cart-dropdown-list">
+										@foreach($cartItems as $item)
+										<li class="cart-dropdown-item">
+											<a href="{{ route('produk.detail', $item['slug']) }}" class="cart-dropdown-item-link">
+												<div class="cart-dropdown-item-img">
+													<img src="{{ asset('frontend/images/'.$item['img']) }}" alt="{{ $item['name'] }}">
+												</div>
+												<div class="cart-dropdown-item-info">
+													<div class="cart-dropdown-item-name">{{ $item['name'] }}</div>
+													<div class="cart-dropdown-item-qty">{{ $item['qty'] }} x {{ $rupiah($item['price']) }}</div>
+												</div>
+												<div class="cart-dropdown-item-price">{{ $rupiah($item['price'] * $item['qty']) }}</div>
+											</a>
+										</li>
+										@endforeach
+									</ul>
+
+									<div class="cart-dropdown-footer">
+										<span class="cart-dropdown-footer-info">{{ count($cartItems) }} Produk di Keranjang</span>
+										<a href="{{ route('keranjang') }}" class="cart-dropdown-btn">Tampilkan Keranjang</a>
+									</div>
+								@else
+									<div class="cart-dropdown-empty">Keranjang Anda masih kosong.</div>
+								@endif
+							</div>
 						</div>
 
 						<a href="#" class="dis-block icon-header-item cl2 hov-cl1 trans-04 p-l-22 p-r-11 icon-header-noti" data-notify="0">
@@ -81,9 +167,9 @@
 					<i class="zmdi zmdi-search"></i>
 				</div>
 
-				<div class="icon-header-item cl2 hov-cl1 trans-04 p-r-11 p-l-10 icon-header-noti js-show-cart" data-notify="2">
+				<a href="{{ route('keranjang') }}" class="dis-block icon-header-item cl2 hov-cl1 trans-04 p-r-11 p-l-10 icon-header-noti" data-notify="{{ count($cartItems) }}">
 					<i class="zmdi zmdi-shopping-cart"></i>
-				</div>
+				</a>
 
 				<a href="#" class="dis-block icon-header-item cl2 hov-cl1 trans-04 p-r-11 p-l-10 icon-header-noti" data-notify="0">
 					<i class="zmdi zmdi-favorite-outline"></i>
@@ -140,75 +226,6 @@
 			</div>
 		</div>
 	</header>
-
-	<!-- Cart -->
-	<div class="wrap-header-cart js-panel-cart">
-		<div class="s-full js-hide-cart"></div>
-
-		<div class="header-cart flex-col-l p-l-65 p-r-25">
-			<div class="header-cart-title flex-w flex-sb-m p-b-8">
-				<span class="mtext-103 cl2">Keranjang Anda</span>
-
-				<div class="fs-35 lh-10 cl2 p-lr-5 pointer hov-cl1 trans-04 js-hide-cart">
-					<i class="zmdi zmdi-close"></i>
-				</div>
-			</div>
-
-			<div class="header-cart-content flex-w js-pscroll">
-				<ul class="header-cart-wrapitem w-full">
-					<li class="header-cart-item flex-w flex-t m-b-12">
-						<div class="header-cart-item-img">
-							<img src="{{ asset('frontend/images/item-cart-01.jpg') }}" alt="GAMBAR">
-						</div>
-
-						<div class="header-cart-item-txt p-t-8">
-							<a href="#" class="header-cart-item-name m-b-18 hov-cl1 trans-04">
-								Batik Tulis Parang
-							</a>
-							<span class="header-cart-item-info">1 x Rp250.000</span>
-						</div>
-					</li>
-
-					<li class="header-cart-item flex-w flex-t m-b-12">
-						<div class="header-cart-item-img">
-							<img src="{{ asset('frontend/images/item-cart-02.jpg') }}" alt="GAMBAR">
-						</div>
-
-						<div class="header-cart-item-txt p-t-8">
-							<a href="#" class="header-cart-item-name m-b-18 hov-cl1 trans-04">
-								Batik Cap Kawung
-							</a>
-							<span class="header-cart-item-info">1 x Rp350.000</span>
-						</div>
-					</li>
-
-					<li class="header-cart-item flex-w flex-t m-b-12">
-						<div class="header-cart-item-img">
-							<img src="{{ asset('frontend/images/item-cart-03.jpg') }}" alt="GAMBAR">
-						</div>
-
-						<div class="header-cart-item-txt p-t-8">
-							<a href="#" class="header-cart-item-name m-b-18 hov-cl1 trans-04">
-								Kemeja Batik Mega Mendung
-							</a>
-							<span class="header-cart-item-info">1 x Rp275.000</span>
-						</div>
-					</li>
-				</ul>
-
-				<div class="w-full">
-					<div class="header-cart-total w-full p-tb-40">
-						Total: Rp875.000
-					</div>
-
-					<div class="header-cart-buttons flex-w w-full">
-						<a href="#" class="flex-c-m stext-101 cl0 size-107 bg3 bor2 hov-btn3 p-lr-15 trans-04 m-r-8 m-b-10">Lihat Keranjang</a>
-						<a href="#" class="flex-c-m stext-101 cl0 size-107 bg3 bor2 hov-btn3 p-lr-15 trans-04 m-b-10">Checkout</a>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
 
 	@yield('content')
 

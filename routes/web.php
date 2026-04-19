@@ -12,5 +12,6 @@ Route::get('/produk/{slug}', function (string $slug) {
     return view('home.produk-detail', ['product' => $product]);
 })->name('produk.detail');
 
+Route::get('/keranjang', fn () => view('home.keranjang'))->name('keranjang');
 Route::get('/tentang', fn () => view('home.tentang'))->name('tentang');
 Route::get('/kontak', fn () => view('home.kontak'))->name('kontak');
