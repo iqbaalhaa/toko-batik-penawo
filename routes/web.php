@@ -6,6 +6,7 @@ use App\Models\Product;
 use App\Models\StockMovement;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -28,33 +29,68 @@ Route::get('/keranjang', fn () => view('home.keranjang'))->name('keranjang');
 Route::get('/tentang', fn () => view('home.tentang'))->name('tentang');
 Route::get('/kontak', fn () => view('home.kontak'))->name('kontak');
 
-// Auth (session-based mock)
-Route::get('/login', fn () => view('home.login'))->name('login');
+// Auth — session-based against users table
+Route::get('/login', function () {
+    $authUser = session('auth_user');
+    if ($authUser) {
+        return redirect(($authUser['role'] ?? 'pelanggan') === 'admin' ? route('admin.dashboard') : route('home'));
+    }
+    return view('home.login');
+})->name('login');
+
 Route::post('/login', function (Request $request) {
     $data = $request->validate([
         'email' => 'required|email',
         'password' => 'required|min:6',
     ]);
 
+    $user = User::where('email', $data['email'])->first();
+
+    if (! $user || ! Hash::check($data['password'], $user->password)) {
+        return back()->withErrors(['email' => 'Email atau password salah.'])->withInput($request->only('email'));
+    }
+
+    if ($user->status !== 'aktif') {
+        return back()->withErrors(['email' => 'Akun Anda nonaktif. Silakan hubungi admin.'])->withInput($request->only('email'));
+    }
+
     session(['auth_user' => [
-        'email' => $data['email'],
-        'name' => ucfirst(explode('@', $data['email'])[0]),
+        'id'    => $user->id,
+        'name'  => $user->name,
+        'email' => $user->email,
+        'role'  => $user->role,
     ]]);
 
-    return redirect()->intended(route('home'));
+    return redirect($user->role === 'admin' ? route('admin.dashboard') : route('home'));
 })->name('login.submit');
 
-Route::get('/register', fn () => view('home.register'))->name('register');
+Route::get('/register', function () {
+    if (session('auth_user')) {
+        return redirect(route('home'));
+    }
+    return view('home.register');
+})->name('register');
+
 Route::post('/register', function (Request $request) {
     $data = $request->validate([
-        'name' => 'required|string|min:2|max:60',
-        'email' => 'required|email',
+        'name'     => 'required|string|min:2|max:60',
+        'email'    => 'required|email|unique:users,email',
         'password' => 'required|min:6|confirmed',
     ]);
 
+    $user = User::create([
+        'name'     => $data['name'],
+        'email'    => $data['email'],
+        'password' => Hash::make($data['password']),
+        'role'     => 'pelanggan',
+        'status'   => 'aktif',
+    ]);
+
     session(['auth_user' => [
-        'email' => $data['email'],
-        'name' => $data['name'],
+        'id'    => $user->id,
+        'name'  => $user->name,
+        'email' => $user->email,
+        'role'  => $user->role,
     ]]);
 
     return redirect(route('home'));
@@ -65,8 +101,8 @@ Route::post('/logout', function () {
     return redirect(route('home'));
 })->name('logout');
 
-// Admin dashboard
-Route::prefix('admin')->name('admin.')->group(function () {
+// Admin dashboard — admin only (guarded by EnsureAdmin middleware)
+Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
     Route::get('/', function () {
         return view('admin.dashboard', [
             'totalProducts'  => Product::count(),

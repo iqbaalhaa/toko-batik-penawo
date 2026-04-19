@@ -12,7 +12,20 @@
       "Bash(curl -s http://127.0.0.1:8765/admin/produk)",
       "Bash(curl -s http://127.0.0.1:8765/produk)",
       "Bash(taskkill //F //FI \"WINDOWTITLE eq *php*\")",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:8765/)"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:8765/)",
+      "Bash(rm -f /tmp/cookies.txt)",
+      "Bash(curl -s -c /tmp/cookies.txt http://127.0.0.1:8766/login)",
+      "Bash(curl -s -b /tmp/cookies.txt -c /tmp/cookies.txt http://127.0.0.1:8766/login)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:8767/)",
+      "Bash(rm -f /tmp/c_admin.txt /tmp/c_user.txt /tmp/c_none.txt)",
+      "Bash(curl -s -o /dev/null -w \"GET /admin \\(no login\\) → %{http_code}, redirect: %{redirect_url}\\\\n\" http://127.0.0.1:8767/admin)",
+      "Bash(curl -s -c /tmp/c_admin.txt http://127.0.0.1:8767/login)",
+      "Bash(curl -s -b /tmp/c_admin.txt -c /tmp/c_admin.txt http://127.0.0.1:8767/login)",
+      "Bash(curl -s http://127.0.0.1:8768/admin -o /tmp/admin.html -w \"HTTP %{http_code}\\\\n\")",
+      "Read(//tmp/**)",
+      "Bash(rm -f /tmp/cj.txt)",
+      "Bash(curl -s -c /tmp/cj.txt http://127.0.0.1:8768/login)",
+      "Bash(curl -s -b /tmp/cj.txt -c /tmp/cj.txt http://127.0.0.1:8768/login)"
     ]
   }
 }

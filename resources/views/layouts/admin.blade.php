@@ -5,6 +5,12 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="icon" type="image/png" href="{{ asset('frontend/images/icons/favicon.png') }}"/>
+
+	<!-- Inter (modern dashboard font) -->
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+
 	<link rel="stylesheet" type="text/css" href="{{ asset('frontend/vendor/bootstrap/css/bootstrap.min.css') }}">
 	<link rel="stylesheet" type="text/css" href="{{ asset('frontend/fonts/font-awesome-4.7.0/css/font-awesome.min.css') }}">
 	<link rel="stylesheet" type="text/css" href="{{ asset('frontend/fonts/iconic/css/material-design-iconic-font.min.css') }}">
@@ -22,11 +28,22 @@
 		* { box-sizing: border-box; }
 		body {
 			margin: 0;
-			font-family: "Poppins", Arial, sans-serif;
+			font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+			font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11', 'ss01';
+			-webkit-font-smoothing: antialiased;
+			-moz-osx-font-smoothing: grayscale;
 			background: var(--page-bg);
-			color: #333;
+			color: #2d2a26;
 			min-height: 100vh;
+			letter-spacing: -0.005em;
 		}
+		/* Tabular numerals for tables, stats, prices — lines up digits cleanly */
+		.admin-table td, .admin-table th,
+		.stat-card-value, code, .admin-user-avatar {
+			font-variant-numeric: tabular-nums;
+		}
+		/* Admin-scoped heading weight adjustment for Inter's natural scale */
+		.admin-card-title, .admin-topbar-title, .stat-card-value { letter-spacing: -0.015em; }
 		a { text-decoration: none; }
 		.admin-wrap { display: flex; min-height: 100vh; }
 
