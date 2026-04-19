@@ -72,6 +72,73 @@
 		.cart-dropdown-btn { background: #c29e5c; color: #fff; padding: 9px 20px; font-size: 13px; font-weight: 500; border-radius: 2px; text-decoration: none; transition: background .2s; }
 		.cart-dropdown-btn:hover { background: #a88541; color: #fff; text-decoration: none; }
 		.cart-dropdown-empty { padding: 36px 0; text-align: center; color: #888; font-size: 14px; }
+
+		.profile-wrap { position: relative; cursor: pointer; }
+		.profile-wrap > .profile-trigger { color: inherit; text-decoration: none; display: block; }
+		.profile-dropdown {
+			position: absolute;
+			top: 100%;
+			right: -15px;
+			width: 240px;
+			background: #fff;
+			border: 1px solid #e6e6e6;
+			box-shadow: 0 10px 30px rgba(0,0,0,.12);
+			padding: 6px 0;
+			opacity: 0;
+			visibility: hidden;
+			transform: translateY(10px);
+			transition: opacity .2s ease, transform .2s ease, visibility 0s linear .2s;
+			z-index: 1100;
+		}
+		.profile-wrap:hover .profile-dropdown {
+			opacity: 1;
+			visibility: visible;
+			transform: translateY(0);
+			transition: opacity .2s ease, transform .2s ease;
+		}
+		.profile-dropdown:before {
+			content: '';
+			position: absolute;
+			top: -8px;
+			right: 28px;
+			width: 14px;
+			height: 14px;
+			background: #fff;
+			border-top: 1px solid #e6e6e6;
+			border-left: 1px solid #e6e6e6;
+			transform: rotate(45deg);
+		}
+		.profile-dropdown-header { padding: 14px 18px 12px; border-bottom: 1px solid #eee; }
+		.profile-dropdown-greet { font-size: 14px; font-weight: 600; color: #333; }
+		.profile-dropdown-sub { font-size: 12px; color: #999; padding-top: 3px; }
+		.profile-dropdown-link {
+			display: flex;
+			align-items: center;
+			padding: 10px 18px;
+			color: #555;
+			font-size: 13.5px;
+			text-decoration: none;
+			transition: background .15s, color .15s;
+		}
+		.profile-dropdown-link:hover { background: #faf6ed; color: #c29e5c; text-decoration: none; }
+		.profile-dropdown-link i { font-size: 16px; margin-right: 12px; width: 18px; text-align: center; }
+		.profile-dropdown-link-accent { color: #c29e5c; font-weight: 500; }
+		.profile-dropdown-divider { height: 1px; background: #eee; margin: 6px 0; }
+		.profile-dropdown form { margin: 0; padding: 0; }
+		.profile-dropdown form button { width: 100%; background: none; border: 0; text-align: left; cursor: pointer; font: inherit; }
+
+		/* Global topbar */
+		.topbar-global { background: #2d2d2d; color: #e2e2e2; font-size: 12.5px; }
+		.topbar-global .topbar-inner { display: flex; justify-content: space-between; align-items: center; height: 36px; }
+		.topbar-global .topbar-left { color: #b8b8b8; }
+		.topbar-global .topbar-right { display: flex; align-items: center; }
+		.topbar-global .topbar-link { display: inline-flex; align-items: center; color: #e2e2e2; text-decoration: none; padding: 0 12px; height: 36px; transition: color .15s; background: none; border: 0; font: inherit; cursor: pointer; }
+		.topbar-global .topbar-link:hover { color: #c29e5c; text-decoration: none; }
+		.topbar-global .topbar-link i { margin-right: 6px; font-size: 15px; }
+		.topbar-global .topbar-link-strong { font-weight: 600; }
+		.topbar-global .topbar-sep { color: #4a4a4a; padding: 0 2px; user-select: none; }
+		.topbar-global form.topbar-logout { margin: 0; padding: 0; display: inline-flex; }
+		@media (max-width: 768px) { .topbar-global .topbar-left { display: none; } }
 	</style>
 	@stack('styles')
 </head>
@@ -79,6 +146,40 @@
 
 	<!-- Header -->
 	<header>
+		<!-- Topbar -->
+		<div class="topbar-global">
+			<div class="container">
+				<div class="topbar-inner">
+					<div class="topbar-left">
+						    
+					</div>
+
+					<div class="topbar-right">
+						<a href="#" class="topbar-link"><i class="zmdi zmdi-notifications-none"></i>Notifikasi</a>
+						<span class="topbar-sep">|</span>
+						<a href="{{ route('kontak') }}" class="topbar-link"><i class="zmdi zmdi-help-outline"></i>Bantuan</a>
+						<span class="topbar-sep">|</span>
+						<a href="#" class="topbar-link"><i class="zmdi zmdi-globe"></i>Bahasa Indonesia</a>
+
+						@if(!$authUser)
+							<span class="topbar-sep">|</span>
+							<a href="{{ route('register') }}" class="topbar-link topbar-link-strong">Daftar</a>
+							<span class="topbar-sep">|</span>
+							<a href="{{ route('login') }}" class="topbar-link topbar-link-strong">Masuk</a>
+						@else
+							<span class="topbar-sep">|</span>
+							<span class="topbar-link"><i class="zmdi zmdi-account-o"></i>Halo, {{ $authUser['name'] }}</span>
+							<span class="topbar-sep">|</span>
+							<form action="{{ route('logout') }}" method="POST" class="topbar-logout">
+								@csrf
+								<button type="submit" class="topbar-link topbar-link-strong">Keluar</button>
+							</form>
+						@endif
+					</div>
+				</div>
+			</div>
+		</div>
+
 		<div class="container-menu-desktop">
 
 			<div class="wrap-menu-desktop">
@@ -112,45 +213,68 @@
 							<i class="zmdi zmdi-search"></i>
 						</div>
 
-						<div class="icon-header-item cl2 hov-cl1 trans-04 p-l-22 p-r-11 icon-header-noti cart-wrap" data-notify="{{ count($cartItems) }}">
-							<a href="{{ route('keranjang') }}" class="cart-trigger">
-								<i class="zmdi zmdi-shopping-cart"></i>
-							</a>
+						@if($authUser)
+							<div class="icon-header-item cl2 hov-cl1 trans-04 p-l-22 p-r-11 icon-header-noti cart-wrap" data-notify="{{ count($cartItems) }}">
+								<a href="{{ route('keranjang') }}" class="cart-trigger">
+									<i class="zmdi zmdi-shopping-cart"></i>
+								</a>
 
-							<div class="cart-dropdown">
-								<div class="cart-dropdown-title">Baru Ditambahkan</div>
+								<div class="cart-dropdown">
+									<div class="cart-dropdown-title">Baru Ditambahkan</div>
 
-								@if(count($cartItems))
-									<ul class="cart-dropdown-list">
-										@foreach($cartItems as $item)
-										<li class="cart-dropdown-item">
-											<a href="{{ route('produk.detail', $item['slug']) }}" class="cart-dropdown-item-link">
-												<div class="cart-dropdown-item-img">
-													<img src="{{ asset('frontend/images/'.$item['img']) }}" alt="{{ $item['name'] }}">
-												</div>
-												<div class="cart-dropdown-item-info">
-													<div class="cart-dropdown-item-name">{{ $item['name'] }}</div>
-													<div class="cart-dropdown-item-qty">{{ $item['qty'] }} x {{ $rupiah($item['price']) }}</div>
-												</div>
-												<div class="cart-dropdown-item-price">{{ $rupiah($item['price'] * $item['qty']) }}</div>
-											</a>
-										</li>
-										@endforeach
-									</ul>
+									@if(count($cartItems))
+										<ul class="cart-dropdown-list">
+											@foreach($cartItems as $item)
+											<li class="cart-dropdown-item">
+												<a href="{{ route('produk.detail', $item['slug']) }}" class="cart-dropdown-item-link">
+													<div class="cart-dropdown-item-img">
+														<img src="{{ asset('frontend/images/'.$item['img']) }}" alt="{{ $item['name'] }}">
+													</div>
+													<div class="cart-dropdown-item-info">
+														<div class="cart-dropdown-item-name">{{ $item['name'] }}</div>
+														<div class="cart-dropdown-item-qty">{{ $item['qty'] }} x {{ $rupiah($item['price']) }}</div>
+													</div>
+													<div class="cart-dropdown-item-price">{{ $rupiah($item['price'] * $item['qty']) }}</div>
+												</a>
+											</li>
+											@endforeach
+										</ul>
 
-									<div class="cart-dropdown-footer">
-										<span class="cart-dropdown-footer-info">{{ count($cartItems) }} Produk di Keranjang</span>
-										<a href="{{ route('keranjang') }}" class="cart-dropdown-btn">Tampilkan Keranjang</a>
-									</div>
-								@else
-									<div class="cart-dropdown-empty">Keranjang Anda masih kosong.</div>
-								@endif
+										<div class="cart-dropdown-footer">
+											<span class="cart-dropdown-footer-info">{{ count($cartItems) }} Produk di Keranjang</span>
+											<a href="{{ route('keranjang') }}" class="cart-dropdown-btn">Tampilkan Keranjang</a>
+										</div>
+									@else
+										<div class="cart-dropdown-empty">Keranjang Anda masih kosong.</div>
+									@endif
+								</div>
 							</div>
-						</div>
 
-						<a href="#" class="dis-block icon-header-item cl2 hov-cl1 trans-04 p-l-22 p-r-11 icon-header-noti" data-notify="0">
-							<i class="zmdi zmdi-favorite-outline"></i>
-						</a>
+							<div class="icon-header-item cl2 hov-cl1 trans-04 p-l-22 p-r-11 profile-wrap">
+								<a href="#" class="profile-trigger">
+									<i class="zmdi zmdi-account-o"></i>
+								</a>
+
+								<div class="profile-dropdown">
+									<div class="profile-dropdown-header">
+										<div class="profile-dropdown-greet">Halo, {{ $authUser['name'] }}</div>
+										<div class="profile-dropdown-sub">{{ $authUser['email'] }}</div>
+									</div>
+
+									<a href="#" class="profile-dropdown-link"><i class="zmdi zmdi-account"></i>Profil Saya</a>
+									<a href="#" class="profile-dropdown-link"><i class="zmdi zmdi-receipt"></i>Pesanan Saya</a>
+									<a href="#" class="profile-dropdown-link"><i class="zmdi zmdi-favorite-outline"></i>Wishlist</a>
+									<a href="#" class="profile-dropdown-link"><i class="zmdi zmdi-settings"></i>Pengaturan</a>
+
+									<div class="profile-dropdown-divider"></div>
+
+									<form action="{{ route('logout') }}" method="POST">
+										@csrf
+										<button type="submit" class="profile-dropdown-link profile-dropdown-link-accent"><i class="zmdi zmdi-sign-in"></i>Keluar</button>
+									</form>
+								</div>
+							</div>
+						@endif
 					</div>
 				</nav>
 			</div>
@@ -167,13 +291,19 @@
 					<i class="zmdi zmdi-search"></i>
 				</div>
 
-				<a href="{{ route('keranjang') }}" class="dis-block icon-header-item cl2 hov-cl1 trans-04 p-r-11 p-l-10 icon-header-noti" data-notify="{{ count($cartItems) }}">
-					<i class="zmdi zmdi-shopping-cart"></i>
-				</a>
+				@if($authUser)
+					<a href="{{ route('keranjang') }}" class="dis-block icon-header-item cl2 hov-cl1 trans-04 p-r-11 p-l-10 icon-header-noti" data-notify="{{ count($cartItems) }}">
+						<i class="zmdi zmdi-shopping-cart"></i>
+					</a>
 
-				<a href="#" class="dis-block icon-header-item cl2 hov-cl1 trans-04 p-r-11 p-l-10 icon-header-noti" data-notify="0">
-					<i class="zmdi zmdi-favorite-outline"></i>
-				</a>
+					<a href="#" class="dis-block icon-header-item cl2 hov-cl1 trans-04 p-r-11 p-l-10">
+						<i class="zmdi zmdi-account-o"></i>
+					</a>
+				@else
+					<a href="{{ route('login') }}" class="dis-block icon-header-item cl2 hov-cl1 trans-04 p-r-11 p-l-10">
+						<i class="zmdi zmdi-sign-in"></i>
+					</a>
+				@endif
 			</div>
 
 			<div class="btn-show-menu-mobile hamburger hamburger--squeeze">
@@ -188,7 +318,7 @@
 			<ul class="topbar-mobile">
 				<li>
 					<div class="left-top-bar">
-						Gratis ongkir untuk pembelian di atas Rp500.000
+						 
 					</div>
 				</li>
 
@@ -207,6 +337,19 @@
 				<li><a href="{{ route('produk') }}">Produk</a></li>
 				<li><a href="{{ route('tentang') }}">Tentang</a></li>
 				<li><a href="{{ route('kontak') }}">Kontak</a></li>
+
+				@if(!$authUser)
+					<li><a href="{{ route('login') }}">Masuk</a></li>
+					<li><a href="{{ route('register') }}">Daftar</a></li>
+				@else
+					<li><a href="{{ route('keranjang') }}">Keranjang</a></li>
+					<li>
+						<form action="{{ route('logout') }}" method="POST" style="padding:0;margin:0;">
+							@csrf
+							<button type="submit" style="background:none;border:0;padding:0;color:inherit;font:inherit;cursor:pointer;">Keluar</button>
+						</form>
+					</li>
+				@endif
 			</ul>
 		</div>
 

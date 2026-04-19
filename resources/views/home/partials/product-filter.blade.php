@@ -1,11 +1,9 @@
 <div class="flex-w flex-sb-m p-b-52">
 	<div class="flex-w flex-l-m filter-tope-group m-tb-10">
 		<button class="stext-106 cl6 hov1 bor3 trans-04 m-r-32 m-tb-5 how-active1" data-filter="*">Semua Produk</button>
-		<button class="stext-106 cl6 hov1 bor3 trans-04 m-r-32 m-tb-5" data-filter=".women">Wanita</button>
-		<button class="stext-106 cl6 hov1 bor3 trans-04 m-r-32 m-tb-5" data-filter=".men">Pria</button>
-		<button class="stext-106 cl6 hov1 bor3 trans-04 m-r-32 m-tb-5" data-filter=".bag">Tas</button>
-		<button class="stext-106 cl6 hov1 bor3 trans-04 m-r-32 m-tb-5" data-filter=".shoes">Alas Kaki</button>
-		<button class="stext-106 cl6 hov1 bor3 trans-04 m-r-32 m-tb-5" data-filter=".watches">Aksesoris</button>
+		@foreach(($categories ?? []) as $cat)
+			<button class="stext-106 cl6 hov1 bor3 trans-04 m-r-32 m-tb-5" data-filter=".{{ $cat->slug }}">{{ $cat->name }}</button>
+		@endforeach
 	</div>
 
 	<div class="flex-w flex-c-m m-tb-10">

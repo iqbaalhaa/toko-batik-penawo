@@ -1,17 +1,18 @@
 @extends('layouts.app')
 
-@section('title', 'Batik Penawo | '.$product['name'])
+@section('title', 'Batik Penawo | '.$product->name)
 
 @php
 	$gallery = [
-		$product['img'],
+		$product->image,
 		'product-detail-02.jpg',
 		'product-detail-03.jpg',
 	];
-	$related = collect(config('products', []))
-		->where('slug', '!=', $product['slug'])
-		->shuffle()
-		->take(6);
+	$related = \App\Models\Product::where('id', '!=', $product->id)
+		->where('status', '!=', 'arsip')
+		->inRandomOrder()
+		->take(6)
+		->get();
 @endphp
 
 @section('content')
@@ -28,7 +29,7 @@
 				<i class="fa fa-angle-right m-l-9 m-r-10" aria-hidden="true"></i>
 			</a>
 
-			<span class="stext-109 cl4">{{ $product['name'] }}</span>
+			<span class="stext-109 cl4">{{ $product->name }}</span>
 		</div>
 	</div>
 
@@ -46,7 +47,7 @@
 								@foreach($gallery as $img)
 								<div class="item-slick3" data-thumb="{{ asset('frontend/images/'.$img) }}">
 									<div class="wrap-pic-w pos-relative">
-										<img src="{{ asset('frontend/images/'.$img) }}" alt="{{ $product['name'] }}">
+										<img src="{{ asset('frontend/images/'.$img) }}" alt="{{ $product->name }}">
 
 										<a class="flex-c-m size-108 how-pos1 bor0 fs-16 cl10 bg0 hov-btn3 trans-04" href="{{ asset('frontend/images/'.$img) }}">
 											<i class="fa fa-expand"></i>
@@ -61,12 +62,12 @@
 
 				<div class="col-md-6 col-lg-5 p-b-30">
 					<div class="p-r-50 p-t-5 p-lr-0-lg">
-						<h4 class="mtext-105 cl2 js-name-detail p-b-14">{{ $product['name'] }}</h4>
+						<h4 class="mtext-105 cl2 js-name-detail p-b-14">{{ $product->name }}</h4>
 
-						<span class="mtext-106 cl2">{{ $product['price'] }}</span>
+						<span class="mtext-106 cl2">{{ $rupiah($product->price) }}</span>
 
 						<p class="stext-102 cl3 p-t-23">
-							{{ $product['description'] }}
+							{{ $product->description }}
 						</p>
 
 						<div class="p-t-33">
@@ -76,7 +77,7 @@
 									<div class="rs1-select2 bor8 bg0">
 										<select class="js-select2" name="size">
 											<option>Pilih ukuran</option>
-											@foreach($product['sizes'] as $size)
+											@foreach(($product->sizes ?? []) as $size)
 												<option>{{ $size }}</option>
 											@endforeach
 										</select>
@@ -91,7 +92,7 @@
 									<div class="rs1-select2 bor8 bg0">
 										<select class="js-select2" name="color">
 											<option>Pilih warna</option>
-											@foreach($product['colors'] as $color)
+											@foreach(($product->colors ?? []) as $color)
 												<option>{{ $color }}</option>
 											@endforeach
 										</select>
@@ -163,7 +164,7 @@
 						<div class="tab-pane fade show active" id="description" role="tabpanel">
 							<div class="how-pos2 p-lr-15-md">
 								<p class="stext-102 cl6">
-									{{ $product['description'] }} Setiap produk Batik Penawo dibuat dengan ketelitian oleh pengrajin batik Indonesia menggunakan bahan berkualitas. Pola dapat sedikit berbeda antar produk karena proses handmade.
+									{{ $product->description }} Setiap produk Batik Penawo dibuat dengan ketelitian oleh pengrajin batik Indonesia menggunakan bahan berkualitas. Pola dapat sedikit berbeda antar produk karena proses handmade.
 								</p>
 							</div>
 						</div>
@@ -174,27 +175,27 @@
 									<ul class="p-lr-28 p-lr-15-sm">
 										<li class="flex-w flex-t p-b-7">
 											<span class="stext-102 cl3 size-205">Berat</span>
-											<span class="stext-102 cl6 size-206">{{ $product['weight'] }}</span>
+											<span class="stext-102 cl6 size-206">{{ $product->weight ?? '—' }}</span>
 										</li>
 
 										<li class="flex-w flex-t p-b-7">
 											<span class="stext-102 cl3 size-205">Bahan</span>
-											<span class="stext-102 cl6 size-206">{{ $product['material'] }}</span>
+											<span class="stext-102 cl6 size-206">{{ $product->material ?? '—' }}</span>
 										</li>
 
 										<li class="flex-w flex-t p-b-7">
 											<span class="stext-102 cl3 size-205">Warna</span>
-											<span class="stext-102 cl6 size-206">{{ implode(', ', $product['colors']) }}</span>
+											<span class="stext-102 cl6 size-206">{{ implode(', ', $product->colors ?? []) }}</span>
 										</li>
 
 										<li class="flex-w flex-t p-b-7">
 											<span class="stext-102 cl3 size-205">Ukuran</span>
-											<span class="stext-102 cl6 size-206">{{ implode(', ', $product['sizes']) }}</span>
+											<span class="stext-102 cl6 size-206">{{ implode(', ', $product->sizes ?? []) }}</span>
 										</li>
 
 										<li class="flex-w flex-t p-b-7">
 											<span class="stext-102 cl3 size-205">Kategori</span>
-											<span class="stext-102 cl6 size-206">{{ $product['cat_label'] }}</span>
+											<span class="stext-102 cl6 size-206">{{ $product->category?->name ?? '—' }}</span>
 										</li>
 									</ul>
 								</div>
@@ -279,8 +280,8 @@
 		</div>
 
 		<div class="bg6 flex-c-m flex-w size-302 m-t-73 p-tb-15">
-			<span class="stext-107 cl6 p-lr-25">SKU: {{ $product['sku'] }}</span>
-			<span class="stext-107 cl6 p-lr-25">Kategori: {{ $product['cat_label'] }}</span>
+			<span class="stext-107 cl6 p-lr-25">SKU: {{ $product->sku }}</span>
+			<span class="stext-107 cl6 p-lr-25">Kategori: {{ $product->category?->name ?? '—' }}</span>
 		</div>
 	</section>
 
@@ -297,8 +298,8 @@
 					<div class="item-slick2 p-l-15 p-r-15 p-t-15 p-b-15">
 						<div class="block2">
 							<div class="block2-pic hov-img0">
-								<a href="{{ route('produk.detail', $rp['slug']) }}" class="dis-block">
-									<img src="{{ asset('frontend/images/'.$rp['img']) }}" alt="{{ $rp['name'] }}">
+								<a href="{{ route('produk.detail', $rp->slug) }}" class="dis-block">
+									<img src="{{ asset('frontend/images/'.$rp->image) }}" alt="{{ $rp->name }}">
 								</a>
 
 								<a href="#" class="block2-btn flex-c-m stext-103 cl2 size-102 bg0 bor2 hov-btn1 p-lr-15 trans-04 js-show-modal1">Lihat Cepat</a>
@@ -306,8 +307,8 @@
 
 							<div class="block2-txt flex-w flex-t p-t-14">
 								<div class="block2-txt-child1 flex-col-l ">
-									<a href="{{ route('produk.detail', $rp['slug']) }}" class="stext-104 cl4 hov-cl1 trans-04 js-name-b2 p-b-6">{{ $rp['name'] }}</a>
-									<span class="stext-105 cl3">{{ $rp['price'] }}</span>
+									<a href="{{ route('produk.detail', $rp->slug) }}" class="stext-104 cl4 hov-cl1 trans-04 js-name-b2 p-b-6">{{ $rp->name }}</a>
+									<span class="stext-105 cl3">{{ $rupiah($rp->price) }}</span>
 								</div>
 
 								<div class="block2-txt-child2 flex-r p-t-3">
