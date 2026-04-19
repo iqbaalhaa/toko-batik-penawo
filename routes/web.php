@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
 
 Route::get('/', function () {
     $products = Product::with('category')->where('status', '!=', 'arsip')->latest()->take(16)->get();
@@ -15,7 +16,7 @@ Route::get('/', function () {
     return view('home.index', compact('products', 'categories'));
 })->name('home');
 Route::get('/produk', function () {
-    $products = Product::with('category')->where('status', '!=', 'arsip')->latest()->get();
+    $products = Product::with('category')->where('status', '!=', 'arsip')->latest()->paginate(12)->withQueryString();
     $categories = Category::orderBy('sort_order')->get();
     return view('home.produk', compact('products', 'categories'));
 })->name('produk');
@@ -118,12 +119,149 @@ Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
         ]);
     })->name('dashboard');
 
-    Route::get('/produk', function () {
+    Route::get('/produk', function (Request $request) {
+        $query = Product::with('category');
+
+        if ($request->filled('q')) {
+            $q = $request->q;
+            $query->where(function ($w) use ($q) {
+                $w->where('name', 'like', "%{$q}%")->orWhere('sku', 'like', "%{$q}%");
+            });
+        }
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->category_id);
+        }
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
         return view('admin.produk', [
-            'products'   => Product::with('category')->latest()->get(),
+            'products'   => $query->latest()->paginate(10)->withQueryString(),
             'categories' => Category::orderBy('sort_order')->get(),
         ]);
     })->name('produk');
+
+    $moveProductImages = function (Request $request, string $nameForSlug): array {
+        $destination = public_path('uploads/products');
+        if (! is_dir($destination)) {
+            mkdir($destination, 0755, true);
+        }
+
+        $paths = [];
+        foreach ((array) $request->file('images', []) as $file) {
+            if (! $file) {
+                continue;
+            }
+            $filename = time() . '-' . uniqid() . '-' . Str::slug($nameForSlug) . '.' . $file->getClientOriginalExtension();
+            $file->move($destination, $filename);
+            $paths[] = 'uploads/products/' . $filename;
+        }
+        return $paths;
+    };
+
+    $productValidationRules = function (?int $ignoreId = null) {
+        return [
+            'name'        => 'required|string|max:150',
+            'sku'         => 'required|string|max:30|unique:products,sku' . ($ignoreId ? ",{$ignoreId}" : ''),
+            'category_id' => 'required|exists:categories,id',
+            'price'       => 'required|integer|min:0',
+            'stock'       => 'required|integer|min:0',
+            'stock_min'   => 'nullable|integer|min:0',
+            'description' => 'required|string',
+            'weight'      => 'nullable|string|max:50',
+            'material'    => 'nullable|string|max:100',
+            'colors'      => 'nullable|string',
+            'sizes'       => 'nullable|string',
+            'status'      => 'required|in:aktif,arsip,habis',
+            'images'      => 'nullable|array|max:7',
+            'images.*'    => 'image|mimes:jpg,jpeg,png,webp|max:2048',
+            'existing_images'   => 'nullable|array',
+            'existing_images.*' => 'string',
+        ];
+    };
+
+    Route::post('/produk', function (Request $request) use ($moveProductImages, $productValidationRules) {
+        $data = $request->validate($productValidationRules());
+
+        $data['slug']      = Str::slug($data['name']) . '-' . strtolower($data['sku']);
+        $data['stock_min'] = $data['stock_min'] ?? 10;
+        $data['colors']    = ! empty($data['colors']) ? array_values(array_filter(array_map('trim', explode(',', $data['colors'])))) : [];
+        $data['sizes']     = ! empty($data['sizes'])  ? array_values(array_filter(array_map('trim', explode(',', $data['sizes']))))  : [];
+        if ($data['stock'] == 0 && $data['status'] === 'aktif') {
+            $data['status'] = 'habis';
+        }
+
+        $uploaded = $moveProductImages($request, $data['name']);
+        $data['images'] = $uploaded ?: null;
+        $data['image']  = $uploaded[0] ?? null;
+
+        unset($data['existing_images']);
+        Product::create($data);
+
+        return redirect()->route('admin.produk')->with('status', 'Produk berhasil ditambahkan.');
+    })->name('produk.store');
+
+    Route::put('/produk/{product}', function (Request $request, Product $product) use ($moveProductImages, $productValidationRules) {
+        $data = $request->validate($productValidationRules($product->id));
+
+        // Merge kept existing + newly uploaded, cap at 7
+        $currentImages = is_array($product->images) ? $product->images : ($product->image ? [$product->image] : []);
+        $kept = array_values(array_intersect($currentImages, (array) $request->input('existing_images', [])));
+        $removed = array_diff($currentImages, $kept);
+
+        $uploaded = $moveProductImages($request, $data['name']);
+        $finalImages = array_merge($kept, $uploaded);
+
+        if (count($finalImages) > 7) {
+            foreach ($uploaded as $p) {
+                @unlink(public_path($p));
+            }
+            return back()->withErrors(['images' => 'Total foto tidak boleh lebih dari 7.'])->withInput();
+        }
+
+        // Delete removed physical files
+        foreach ($removed as $p) {
+            if (str_starts_with($p, 'uploads/')) {
+                @unlink(public_path($p));
+            }
+        }
+
+        if ($data['name'] !== $product->name || $data['sku'] !== $product->sku) {
+            $data['slug'] = Str::slug($data['name']) . '-' . strtolower($data['sku']);
+        }
+        $data['stock_min'] = $data['stock_min'] ?? 10;
+        $data['colors']    = ! empty($data['colors']) ? array_values(array_filter(array_map('trim', explode(',', $data['colors'])))) : [];
+        $data['sizes']     = ! empty($data['sizes'])  ? array_values(array_filter(array_map('trim', explode(',', $data['sizes']))))  : [];
+        if ($data['stock'] == 0 && $data['status'] === 'aktif') {
+            $data['status'] = 'habis';
+        }
+
+        $data['images'] = $finalImages ?: null;
+        $data['image']  = $finalImages[0] ?? null;
+
+        unset($data['existing_images']);
+        $product->update($data);
+
+        return redirect()->route('admin.produk')->with('status', 'Produk berhasil diperbarui.');
+    })->name('produk.update');
+
+    Route::delete('/produk/{product}', function (Product $product) {
+        $all = is_array($product->images) ? $product->images : [];
+        if ($product->image) {
+            $all[] = $product->image;
+        }
+        foreach (array_unique($all) as $p) {
+            if (str_starts_with($p, 'uploads/')) {
+                $full = public_path($p);
+                if (is_file($full)) {
+                    @unlink($full);
+                }
+            }
+        }
+        $product->delete();
+
+        return redirect()->route('admin.produk')->with('status', 'Produk berhasil dihapus.');
+    })->name('produk.destroy');
 
     Route::get('/pesanan', function () {
         return view('admin.pesanan', [

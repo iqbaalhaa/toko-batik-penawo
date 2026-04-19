@@ -3,11 +3,14 @@
 @section('title', 'Batik Penawo | '.$product->name)
 
 @php
-	$gallery = [
-		$product->image,
-		'product-detail-02.jpg',
-		'product-detail-03.jpg',
-	];
+	// Pakai semua foto produk; jika hanya satu, lengkapi dengan gambar template agar slider tidak kosong.
+	$gallery = $product->image_urls;
+	if (count($gallery) < 2) {
+		$gallery = array_merge($gallery, [
+			asset('frontend/images/product-detail-02.jpg'),
+			asset('frontend/images/product-detail-03.jpg'),
+		]);
+	}
 	$related = \App\Models\Product::where('id', '!=', $product->id)
 		->where('status', '!=', 'arsip')
 		->inRandomOrder()
@@ -45,11 +48,11 @@
 
 							<div class="slick3 gallery-lb">
 								@foreach($gallery as $img)
-								<div class="item-slick3" data-thumb="{{ asset('frontend/images/'.$img) }}">
+								<div class="item-slick3" data-thumb="{{ $img }}">
 									<div class="wrap-pic-w pos-relative">
-										<img src="{{ asset('frontend/images/'.$img) }}" alt="{{ $product->name }}">
+										<img src="{{ $img }}" alt="{{ $product->name }}">
 
-										<a class="flex-c-m size-108 how-pos1 bor0 fs-16 cl10 bg0 hov-btn3 trans-04" href="{{ asset('frontend/images/'.$img) }}">
+										<a class="flex-c-m size-108 how-pos1 bor0 fs-16 cl10 bg0 hov-btn3 trans-04" href="{{ $img }}">
 											<i class="fa fa-expand"></i>
 										</a>
 									</div>
@@ -299,7 +302,7 @@
 						<div class="block2">
 							<div class="block2-pic hov-img0">
 								<a href="{{ route('produk.detail', $rp->slug) }}" class="dis-block">
-									<img src="{{ asset('frontend/images/'.$rp->image) }}" alt="{{ $rp->name }}">
+									<img src="{{ $rp->image_url }}" alt="{{ $rp->name }}">
 								</a>
 
 								<a href="#" class="block2-btn flex-c-m stext-103 cl2 size-102 bg0 bor2 hov-btn1 p-lr-15 trans-04 js-show-modal1">Lihat Cepat</a>

@@ -105,7 +105,7 @@
 				<ul style="list-style:none; padding:0; margin:0;">
 					@foreach($topProducts as $i => $p)
 					<li style="display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid #f2efe7;">
-						<img src="{{ asset('frontend/images/'.$p->image) }}" alt="{{ $p->name }}" class="table-thumb">
+						<img src="{{ $p->image_url }}" alt="{{ $p->name }}" class="table-thumb">
 						<div style="flex:1; min-width:0;">
 							<div style="font-size:13.5px; color:#2d2a26; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ $p->name }}</div>
 							<div style="font-size:12px; color:#9a9288;">Stok: {{ $p->stock }}</div>

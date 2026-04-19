@@ -27,11 +27,25 @@
 			@include('home.partials.product-grid')
 
 			<!-- Pagination -->
+			@if($products->hasPages())
 			<div class="flex-c-m flex-w w-full p-t-38">
-				<a href="#" class="flex-c-m how-pagination1 trans-04 m-all-7 active-pagination1">1</a>
-				<a href="#" class="flex-c-m how-pagination1 trans-04 m-all-7">2</a>
-				<a href="#" class="flex-c-m how-pagination1 trans-04 m-all-7">3</a>
+				@if(! $products->onFirstPage())
+					<a href="{{ $products->previousPageUrl() }}" class="flex-c-m how-pagination1 trans-04 m-all-7" aria-label="Sebelumnya">&laquo;</a>
+				@endif
+
+				@foreach($products->getUrlRange(1, $products->lastPage()) as $page => $url)
+					@if($page == $products->currentPage())
+						<span class="flex-c-m how-pagination1 m-all-7 active-pagination1">{{ $page }}</span>
+					@else
+						<a href="{{ $url }}" class="flex-c-m how-pagination1 trans-04 m-all-7">{{ $page }}</a>
+					@endif
+				@endforeach
+
+				@if($products->hasMorePages())
+					<a href="{{ $products->nextPageUrl() }}" class="flex-c-m how-pagination1 trans-04 m-all-7" aria-label="Selanjutnya">&raquo;</a>
+				@endif
 			</div>
+			@endif
 		</div>
 	</div>
 @endsection
