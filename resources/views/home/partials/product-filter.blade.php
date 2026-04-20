@@ -8,14 +8,14 @@
 
 	<div class="flex-w flex-c-m m-tb-10">
 		<div class="flex-c-m stext-106 cl6 size-104 bor4 pointer hov-btn3 trans-04 m-r-8 m-tb-4 js-show-filter">
-			<i class="icon-filter cl2 m-r-6 fs-15 trans-04 zmdi zmdi-filter-list"></i>
-			<i class="icon-close-filter cl2 m-r-6 fs-15 trans-04 zmdi zmdi-close dis-none"></i>
+			<i class="icon-filter cl2 m-r-6 fs-15 trans-04 fa fa-filter"></i>
+			<i class="icon-close-filter cl2 m-r-6 fs-15 trans-04 fa fa-times dis-none"></i>
 			 Filter
 		</div>
 
 		<div class="flex-c-m stext-106 cl6 size-105 bor4 pointer hov-btn3 trans-04 m-tb-4 js-show-search">
-			<i class="icon-search cl2 m-r-6 fs-15 trans-04 zmdi zmdi-search"></i>
-			<i class="icon-close-search cl2 m-r-6 fs-15 trans-04 zmdi zmdi-close dis-none"></i>
+			<i class="icon-search cl2 m-r-6 fs-15 trans-04 fa fa-search"></i>
+			<i class="icon-close-search cl2 m-r-6 fs-15 trans-04 fa fa-times dis-none"></i>
 			Cari
 		</div>
 	</div>
@@ -24,7 +24,7 @@
 	<div class="dis-none panel-search w-full p-t-10 p-b-15">
 		<div class="bor8 dis-flex p-l-15">
 			<button class="size-113 flex-c-m fs-16 cl2 hov-cl1 trans-04">
-				<i class="zmdi zmdi-search"></i>
+				<i class="fa fa-search"></i>
 			</button>
 
 			<input class="mtext-107 cl2 size-114 plh2 p-r-15" type="text" name="search-product" placeholder="Cari produk">
@@ -61,12 +61,12 @@
 			<div class="filter-col3 p-r-15 p-b-27">
 				<div class="mtext-102 cl2 p-b-15">Warna</div>
 				<ul>
-					<li class="p-b-6"><span class="fs-15 lh-12 m-r-6" style="color: #222;"><i class="zmdi zmdi-circle"></i></span><a href="#" class="filter-link stext-106 trans-04">Hitam</a></li>
-					<li class="p-b-6"><span class="fs-15 lh-12 m-r-6" style="color: #4272d7;"><i class="zmdi zmdi-circle"></i></span><a href="#" class="filter-link stext-106 trans-04 filter-link-active">Biru</a></li>
-					<li class="p-b-6"><span class="fs-15 lh-12 m-r-6" style="color: #b3b3b3;"><i class="zmdi zmdi-circle"></i></span><a href="#" class="filter-link stext-106 trans-04">Abu-abu</a></li>
-					<li class="p-b-6"><span class="fs-15 lh-12 m-r-6" style="color: #00ad5f;"><i class="zmdi zmdi-circle"></i></span><a href="#" class="filter-link stext-106 trans-04">Hijau</a></li>
-					<li class="p-b-6"><span class="fs-15 lh-12 m-r-6" style="color: #fa4251;"><i class="zmdi zmdi-circle"></i></span><a href="#" class="filter-link stext-106 trans-04">Merah</a></li>
-					<li class="p-b-6"><span class="fs-15 lh-12 m-r-6" style="color: #aaa;"><i class="zmdi zmdi-circle-o"></i></span><a href="#" class="filter-link stext-106 trans-04">Putih</a></li>
+					<li class="p-b-6"><span class="fs-15 lh-12 m-r-6" style="color: #222;"><i class="fa fa-circle"></i></span><a href="#" class="filter-link stext-106 trans-04">Hitam</a></li>
+					<li class="p-b-6"><span class="fs-15 lh-12 m-r-6" style="color: #4272d7;"><i class="fa fa-circle"></i></span><a href="#" class="filter-link stext-106 trans-04 filter-link-active">Biru</a></li>
+					<li class="p-b-6"><span class="fs-15 lh-12 m-r-6" style="color: #b3b3b3;"><i class="fa fa-circle"></i></span><a href="#" class="filter-link stext-106 trans-04">Abu-abu</a></li>
+					<li class="p-b-6"><span class="fs-15 lh-12 m-r-6" style="color: #00ad5f;"><i class="fa fa-circle"></i></span><a href="#" class="filter-link stext-106 trans-04">Hijau</a></li>
+					<li class="p-b-6"><span class="fs-15 lh-12 m-r-6" style="color: #fa4251;"><i class="fa fa-circle"></i></span><a href="#" class="filter-link stext-106 trans-04">Merah</a></li>
+					<li class="p-b-6"><span class="fs-15 lh-12 m-r-6" style="color: #aaa;"><i class="fa fa-circle-o"></i></span><a href="#" class="filter-link stext-106 trans-04">Putih</a></li>
 				</ul>
 			</div>
 

@@ -27,6 +27,241 @@ Route::get('/produk/{slug}', function (string $slug) {
 })->name('produk.detail');
 
 Route::get('/keranjang', fn () => view('home.keranjang'))->name('keranjang');
+
+Route::post('/keranjang/add', function (Request $request) {
+    if (! session('auth_user')) {
+        return redirect()->route('login')->withErrors(['email' => 'Silakan masuk untuk menambahkan ke keranjang.']);
+    }
+
+    $data = $request->validate([
+        'slug' => 'required|string|exists:products,slug',
+        'qty'  => 'required|integer|min:1|max:99',
+    ]);
+
+    $cart = session('cart', []);
+    $cart[$data['slug']] = min(99, (int) ($cart[$data['slug']] ?? 0) + $data['qty']);
+    session(['cart' => $cart]);
+
+    return redirect()->back()->with('status', 'Produk ditambahkan ke keranjang.');
+})->name('keranjang.add');
+
+Route::patch('/keranjang/{slug}', function (Request $request, string $slug) {
+    $cart = session('cart', []);
+    if (! isset($cart[$slug])) {
+        abort(404);
+    }
+    $qty = (int) $request->input('qty', 1);
+    $cart[$slug] = max(1, min(99, $qty));
+    session(['cart' => $cart]);
+    return redirect()->route('keranjang')->with('status', 'Jumlah produk diperbarui.');
+})->name('keranjang.update');
+
+Route::delete('/keranjang/{slug}', function (string $slug) {
+    $cart = session('cart', []);
+    unset($cart[$slug]);
+    session(['cart' => $cart]);
+    return redirect()->route('keranjang')->with('status', 'Produk dihapus dari keranjang.');
+})->name('keranjang.remove');
+
+Route::post('/keranjang/clear', function () {
+    session()->forget('cart');
+    return redirect()->route('keranjang')->with('status', 'Keranjang dikosongkan.');
+})->name('keranjang.clear');
+
+// Step 1: dari keranjang — stash item terpilih ke session, redirect ke halaman bayar
+Route::post('/checkout', function (Request $request) {
+    $authUser = session('auth_user');
+    if (! $authUser) {
+        return redirect()->route('login')->withErrors(['email' => 'Silakan masuk untuk checkout.']);
+    }
+
+    $data = $request->validate([
+        'selected'   => 'required|array|min:1',
+        'selected.*' => 'required|string',
+    ]);
+
+    $cart = session('cart', []);
+    $selectedSlugs = array_values(array_intersect($data['selected'], array_keys($cart)));
+    if (empty($selectedSlugs)) {
+        return redirect()->route('keranjang')->withErrors(['selected' => 'Produk yang dipilih tidak ada di keranjang.']);
+    }
+
+    session(['checkout_pending' => $selectedSlugs]);
+    return redirect()->route('checkout.show');
+})->name('checkout');
+
+// Step 2: halaman bayar — tampilkan ringkasan + form alamat + pilih metode bayar
+Route::get('/checkout', function () {
+    $authUser = session('auth_user');
+    if (! $authUser) {
+        return redirect()->route('login')->withErrors(['email' => 'Silakan masuk untuk checkout.']);
+    }
+
+    $pending = session('checkout_pending', []);
+    if (empty($pending)) {
+        return redirect()->route('keranjang')->with('status', 'Pilih produk dari keranjang untuk checkout.');
+    }
+
+    $cart = session('cart', []);
+    $slugs = array_values(array_intersect($pending, array_keys($cart)));
+    if (empty($slugs)) {
+        session()->forget('checkout_pending');
+        return redirect()->route('keranjang')->withErrors(['selected' => 'Item checkout sudah tidak tersedia di keranjang.']);
+    }
+
+    $products = Product::whereIn('slug', $slugs)->get()->keyBy('slug');
+    $items = [];
+    $subtotal = 0;
+    foreach ($slugs as $slug) {
+        $p = $products[$slug] ?? null;
+        if (! $p) continue;
+        $qty = (int) $cart[$slug];
+        $items[] = [
+            'slug'      => $p->slug,
+            'name'      => $p->name,
+            'qty'       => $qty,
+            'price'     => (int) $p->price,
+            'image_url' => $p->image_url,
+            'subtotal'  => $p->price * $qty,
+        ];
+        $subtotal += $p->price * $qty;
+    }
+
+    $shipping = $subtotal >= 500000 ? 0 : 20000;
+    $total = $subtotal + $shipping;
+
+    return view('home.checkout', compact('items', 'subtotal', 'shipping', 'total'));
+})->name('checkout.show');
+
+// Step 3: konfirmasi — buat Order + OrderItems, bersihkan cart/pending, redirect ke halaman sukses
+Route::post('/checkout/confirm', function (Request $request) {
+    $authUser = session('auth_user');
+    if (! $authUser) {
+        return redirect()->route('login')->withErrors(['email' => 'Silakan masuk untuk checkout.']);
+    }
+
+    $data = $request->validate([
+        'recipient_name'   => 'required|string|max:100',
+        'recipient_phone'  => 'required|string|max:25',
+        'shipping_address' => 'required|string|max:500',
+        'payment_method'   => 'required|in:BCA Transfer,Mandiri VA,BRI VA,BCA VA,OVO,GoPay,Dana,ShopeePay,COD',
+        'note'             => 'nullable|string|max:300',
+    ]);
+
+    $pending = session('checkout_pending', []);
+    $cart = session('cart', []);
+    $slugs = array_values(array_intersect($pending, array_keys($cart)));
+    if (empty($slugs)) {
+        return redirect()->route('keranjang')->withErrors(['selected' => 'Item checkout sudah tidak tersedia.']);
+    }
+
+    $products = Product::whereIn('slug', $slugs)->get()->keyBy('slug');
+    $items = [];
+    $subtotal = 0;
+    foreach ($slugs as $slug) {
+        $p = $products[$slug] ?? null;
+        if (! $p) continue;
+        $qty = (int) $cart[$slug];
+        $items[] = [
+            'product_id'   => $p->id,
+            'product_name' => $p->name,
+            'qty'          => $qty,
+            'price'        => (int) $p->price,
+        ];
+        $subtotal += $p->price * $qty;
+    }
+
+    $shipping = $subtotal >= 500000 ? 0 : 20000;
+    $total = $subtotal + $shipping;
+
+    $user = User::find($authUser['id'] ?? null);
+    $invoice = 'INV-' . now()->format('Ymd') . '-' . str_pad((string) (\App\Models\Order::count() + 1), 4, '0', STR_PAD_LEFT);
+
+    $noteParts = array_filter([
+        'Penerima: ' . $data['recipient_name'] . ' (' . $data['recipient_phone'] . ')',
+        'Ongkir: Rp' . number_format($shipping, 0, ',', '.'),
+        $data['note'] ? 'Catatan: ' . $data['note'] : null,
+    ]);
+
+    $order = \App\Models\Order::create([
+        'invoice_number'   => $invoice,
+        'user_id'          => $user?->id,
+        'customer_name'    => $authUser['name'],
+        'customer_email'   => $authUser['email'],
+        'total'            => $total,
+        'payment_method'   => $data['payment_method'],
+        'status'           => $data['payment_method'] === 'COD' ? 'diproses' : 'menunggu_bayar',
+        'shipping_address' => $data['shipping_address'],
+        'note'             => implode(' · ', $noteParts),
+    ]);
+
+    foreach ($items as $item) {
+        $order->items()->create($item);
+    }
+
+    // Bersihkan cart dan checkout pending
+    foreach ($slugs as $slug) {
+        unset($cart[$slug]);
+    }
+    session(['cart' => $cart]);
+    session()->forget('checkout_pending');
+
+    return redirect()->route('pesanan.sukses', $order->invoice_number);
+})->name('checkout.confirm');
+
+// Step 4: halaman sukses / invoice
+Route::get('/pesanan/{invoice}', function (string $invoice) {
+    $order = \App\Models\Order::with('items')->where('invoice_number', $invoice)->firstOrFail();
+    // Simple access guard: user matches, OR admin
+    $authUser = session('auth_user');
+    $isOwner = $authUser && ($order->customer_email === $authUser['email'] || ($authUser['role'] ?? null) === 'admin');
+    if (! $isOwner) {
+        return redirect()->route('home')->withErrors(['email' => 'Anda tidak dapat melihat pesanan ini.']);
+    }
+    return view('home.pesanan-sukses', compact('order'));
+})->name('pesanan.sukses');
+
+// Upload bukti transfer (pelanggan)
+Route::post('/pesanan/{invoice}/bayar', function (Request $request, string $invoice) {
+    $order = \App\Models\Order::where('invoice_number', $invoice)->firstOrFail();
+
+    $authUser = session('auth_user');
+    if (! $authUser || $order->customer_email !== $authUser['email']) {
+        return redirect()->route('home')->withErrors(['email' => 'Tidak ada akses.']);
+    }
+
+    if ($order->status !== 'menunggu_bayar') {
+        return redirect()->route('pesanan.sukses', $invoice)->withErrors(['proof' => 'Pesanan ini bukan dalam status menunggu pembayaran.']);
+    }
+
+    $request->validate([
+        'proof' => 'required|image|mimes:jpg,jpeg,png,webp|max:2048',
+    ]);
+
+    $file = $request->file('proof');
+    $filename = $order->invoice_number . '-' . time() . '.' . $file->getClientOriginalExtension();
+    $destination = public_path('uploads/bukti-transfer');
+    if (! is_dir($destination)) {
+        mkdir($destination, 0755, true);
+    }
+
+    // Hapus file lama jika ada
+    if ($order->payment_proof && str_starts_with($order->payment_proof, 'uploads/')) {
+        $old = public_path($order->payment_proof);
+        if (is_file($old)) {
+            @unlink($old);
+        }
+    }
+
+    $file->move($destination, $filename);
+
+    $order->payment_proof = 'uploads/bukti-transfer/' . $filename;
+    $order->paid_at       = now();
+    $order->status        = 'diproses';
+    $order->save();
+
+    return redirect()->route('pesanan.sukses', $invoice)->with('status', 'Bukti transfer berhasil diunggah. Pesanan sedang diverifikasi.');
+})->name('pesanan.bayar');
 Route::get('/tentang', fn () => view('home.tentang'))->name('tentang');
 Route::get('/kontak', fn () => view('home.kontak'))->name('kontak');
 
@@ -101,6 +336,71 @@ Route::post('/logout', function () {
     session()->forget('auth_user');
     return redirect(route('home'));
 })->name('logout');
+
+// Akun pelanggan (Profil + Pesanan Saya)
+Route::prefix('akun')->name('akun.')->group(function () {
+    Route::get('/profil', function () {
+        $authUser = session('auth_user');
+        if (! $authUser) {
+            return redirect()->route('login')->withErrors(['email' => 'Silakan masuk untuk mengakses profil.']);
+        }
+        $user = User::findOrFail($authUser['id']);
+        return view('home.akun.profil', compact('user'));
+    })->name('profil');
+
+    Route::post('/profil', function (Request $request) {
+        $authUser = session('auth_user');
+        if (! $authUser) {
+            return redirect()->route('login');
+        }
+        $user = User::findOrFail($authUser['id']);
+
+        $data = $request->validate([
+            'name'             => 'required|string|min:2|max:60',
+            'email'            => 'required|email|unique:users,email,' . $user->id,
+            'phone'            => 'nullable|string|max:25',
+            'current_password' => 'nullable|string',
+            'new_password'     => 'nullable|string|min:6|confirmed',
+        ]);
+
+        $user->name  = $data['name'];
+        $user->email = $data['email'];
+        $user->phone = $data['phone'] ?? null;
+
+        if (! empty($data['new_password'])) {
+            if (empty($data['current_password']) || ! Hash::check($data['current_password'], $user->password)) {
+                return back()->withErrors(['current_password' => 'Password saat ini salah.'])->withInput();
+            }
+            $user->password = Hash::make($data['new_password']);
+        }
+
+        $user->save();
+
+        // Sinkronisasi session
+        session(['auth_user' => [
+            'id'    => $user->id,
+            'name'  => $user->name,
+            'email' => $user->email,
+            'role'  => $user->role,
+        ]]);
+
+        return redirect()->route('akun.profil')->with('status', 'Profil berhasil diperbarui.');
+    })->name('profil.update');
+
+    Route::get('/pesanan', function () {
+        $authUser = session('auth_user');
+        if (! $authUser) {
+            return redirect()->route('login')->withErrors(['email' => 'Silakan masuk untuk melihat pesanan.']);
+        }
+        $orders = \App\Models\Order::with('items')
+            ->where(function ($q) use ($authUser) {
+                $q->where('user_id', $authUser['id'])->orWhere('customer_email', $authUser['email']);
+            })
+            ->latest()
+            ->paginate(10);
+        return view('home.akun.pesanan', compact('orders'));
+    })->name('pesanan');
+});
 
 // Admin dashboard — admin only (guarded by EnsureAdmin middleware)
 Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {

@@ -5,6 +5,15 @@
 @push('styles')
 <style>
 	.column-check { width: 48px; text-align: center; padding: 0 8px; }
+	.column-action { width: 44px; text-align: center; padding: 0 8px; }
+	.cart-remove-btn {
+		width: 32px; height: 32px; border-radius: 50%;
+		background: transparent; color: #9a9288; border: 0;
+		display: inline-flex; align-items: center; justify-content: center;
+		cursor: pointer; transition: background .15s, color .15s; padding: 0;
+	}
+	.cart-remove-btn:hover { background: #fbe4df; color: #a5432f; }
+	.cart-remove-btn i { font-size: 18px; }
 	.cart-checkbox-label { display: inline-flex; align-items: center; cursor: pointer; margin: 0; }
 	.cart-checkbox-label input[type="checkbox"] { position: absolute; opacity: 0; pointer-events: none; }
 	.cart-checkbox-label span {
@@ -47,8 +56,7 @@
 	</div>
 
 	<!-- Shopping Cart -->
-	<form class="bg0 p-t-75 p-b-85" action="#" method="POST">
-		@csrf
+	<div class="bg0 p-t-75 p-b-85">
 		<div class="container">
 			@if(count($cartItems))
 				<div class="row">
@@ -68,10 +76,11 @@
 										<th class="column-3">Harga</th>
 										<th class="column-4">Jumlah</th>
 										<th class="column-5">Total</th>
+										<th class="column-action"></th>
 									</tr>
 
 									@foreach($cartItems as $i => $item)
-									<tr class="table_row" data-price="{{ $item['price'] }}">
+									<tr class="table_row" data-price="{{ $item['price'] }}" data-slug="{{ $item['slug'] }}">
 										<td class="column-check">
 											<label class="cart-checkbox-label">
 												<input type="checkbox" name="selected[]" value="{{ $i }}" class="cart-item-check">
@@ -81,7 +90,7 @@
 										<td class="column-1">
 											<div class="how-itemcart1">
 												<a href="{{ route('produk.detail', $item['slug']) }}">
-													<img src="{{ asset('frontend/images/'.$item['img']) }}" alt="{{ $item['name'] }}">
+													<img src="{{ $item['image_url'] }}" alt="{{ $item['name'] }}">
 												</a>
 											</div>
 										</td>
@@ -92,22 +101,42 @@
 										</td>
 										<td class="column-3">{{ $rupiah($item['price']) }}</td>
 										<td class="column-4">
-											<div class="wrap-num-product flex-w m-l-auto m-r-0">
-												<div class="btn-num-product-down cl8 hov-btn3 trans-04 flex-c-m">
-													<i class="fs-16 zmdi zmdi-minus"></i>
-												</div>
+											<form action="{{ route('keranjang.update', $item['slug']) }}" method="POST" class="js-qty-form">
+												@csrf
+												@method('PATCH')
+												<div class="wrap-num-product flex-w m-l-auto m-r-0">
+													<div class="btn-num-product-down cl8 hov-btn3 trans-04 flex-c-m">
+														<i class="fs-16 fa fa-minus"></i>
+													</div>
 
-												<input class="mtext-104 cl3 txt-center num-product" type="number" name="qty[{{ $i }}]" value="{{ $item['qty'] }}" min="1">
+													<input class="mtext-104 cl3 txt-center num-product" type="number" name="qty" value="{{ $item['qty'] }}" min="1" max="99">
 
-												<div class="btn-num-product-up cl8 hov-btn3 trans-04 flex-c-m">
-													<i class="fs-16 zmdi zmdi-plus"></i>
+													<div class="btn-num-product-up cl8 hov-btn3 trans-04 flex-c-m">
+														<i class="fs-16 fa fa-plus"></i>
+													</div>
 												</div>
-											</div>
+											</form>
 										</td>
 										<td class="column-5 row-total">{{ $rupiah($item['price'] * $item['qty']) }}</td>
+										<td class="column-action">
+											<form action="{{ route('keranjang.remove', $item['slug']) }}" method="POST" onsubmit="return confirm('Hapus {{ $item['name'] }} dari keranjang?');" style="margin:0;">
+												@csrf
+												@method('DELETE')
+												<button type="submit" class="cart-remove-btn" title="Hapus"><i class="fa fa-trash-o"></i></button>
+											</form>
+										</td>
 									</tr>
 									@endforeach
 								</table>
+							</div>
+
+							<div style="padding-top:14px; text-align:right;">
+								<form action="{{ route('keranjang.clear') }}" method="POST" onsubmit="return confirm('Kosongkan seluruh keranjang?');" style="display:inline; margin:0;">
+									@csrf
+									<button type="submit" class="stext-106 cl6 hov-cl1 trans-04" style="background:none; border:0; padding:0; cursor:pointer; text-decoration:underline;">
+										<i class="fa fa-trash-o"></i> Kosongkan Keranjang
+									</button>
+								</form>
 							</div>
 						</div>
 					</div>
@@ -186,7 +215,7 @@
 								</div>
 							</div>
 
-							<button type="submit" id="checkout-btn" class="flex-c-m stext-101 cl0 size-116 bg3 bor14 hov-btn3 p-lr-15 trans-04 pointer" disabled>
+							<button type="button" id="checkout-btn" class="flex-c-m stext-101 cl0 size-116 bg3 bor14 hov-btn3 p-lr-15 trans-04 pointer" disabled>
 								Lanjut ke Pembayaran
 							</button>
 						</div>
@@ -202,7 +231,7 @@
 				</div>
 			@endif
 		</div>
-	</form>
+	</div>
 @endsection
 
 @push('scripts')
@@ -244,12 +273,14 @@
 			totalEl.textContent    = fmt(subtotal);
 			countEl.textContent    = count;
 
-			if (count === 0) {
-				shippingEl.textContent = 'Pilih produk untuk melihat ongkos kirim.';
-			} else if (subtotal >= FREE_SHIPPING_MIN) {
-				shippingEl.textContent = 'Gratis ongkir reguler untuk pesanan ini.';
-			} else {
-				shippingEl.textContent = 'Tambahkan ' + fmt(FREE_SHIPPING_MIN - subtotal) + ' lagi untuk mendapatkan gratis ongkir.';
+			if (shippingEl) {
+				if (count === 0) {
+					shippingEl.textContent = 'Pilih produk untuk melihat ongkos kirim.';
+				} else if (subtotal >= FREE_SHIPPING_MIN) {
+					shippingEl.textContent = 'Gratis ongkir reguler untuk pesanan ini.';
+				} else {
+					shippingEl.textContent = 'Tambahkan ' + fmt(FREE_SHIPPING_MIN - subtotal) + ' lagi untuk mendapatkan gratis ongkir.';
+				}
 			}
 
 			checkoutBtn.disabled = count === 0;
@@ -274,13 +305,54 @@
 			row.querySelector('.cart-item-check').addEventListener('change', recalcSummary);
 
 			const qtyIn = row.querySelector('input.num-product');
-			qtyIn.addEventListener('input', recalcSummary);
+			const qtyForm = row.querySelector('form.js-qty-form');
+			let submitTimer = null;
+			const scheduleSubmit = () => {
+				clearTimeout(submitTimer);
+				submitTimer = setTimeout(() => qtyForm.submit(), 700);
+			};
 
-			row.querySelector('.btn-num-product-up')  .addEventListener('click', () => setTimeout(recalcSummary, 0));
-			row.querySelector('.btn-num-product-down').addEventListener('click', () => setTimeout(recalcSummary, 0));
+			qtyIn.addEventListener('input', () => { recalcSummary(); scheduleSubmit(); });
+
+			row.querySelector('.btn-num-product-up').addEventListener('click', () => {
+				qtyIn.value = Math.min(99, (parseInt(qtyIn.value) || 0) + 1);
+				recalcSummary(); scheduleSubmit();
+			});
+			row.querySelector('.btn-num-product-down').addEventListener('click', () => {
+				qtyIn.value = Math.max(1, (parseInt(qtyIn.value) || 1) - 1);
+				recalcSummary(); scheduleSubmit();
+			});
 		});
 
 		recalcSummary();
+
+		// Checkout: kumpulkan slug terpilih, submit ke POST /checkout
+		if (checkoutBtn) {
+			checkoutBtn.addEventListener('click', function() {
+				if (checkoutBtn.disabled) return;
+				var selected = rows
+					.filter(function(r){ return r.querySelector('.cart-item-check').checked; })
+					.map(function(r){ return r.dataset.slug; });
+				if (selected.length === 0) return;
+
+				var token = document.querySelector('input[name="_token"]');
+				var f = document.createElement('form');
+				f.method = 'POST';
+				f.action = @json(route('checkout'));
+				if (token) {
+					var t = document.createElement('input');
+					t.type = 'hidden'; t.name = '_token'; t.value = token.value;
+					f.appendChild(t);
+				}
+				selected.forEach(function(slug){
+					var i = document.createElement('input');
+					i.type = 'hidden'; i.name = 'selected[]'; i.value = slug;
+					f.appendChild(i);
+				});
+				document.body.appendChild(f);
+				f.submit();
+			});
+		}
 	})();
 </script>
 @endpush

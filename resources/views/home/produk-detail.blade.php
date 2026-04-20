@@ -104,29 +104,31 @@
 								</div>
 							</div>
 
-							<div class="flex-w flex-r-m p-b-10">
+							<form action="{{ route('keranjang.add') }}" method="POST" class="flex-w flex-r-m p-b-10">
+								@csrf
+								<input type="hidden" name="slug" value="{{ $product->slug }}">
 								<div class="size-204 flex-w flex-m respon6-next">
 									<div class="wrap-num-product flex-w m-r-20 m-tb-10">
 										<div class="btn-num-product-down cl8 hov-btn3 trans-04 flex-c-m">
-											<i class="fs-16 zmdi zmdi-minus"></i>
+											<i class="fs-16 fa fa-minus"></i>
 										</div>
 
-										<input class="mtext-104 cl3 txt-center num-product" type="number" name="num-product" value="1" min="1">
+										<input class="mtext-104 cl3 txt-center num-product" type="number" name="qty" value="1" min="1" max="99">
 
 										<div class="btn-num-product-up cl8 hov-btn3 trans-04 flex-c-m">
-											<i class="fs-16 zmdi zmdi-plus"></i>
+											<i class="fs-16 fa fa-plus"></i>
 										</div>
 									</div>
 
-									<button class="flex-c-m stext-101 cl0 size-101 bg1 bor1 hov-btn1 p-lr-15 trans-04 js-addcart-detail">Tambah ke Keranjang</button>
+									<button type="submit" class="flex-c-m stext-101 cl0 size-101 bg1 bor1 hov-btn1 p-lr-15 trans-04">Tambah ke Keranjang</button>
 								</div>
-							</div>
+							</form>
 						</div>
 
 						<div class="flex-w flex-m p-l-100 p-t-40 respon7">
 							<div class="flex-m bor9 p-r-10 m-r-11">
 								<a href="#" class="fs-14 cl3 hov-cl1 trans-04 lh-10 p-lr-5 p-tb-2 js-addwish-detail tooltip100" data-tooltip="Tambah ke Favorit">
-									<i class="zmdi zmdi-favorite"></i>
+									<i class="fa fa-heart"></i>
 								</a>
 							</div>
 
@@ -219,11 +221,11 @@
 													<span class="mtext-107 cl2 p-r-20">Siti Ramadhani</span>
 
 													<span class="fs-18 cl11">
-														<i class="zmdi zmdi-star"></i>
-														<i class="zmdi zmdi-star"></i>
-														<i class="zmdi zmdi-star"></i>
-														<i class="zmdi zmdi-star"></i>
-														<i class="zmdi zmdi-star-half"></i>
+														<i class="fa fa-star"></i>
+														<i class="fa fa-star"></i>
+														<i class="fa fa-star"></i>
+														<i class="fa fa-star"></i>
+														<i class="fa fa-star-half-o"></i>
 													</span>
 												</div>
 
@@ -245,11 +247,11 @@
 												<span class="stext-102 cl3 m-r-16">Rating Anda</span>
 
 												<span class="wrap-rating fs-18 cl11 pointer">
-													<i class="item-rating pointer zmdi zmdi-star-outline"></i>
-													<i class="item-rating pointer zmdi zmdi-star-outline"></i>
-													<i class="item-rating pointer zmdi zmdi-star-outline"></i>
-													<i class="item-rating pointer zmdi zmdi-star-outline"></i>
-													<i class="item-rating pointer zmdi zmdi-star-outline"></i>
+													<i class="item-rating pointer fa fa-star-o"></i>
+													<i class="item-rating pointer fa fa-star-o"></i>
+													<i class="item-rating pointer fa fa-star-o"></i>
+													<i class="item-rating pointer fa fa-star-o"></i>
+													<i class="item-rating pointer fa fa-star-o"></i>
 													<input class="dis-none" type="number" name="rating">
 												</span>
 											</div>

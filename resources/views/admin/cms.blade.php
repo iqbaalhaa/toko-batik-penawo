@@ -10,12 +10,12 @@
 	<div class="admin-card" style="padding:0;">
 		<div style="border-bottom:1px solid #ece8de; padding:0 24px;">
 			<ul style="list-style:none; margin:0; padding:0; display:flex; gap:4px; flex-wrap:wrap;">
-				<li><a href="#tab-banner" class="cms-tab active" data-tab="banner"><i class="zmdi zmdi-image"></i> Banner Beranda</a></li>
-				<li><a href="#tab-pages" class="cms-tab" data-tab="pages"><i class="zmdi zmdi-file-text"></i> Halaman</a></li>
-				<li><a href="#tab-tentang" class="cms-tab" data-tab="tentang"><i class="zmdi zmdi-info"></i> Tentang Kami</a></li>
-				<li><a href="#tab-kontak" class="cms-tab" data-tab="kontak"><i class="zmdi zmdi-email"></i> Info Kontak</a></li>
-				<li><a href="#tab-kategori" class="cms-tab" data-tab="kategori"><i class="zmdi zmdi-collection-bookmark"></i> Kategori</a></li>
-				<li><a href="#tab-footer" class="cms-tab" data-tab="footer"><i class="zmdi zmdi-format-align-bottom"></i> Footer</a></li>
+				<li><a href="#tab-banner" class="cms-tab active" data-tab="banner"><i class="fa fa-picture-o"></i> Banner Beranda</a></li>
+				<li><a href="#tab-pages" class="cms-tab" data-tab="pages"><i class="fa fa-file-text-o"></i> Halaman</a></li>
+				<li><a href="#tab-tentang" class="cms-tab" data-tab="tentang"><i class="fa fa-info-circle"></i> Tentang Kami</a></li>
+				<li><a href="#tab-kontak" class="cms-tab" data-tab="kontak"><i class="fa fa-envelope-o"></i> Info Kontak</a></li>
+				<li><a href="#tab-kategori" class="cms-tab" data-tab="kategori"><i class="fa fa-folder-open-o"></i> Kategori</a></li>
+				<li><a href="#tab-footer" class="cms-tab" data-tab="footer"><i class="fa fa-align-justify"></i> Footer</a></li>
 			</ul>
 		</div>
 	</div>
@@ -28,7 +28,7 @@
 					<h3 class="admin-card-title">Banner Beranda</h3>
 					<div class="admin-card-sub">Slide yang ditampilkan di halaman depan</div>
 				</div>
-				<button type="button" class="btn-admin"><i class="zmdi zmdi-plus"></i> Tambah Banner</button>
+				<button type="button" class="btn-admin"><i class="fa fa-plus"></i> Tambah Banner</button>
 			</div>
 
 			@php
@@ -63,9 +63,9 @@
 							@endif
 						</td>
 						<td>
-							<a href="#" class="btn-admin-icon" title="Edit"><i class="zmdi zmdi-edit"></i></a>
-							<a href="#" class="btn-admin-icon" title="Atur Urutan"><i class="zmdi zmdi-swap-vertical"></i></a>
-							<a href="#" class="btn-admin-icon danger" title="Hapus"><i class="zmdi zmdi-delete"></i></a>
+							<a href="#" class="btn-admin-icon" title="Edit"><i class="fa fa-pencil-square-o"></i></a>
+							<a href="#" class="btn-admin-icon" title="Atur Urutan"><i class="fa fa-sort"></i></a>
+							<a href="#" class="btn-admin-icon danger" title="Hapus"><i class="fa fa-trash-o"></i></a>
 						</td>
 					</tr>
 					@endforeach
@@ -82,7 +82,7 @@
 					<h3 class="admin-card-title">Halaman Statis</h3>
 					<div class="admin-card-sub">Kelola konten halaman toko</div>
 				</div>
-				<button type="button" class="btn-admin"><i class="zmdi zmdi-plus"></i> Tambah Halaman</button>
+				<button type="button" class="btn-admin"><i class="fa fa-plus"></i> Tambah Halaman</button>
 			</div>
 			<table class="admin-table">
 				<thead>
@@ -118,9 +118,9 @@
 							@endif
 						</td>
 						<td>
-							<a href="#" class="btn-admin-icon" title="Lihat"><i class="zmdi zmdi-eye"></i></a>
-							<a href="#" class="btn-admin-icon" title="Edit"><i class="zmdi zmdi-edit"></i></a>
-							<a href="#" class="btn-admin-icon danger" title="Hapus"><i class="zmdi zmdi-delete"></i></a>
+							<a href="#" class="btn-admin-icon" title="Lihat"><i class="fa fa-eye"></i></a>
+							<a href="#" class="btn-admin-icon" title="Edit"><i class="fa fa-pencil-square-o"></i></a>
+							<a href="#" class="btn-admin-icon danger" title="Hapus"><i class="fa fa-trash-o"></i></a>
 						</td>
 					</tr>
 					@endforeach
@@ -154,12 +154,12 @@
 			<div style="margin-bottom:14px;">
 				<label class="form-label-admin">Gambar Sampul</label>
 				<div style="border:2px dashed #e0dbcf; border-radius:6px; padding:24px; text-align:center; color:#9a9288;">
-					<i class="zmdi zmdi-cloud-upload" style="font-size:32px; color:#c29e5c;"></i>
+					<i class="fa fa-cloud-upload" style="font-size:32px; color:#c29e5c;"></i>
 					<div style="font-size:13px; margin-top:6px;">Upload gambar sampul</div>
 				</div>
 			</div>
 			<div style="padding-top:14px; border-top:1px solid #f2efe7; margin-top:8px;">
-				<button type="button" class="btn-admin"><i class="zmdi zmdi-save"></i> Simpan Perubahan</button>
+				<button type="button" class="btn-admin"><i class="fa fa-floppy-o"></i> Simpan Perubahan</button>
 				<button type="button" class="btn-admin btn-admin-outline">Pratinjau</button>
 			</div>
 		</div>
@@ -205,7 +205,7 @@
 				</div>
 			</div>
 			<div style="padding-top:14px; border-top:1px solid #f2efe7; margin-top:8px;">
-				<button type="button" class="btn-admin"><i class="zmdi zmdi-save"></i> Simpan Perubahan</button>
+				<button type="button" class="btn-admin"><i class="fa fa-floppy-o"></i> Simpan Perubahan</button>
 			</div>
 		</div>
 
@@ -249,7 +249,7 @@
 					<h3 class="admin-card-title">Kategori Produk</h3>
 					<div class="admin-card-sub">Kelompok produk yang ditampilkan di filter</div>
 				</div>
-				<button type="button" class="btn-admin"><i class="zmdi zmdi-plus"></i> Tambah Kategori</button>
+				<button type="button" class="btn-admin"><i class="fa fa-plus"></i> Tambah Kategori</button>
 			</div>
 			<table class="admin-table">
 				<thead>
@@ -269,8 +269,8 @@
 						<td>{{ $c->products_count }} produk</td>
 						<td>{{ $c->sort_order }}</td>
 						<td>
-							<a href="#" class="btn-admin-icon" title="Edit"><i class="zmdi zmdi-edit"></i></a>
-							<a href="#" class="btn-admin-icon danger" title="Hapus"><i class="zmdi zmdi-delete"></i></a>
+							<a href="#" class="btn-admin-icon" title="Edit"><i class="fa fa-pencil-square-o"></i></a>
+							<a href="#" class="btn-admin-icon danger" title="Hapus"><i class="fa fa-trash-o"></i></a>
 						</td>
 					</tr>
 					@empty
@@ -303,7 +303,7 @@
 				<input type="text" class="form-control-admin" value="Gratis ongkir untuk pembelian di atas Rp500.000">
 			</div>
 			<div style="padding-top:14px; border-top:1px solid #f2efe7; margin-top:8px;">
-				<button type="button" class="btn-admin"><i class="zmdi zmdi-save"></i> Simpan Perubahan</button>
+				<button type="button" class="btn-admin"><i class="fa fa-floppy-o"></i> Simpan Perubahan</button>
 			</div>
 		</div>
 	</div>

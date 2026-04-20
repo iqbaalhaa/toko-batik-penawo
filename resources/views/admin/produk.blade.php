@@ -27,13 +27,13 @@
 				<div class="admin-card-sub">Total {{ $products->total() }} produk terdaftar</div>
 			</div>
 			<button type="button" class="btn-admin js-produk-add" data-toggle="modal" data-target="#modalProduk">
-				<i class="zmdi zmdi-plus"></i> Tambah Produk
+				<i class="fa fa-plus"></i> Tambah Produk
 			</button>
 		</div>
 
 		<form method="GET" action="{{ route('admin.produk') }}" class="toolbar">
 			<div class="toolbar-search">
-				<i class="zmdi zmdi-search"></i>
+				<i class="fa fa-search"></i>
 				<input type="text" name="q" value="{{ request('q') }}" class="form-control-admin" placeholder="Cari produk berdasarkan nama atau SKU...">
 			</div>
 
@@ -51,9 +51,9 @@
 				<option value="arsip"  @selected(request('status') === 'arsip')>Arsip</option>
 			</select>
 
-			<button type="submit" class="btn-admin"><i class="zmdi zmdi-search"></i> Cari</button>
+			<button type="submit" class="btn-admin"><i class="fa fa-search"></i> Cari</button>
 			@if(request()->hasAny(['q','category_id','status']))
-				<a href="{{ route('admin.produk') }}" class="btn-admin btn-admin-outline"><i class="zmdi zmdi-close"></i> Reset</a>
+				<a href="{{ route('admin.produk') }}" class="btn-admin btn-admin-outline"><i class="fa fa-times"></i> Reset</a>
 			@endif
 		</form>
 
@@ -98,7 +98,7 @@
 							@endif
 						</td>
 						<td>
-							<a href="{{ route('produk.detail', $p->slug) }}" target="_blank" class="btn-admin-icon" title="Lihat"><i class="zmdi zmdi-eye"></i></a>
+							<a href="{{ route('produk.detail', $p->slug) }}" target="_blank" class="btn-admin-icon" title="Lihat"><i class="fa fa-eye"></i></a>
 							<button
 								type="button"
 								class="btn-admin-icon js-produk-edit"
@@ -126,11 +126,11 @@
 									}
 								@endphp
 								data-images="{{ json_encode($imagePairs) }}"
-							><i class="zmdi zmdi-edit"></i></button>
+							><i class="fa fa-pencil-square-o"></i></button>
 							<form action="{{ route('admin.produk.destroy', $p) }}" method="POST" style="display:inline;" onsubmit="return confirm('Hapus produk &quot;{{ $p->name }}&quot;? Tindakan ini tidak dapat dibatalkan.');">
 								@csrf
 								@method('DELETE')
-								<button type="submit" class="btn-admin-icon danger" title="Hapus"><i class="zmdi zmdi-delete"></i></button>
+								<button type="submit" class="btn-admin-icon danger" title="Hapus"><i class="fa fa-trash-o"></i></button>
 							</form>
 						</td>
 					</tr>
@@ -156,9 +156,9 @@
 			@if($products->hasPages())
 			<div class="admin-pager">
 				@if($products->onFirstPage())
-					<span class="admin-pager-btn disabled"><i class="zmdi zmdi-chevron-left"></i></span>
+					<span class="admin-pager-btn disabled"><i class="fa fa-chevron-left"></i></span>
 				@else
-					<a href="{{ $products->previousPageUrl() }}" class="admin-pager-btn"><i class="zmdi zmdi-chevron-left"></i></a>
+					<a href="{{ $products->previousPageUrl() }}" class="admin-pager-btn"><i class="fa fa-chevron-left"></i></a>
 				@endif
 
 				@foreach($products->getUrlRange(1, $products->lastPage()) as $page => $url)
@@ -170,9 +170,9 @@
 				@endforeach
 
 				@if($products->hasMorePages())
-					<a href="{{ $products->nextPageUrl() }}" class="admin-pager-btn"><i class="zmdi zmdi-chevron-right"></i></a>
+					<a href="{{ $products->nextPageUrl() }}" class="admin-pager-btn"><i class="fa fa-chevron-right"></i></a>
 				@else
-					<span class="admin-pager-btn disabled"><i class="zmdi zmdi-chevron-right"></i></span>
+					<span class="admin-pager-btn disabled"><i class="fa fa-chevron-right"></i></span>
 				@endif
 			</div>
 			@endif
@@ -219,7 +219,10 @@
 									<div class="col-md-6">
 										<div style="margin-bottom:14px;">
 											<label class="form-label-admin">Harga (Rp) <span style="color:#a5432f;">*</span></label>
-											<input type="number" class="form-control-admin" name="price" id="f_price" min="0" value="{{ old('price') }}" required>
+											<div style="position:relative;">
+												<span style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#9a9288; font-size:13.5px; pointer-events:none;">Rp</span>
+												<input type="text" inputmode="numeric" autocomplete="off" class="form-control-admin rupiah-input" name="price" id="f_price" value="{{ old('price') }}" required placeholder="0" style="padding-left:34px;">
+											</div>
 										</div>
 									</div>
 									<div class="col-md-3">
@@ -252,8 +255,25 @@
 									<input type="text" class="form-control-admin" name="colors" id="f_colors" placeholder="Cokelat Sogan, Hitam" value="{{ old('colors') }}">
 								</div>
 								<div style="margin-bottom:14px;">
-									<label class="form-label-admin">Ukuran <small style="color:#9a9288;">(pisahkan dengan koma)</small></label>
-									<input type="text" class="form-control-admin" name="sizes" id="f_sizes" placeholder="S, M, L, XL" value="{{ old('sizes') }}">
+									<label class="form-label-admin">Ukuran</label>
+									<div id="sizeChips" class="chip-box"></div>
+									<div style="display:flex; gap:6px; margin-top:6px;">
+										<input type="text" class="form-control-admin" id="f_sizes_text" placeholder="Ketik ukuran lalu Enter (mis. XL, All Size, 30x25x10 cm)" autocomplete="off">
+										<button type="button" class="btn-admin btn-admin-outline" id="f_sizes_add" tabindex="-1">Tambah</button>
+									</div>
+									<div class="size-presets">
+										<span class="size-presets-label">Pakaian:</span>
+										@foreach(['S','M','L','XL','XXL','XXXL','All Size'] as $s)
+											<button type="button" class="size-preset" data-size="{{ $s }}">{{ $s }}</button>
+										@endforeach
+									</div>
+									<div class="size-presets">
+										<span class="size-presets-label">Sepatu:</span>
+										@foreach(['38','39','40','41','42','43','44'] as $s)
+											<button type="button" class="size-preset" data-size="{{ $s }}">{{ $s }}</button>
+										@endforeach
+									</div>
+									<input type="hidden" name="sizes" id="f_sizes" value="{{ old('sizes') }}">
 								</div>
 								<div style="margin-bottom:14px;">
 									<label class="form-label-admin">Deskripsi <span style="color:#a5432f;">*</span></label>
@@ -266,7 +286,7 @@
 								<div id="photoGrid" class="photo-grid"></div>
 
 								<label for="f_images" class="photo-add-btn" id="photoAddBtn">
-									<i class="zmdi zmdi-camera-add"></i>
+									<i class="fa fa-camera"></i>
 									<span>Tambah Foto</span>
 								</label>
 								<input type="file" name="images[]" id="f_images" accept="image/jpeg,image/png,image/webp" multiple style="display:none;">
@@ -288,7 +308,7 @@
 					</div>
 					<div class="modal-footer" style="border-top:1px solid #ece8de;">
 						<button type="button" class="btn-admin btn-admin-outline" data-dismiss="modal">Batal</button>
-						<button type="submit" class="btn-admin"><i class="zmdi zmdi-save"></i> Simpan Produk</button>
+						<button type="submit" class="btn-admin"><i class="fa fa-floppy-o"></i> Simpan Produk</button>
 					</div>
 				</form>
 			</div>
@@ -340,6 +360,46 @@
 	.admin-pager-btn:hover { border-color: #c29e5c; color: #c29e5c; text-decoration: none; }
 	.admin-pager-btn.active { background: #c29e5c; border-color: #c29e5c; color: #fff; font-weight: 600; }
 	.admin-pager-btn.disabled { opacity: .4; cursor: not-allowed; pointer-events: none; }
+
+	.chip-box {
+		min-height: 38px;
+		padding: 6px;
+		border: 1px solid #e0dbcf;
+		border-radius: 4px;
+		background: #fff;
+		display: flex; flex-wrap: wrap; gap: 6px;
+		align-items: flex-start;
+	}
+	.chip-box:empty::before {
+		content: 'Belum ada ukuran dipilih';
+		color: #bdb7ab; font-size: 12.5px; padding: 4px 6px;
+	}
+	.chip {
+		display: inline-flex; align-items: center; gap: 6px;
+		padding: 4px 4px 4px 10px;
+		background: #f5ecd7; color: #8a6b2b;
+		border: 1px solid #e4d5aa; border-radius: 999px;
+		font-size: 12.5px; font-weight: 500; letter-spacing: .2px;
+	}
+	.chip-remove {
+		width: 18px; height: 18px; border-radius: 50%;
+		background: rgba(138,107,43,.15); color: #8a6b2b;
+		display: inline-flex; align-items: center; justify-content: center;
+		border: 0; cursor: pointer; font-size: 12px; line-height: 1;
+		transition: background .12s;
+	}
+	.chip-remove:hover { background: #a5432f; color: #fff; }
+
+	.size-presets { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+	.size-presets-label { font-size: 11.5px; color: #9a9288; text-transform: uppercase; letter-spacing: .5px; margin-right: 4px; }
+	.size-preset {
+		padding: 4px 12px; font-size: 12.5px;
+		background: #fff; color: #6c665e;
+		border: 1px solid #e0dbcf; border-radius: 999px;
+		cursor: pointer; transition: all .12s;
+	}
+	.size-preset:hover { border-color: #c29e5c; color: #c29e5c; }
+	.size-preset.active { background: #c29e5c; border-color: #c29e5c; color: #fff; font-weight: 500; }
 </style>
 @endpush
 
@@ -352,6 +412,89 @@ $(function() {
 	var updateUrlTpl = @json(url('admin/produk')) + '/:id';
 	var MAX_PHOTOS = 7;
 	var MAX_BYTES = 2 * 1024 * 1024;
+
+	// ==== Rupiah input helper ====
+	function formatRupiah(v) {
+		var digits = String(v == null ? '' : v).replace(/\D/g, '');
+		return digits ? digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.') : '';
+	}
+	function unformatRupiah(v) { return String(v == null ? '' : v).replace(/\D/g, ''); }
+
+	$(document).on('input', '.rupiah-input', function() {
+		var el = this;
+		var before = el.value;
+		var caret = el.selectionStart;
+		var digitsBeforeCaret = before.slice(0, caret).replace(/\D/g, '').length;
+		el.value = formatRupiah(before);
+		// restore caret: find position where N digits have been seen
+		var seen = 0, pos = 0;
+		for (; pos < el.value.length && seen < digitsBeforeCaret; pos++) {
+			if (/\d/.test(el.value[pos])) seen++;
+		}
+		try { el.setSelectionRange(pos, pos); } catch (e) { /* some input types don't support selection */ }
+	});
+
+	$('#produkForm').on('submit', function() {
+		$(this).find('.rupiah-input').each(function() { this.value = unformatRupiah(this.value); });
+	});
+
+	// format existing old() value after initial render
+	$('.rupiah-input').each(function() { this.value = formatRupiah(this.value); });
+
+	// ==== Size chip helper ====
+	var sizes = [];
+	function renderSizes() {
+		var $box = $('#sizeChips').empty();
+		sizes.forEach(function(s) {
+			var $chip = $('<span class="chip"></span>').text(s);
+			$('<button type="button" class="chip-remove" aria-label="Hapus">&times;</button>')
+				.on('click', function() { removeSize(s); })
+				.appendTo($chip);
+			$box.append($chip);
+		});
+		$('#f_sizes').val(sizes.join(', '));
+		$('.size-preset').each(function() {
+			$(this).toggleClass('active', sizes.indexOf($(this).data('size').toString()) !== -1);
+		});
+	}
+	function addSize(raw) {
+		var v = (raw || '').trim();
+		if (!v) return;
+		if (sizes.indexOf(v) !== -1) return;
+		sizes.push(v);
+		renderSizes();
+	}
+	function removeSize(v) {
+		sizes = sizes.filter(function(s) { return s !== v; });
+		renderSizes();
+	}
+	function parseSizes(str) {
+		return (str || '').split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+	}
+	function resetSizes(str) {
+		sizes = parseSizes(str);
+		renderSizes();
+	}
+
+	$('#f_sizes_text').on('keydown', function(e) {
+		if (e.key === 'Enter' || e.key === ',') {
+			e.preventDefault();
+			addSize(this.value);
+			this.value = '';
+		} else if (e.key === 'Backspace' && !this.value && sizes.length) {
+			sizes.pop();
+			renderSizes();
+		}
+	});
+	$('#f_sizes_add').on('click', function() {
+		addSize($('#f_sizes_text').val());
+		$('#f_sizes_text').val('').focus();
+	});
+	$('.size-preset').on('click', function() {
+		var v = $(this).data('size').toString();
+		sizes.indexOf(v) === -1 ? addSize(v) : removeSize(v);
+	});
+	resetSizes('{{ old('sizes') }}');
 
 	// State untuk uploader
 	var existingImages = []; // [{path, url}]
@@ -366,7 +509,7 @@ $(function() {
 			if (i === 0) $tile.append('<span class="photo-tile-badge">Cover</span>');
 			$tile.append($('<input type="hidden" name="existing_images[]">').val(img.path));
 			$tile.append(
-				$('<button type="button" class="photo-tile-remove" title="Hapus"><i class="zmdi zmdi-close"></i></button>')
+				$('<button type="button" class="photo-tile-remove" title="Hapus"><i class="fa fa-times"></i></button>')
 					.on('click', function() { existingImages.splice(i, 1); renderPhotos(); })
 			);
 			$grid.append($tile);
@@ -382,7 +525,7 @@ $(function() {
 			if (existingImages.length === 0 && i === 0) $tile.append('<span class="photo-tile-badge">Cover</span>');
 			$tile.append('<span class="photo-tile-badge" style="right:4px;left:auto;background:#56a676;">Baru</span>');
 			$tile.append(
-				$('<button type="button" class="photo-tile-remove" title="Hapus"><i class="zmdi zmdi-close"></i></button>')
+				$('<button type="button" class="photo-tile-remove" title="Hapus"><i class="fa fa-times"></i></button>')
 					.on('click', function() { newFiles.splice(i, 1); syncInputFiles(); renderPhotos(); })
 			);
 			$grid.append($tile);
@@ -449,6 +592,7 @@ $(function() {
 		syncInputFiles();
 		renderPhotos();
 		showPhotoError('');
+		resetSizes('');
 	}
 
 	$('.js-produk-add').on('click', resetForm);
@@ -462,14 +606,14 @@ $(function() {
 		$('#f_name').val(d.name);
 		$('#f_sku').val(d.sku);
 		$('#f_category').val(d.category);
-		$('#f_price').val(d.price);
+		$('#f_price').val(formatRupiah(d.price));
 		$('#f_stock').val(d.stock);
 		$('#f_stock_min').val(d.stockMin);
 		$('#f_description').val(d.description);
 		$('#f_weight').val(d.weight);
 		$('#f_material').val(d.material);
 		$('#f_colors').val(d.colors);
-		$('#f_sizes').val(d.sizes);
+		resetSizes(d.sizes);
 		$('#f_status').val(d.status);
 		existingImages = Array.isArray(d.images) ? d.images.slice() : [];
 		renderPhotos();

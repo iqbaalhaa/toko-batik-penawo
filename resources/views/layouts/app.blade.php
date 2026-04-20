@@ -7,8 +7,6 @@
 	<link rel="icon" type="image/png" href="{{ asset('frontend/images/icons/favicon.png') }}"/>
 	<link rel="stylesheet" type="text/css" href="{{ asset('frontend/vendor/bootstrap/css/bootstrap.min.css') }}">
 	<link rel="stylesheet" type="text/css" href="{{ asset('frontend/fonts/font-awesome-4.7.0/css/font-awesome.min.css') }}">
-	<link rel="stylesheet" type="text/css" href="{{ asset('frontend/fonts/iconic/css/material-design-iconic-font.min.css') }}">
-	<link rel="stylesheet" type="text/css" href="{{ asset('frontend/fonts/linearicons-v1.0.0/icon-font.min.css') }}">
 	<link rel="stylesheet" type="text/css" href="{{ asset('frontend/vendor/animate/animate.css') }}">
 	<link rel="stylesheet" type="text/css" href="{{ asset('frontend/vendor/css-hamburgers/hamburgers.min.css') }}">
 	<link rel="stylesheet" type="text/css" href="{{ asset('frontend/vendor/animsition/css/animsition.min.css') }}">
@@ -127,6 +125,23 @@
 		.profile-dropdown form { margin: 0; padding: 0; }
 		.profile-dropdown form button { width: 100%; background: none; border: 0; text-align: left; cursor: pointer; font: inherit; }
 
+		/* Flash banner (session status) */
+		.flash-banner {
+			display: flex; align-items: center; gap: 10px;
+			background: #edf7ef; color: #2f7a4c;
+			border: 1px solid #cfe6d6; border-left: 4px solid #56a676;
+			padding: 12px 16px; border-radius: 4px;
+			font-size: 14px;
+		}
+		.flash-banner i { font-size: 18px; }
+		.flash-banner span { flex: 1; }
+		.flash-close {
+			background: none; border: 0; color: #2f7a4c;
+			cursor: pointer; font-size: 20px; line-height: 1;
+			padding: 0 4px; opacity: .6;
+		}
+		.flash-close:hover { opacity: 1; }
+
 		/* Global topbar */
 		.topbar-global { background: #2d2d2d; color: #e2e2e2; font-size: 12.5px; }
 		.topbar-global .topbar-inner { display: flex; justify-content: space-between; align-items: center; height: 36px; }
@@ -147,19 +162,19 @@
 	<!-- Header -->
 	<header>
 		<!-- Topbar -->
-		<div class="topbar-global">
+		<div class="topbar-global top-bar">
 			<div class="container">
 				<div class="topbar-inner">
 					<div class="topbar-left">
-						    
+
 					</div>
 
 					<div class="topbar-right">
-						<a href="#" class="topbar-link"><i class="zmdi zmdi-notifications-none"></i>Notifikasi</a>
+						<a href="#" class="topbar-link"><i class="fa fa-bell-o"></i>Notifikasi</a>
 						<span class="topbar-sep">|</span>
-						<a href="{{ route('kontak') }}" class="topbar-link"><i class="zmdi zmdi-help-outline"></i>Bantuan</a>
+						<a href="{{ route('kontak') }}" class="topbar-link"><i class="fa fa-question-circle-o"></i>Bantuan</a>
 						<span class="topbar-sep">|</span>
-						<a href="#" class="topbar-link"><i class="zmdi zmdi-globe"></i>Bahasa Indonesia</a>
+						<a href="#" class="topbar-link"><i class="fa fa-globe"></i>Bahasa Indonesia</a>
 
 						@if(!$authUser)
 							<span class="topbar-sep">|</span>
@@ -168,7 +183,7 @@
 							<a href="{{ route('login') }}" class="topbar-link topbar-link-strong">Masuk</a>
 						@else
 							<span class="topbar-sep">|</span>
-							<span class="topbar-link"><i class="zmdi zmdi-account-o"></i>Halo, {{ $authUser['name'] }}</span>
+							<span class="topbar-link"><i class="fa fa-user-o"></i>Halo, {{ $authUser['name'] }}</span>
 							<span class="topbar-sep">|</span>
 							<form action="{{ route('logout') }}" method="POST" class="topbar-logout">
 								@csrf
@@ -210,13 +225,13 @@
 
 					<div class="wrap-icon-header flex-w flex-r-m">
 						<div class="icon-header-item cl2 hov-cl1 trans-04 p-l-22 p-r-11 js-show-modal-search">
-							<i class="zmdi zmdi-search"></i>
+							<i class="fa fa-search"></i>
 						</div>
 
 						@if($authUser)
 							<div class="icon-header-item cl2 hov-cl1 trans-04 p-l-22 p-r-11 icon-header-noti cart-wrap" data-notify="{{ count($cartItems) }}">
 								<a href="{{ route('keranjang') }}" class="cart-trigger">
-									<i class="zmdi zmdi-shopping-cart"></i>
+									<i class="fa fa-shopping-cart"></i>
 								</a>
 
 								<div class="cart-dropdown">
@@ -228,7 +243,7 @@
 											<li class="cart-dropdown-item">
 												<a href="{{ route('produk.detail', $item['slug']) }}" class="cart-dropdown-item-link">
 													<div class="cart-dropdown-item-img">
-														<img src="{{ asset('frontend/images/'.$item['img']) }}" alt="{{ $item['name'] }}">
+														<img src="{{ $item['image_url'] }}" alt="{{ $item['name'] }}">
 													</div>
 													<div class="cart-dropdown-item-info">
 														<div class="cart-dropdown-item-name">{{ $item['name'] }}</div>
@@ -252,7 +267,7 @@
 
 							<div class="icon-header-item cl2 hov-cl1 trans-04 p-l-22 p-r-11 profile-wrap">
 								<a href="#" class="profile-trigger">
-									<i class="zmdi zmdi-account-o"></i>
+									<i class="fa fa-user-o"></i>
 								</a>
 
 								<div class="profile-dropdown">
@@ -261,16 +276,16 @@
 										<div class="profile-dropdown-sub">{{ $authUser['email'] }}</div>
 									</div>
 
-									<a href="#" class="profile-dropdown-link"><i class="zmdi zmdi-account"></i>Profil Saya</a>
-									<a href="#" class="profile-dropdown-link"><i class="zmdi zmdi-receipt"></i>Pesanan Saya</a>
-									<a href="#" class="profile-dropdown-link"><i class="zmdi zmdi-favorite-outline"></i>Wishlist</a>
-									<a href="#" class="profile-dropdown-link"><i class="zmdi zmdi-settings"></i>Pengaturan</a>
+									<a href="{{ route('akun.profil') }}" class="profile-dropdown-link"><i class="fa fa-user"></i>Profil Saya</a>
+									<a href="{{ route('akun.pesanan') }}" class="profile-dropdown-link"><i class="fa fa-file-text-o"></i>Pesanan Saya</a>
+									<a href="#" class="profile-dropdown-link" style="opacity:.55; cursor:not-allowed;" onclick="return false;"><i class="fa fa-heart-o"></i>Wishlist <small style="color:#bdb7ab; margin-left:auto; font-size:10px;">(segera)</small></a>
+									<a href="#" class="profile-dropdown-link" style="opacity:.55; cursor:not-allowed;" onclick="return false;"><i class="fa fa-cog"></i>Pengaturan <small style="color:#bdb7ab; margin-left:auto; font-size:10px;">(segera)</small></a>
 
 									<div class="profile-dropdown-divider"></div>
 
 									<form action="{{ route('logout') }}" method="POST">
 										@csrf
-										<button type="submit" class="profile-dropdown-link profile-dropdown-link-accent"><i class="zmdi zmdi-sign-in"></i>Keluar</button>
+										<button type="submit" class="profile-dropdown-link profile-dropdown-link-accent"><i class="fa fa-sign-in"></i>Keluar</button>
 									</form>
 								</div>
 							</div>
@@ -288,20 +303,20 @@
 
 			<div class="wrap-icon-header flex-w flex-r-m m-r-15">
 				<div class="icon-header-item cl2 hov-cl1 trans-04 p-r-11 js-show-modal-search">
-					<i class="zmdi zmdi-search"></i>
+					<i class="fa fa-search"></i>
 				</div>
 
 				@if($authUser)
 					<a href="{{ route('keranjang') }}" class="dis-block icon-header-item cl2 hov-cl1 trans-04 p-r-11 p-l-10 icon-header-noti" data-notify="{{ count($cartItems) }}">
-						<i class="zmdi zmdi-shopping-cart"></i>
+						<i class="fa fa-shopping-cart"></i>
 					</a>
 
 					<a href="#" class="dis-block icon-header-item cl2 hov-cl1 trans-04 p-r-11 p-l-10">
-						<i class="zmdi zmdi-account-o"></i>
+						<i class="fa fa-user-o"></i>
 					</a>
 				@else
 					<a href="{{ route('login') }}" class="dis-block icon-header-item cl2 hov-cl1 trans-04 p-r-11 p-l-10">
-						<i class="zmdi zmdi-sign-in"></i>
+						<i class="fa fa-sign-in"></i>
 					</a>
 				@endif
 			</div>
@@ -362,13 +377,24 @@
 
 				<form class="wrap-search-header flex-w p-l-15">
 					<button class="flex-c-m trans-04">
-						<i class="zmdi zmdi-search"></i>
+						<i class="fa fa-search"></i>
 					</button>
 					<input class="plh3" type="text" name="search" placeholder="Cari produk batik...">
 				</form>
 			</div>
 		</div>
 	</header>
+
+	@if(session('status'))
+		<div class="container" style="padding-top:18px;">
+			<div class="flash-banner" id="flashBanner">
+				<i class="fa fa-check-circle"></i>
+				<span>{{ session('status') }}</span>
+				<button type="button" class="flash-close" onclick="this.parentElement.style.display='none'" aria-label="Tutup">&times;</button>
+			</div>
+		</div>
+		<script>setTimeout(function(){ var b=document.getElementById('flashBanner'); if(b){ b.style.transition='opacity .4s'; b.style.opacity='0'; setTimeout(function(){b.style.display='none';},400); } }, 4000);</script>
+	@endif
 
 	@yield('content')
 
@@ -445,11 +471,11 @@ Hak Cipta &copy;<script>document.write(new Date().getFullYear());</script> Batik
 	<!-- Back to top -->
 	<div class="btn-back-to-top" id="myBtn">
 		<span class="symbol-btn-back-to-top">
-			<i class="zmdi zmdi-chevron-up"></i>
+			<i class="fa fa-chevron-up"></i>
 		</span>
 	</div>
 
-	<!-- Modal1 (Quick View) -->
+	<!-- Modal1 (Quick View) — dinamis, diisi via JS dari tombol "Lihat Cepat" -->
 	<div class="wrap-modal1 js-modal1 p-t-60 p-b-20">
 		<div class="overlay-modal1 js-hide-modal1"></div>
 
@@ -462,64 +488,41 @@ Hak Cipta &copy;<script>document.write(new Date().getFullYear());</script> Batik
 				<div class="row">
 					<div class="col-md-6 col-lg-7 p-b-30">
 						<div class="p-l-25 p-r-30 p-lr-0-lg">
-							<div class="wrap-slick3 flex-sb flex-w">
-								<div class="wrap-slick3-dots"></div>
-								<div class="wrap-slick3-arrows flex-sb-m flex-w"></div>
-
-								<div class="slick3 gallery-lb">
-									@foreach(['product-detail-01.jpg','product-detail-02.jpg','product-detail-03.jpg'] as $img)
-									<div class="item-slick3" data-thumb="{{ asset('frontend/images/'.$img) }}">
-										<div class="wrap-pic-w pos-relative">
-											<img src="{{ asset('frontend/images/'.$img) }}" alt="GAMBAR PRODUK">
-											<a class="flex-c-m size-108 how-pos1 bor0 fs-16 cl10 bg0 hov-btn3 trans-04" href="{{ asset('frontend/images/'.$img) }}">
-												<i class="fa fa-expand"></i>
-											</a>
-										</div>
-									</div>
-									@endforeach
-								</div>
+							<div class="wrap-pic-w pos-relative" style="background:#faf7ef;">
+								<img id="qv-image" src="{{ asset('frontend/images/product-01.jpg') }}" alt="Gambar produk" style="width:100%; display:block;">
 							</div>
 						</div>
 					</div>
 
 					<div class="col-md-6 col-lg-5 p-b-30">
 						<div class="p-r-50 p-t-5 p-lr-0-lg">
-							<h4 class="mtext-105 cl2 js-name-detail p-b-14">Batik Tulis Premium</h4>
-							<span class="mtext-106 cl2">Rp587.000</span>
+							<h4 class="mtext-105 cl2 js-name-detail p-b-14" id="qv-name">—</h4>
+							<span class="mtext-106 cl2" id="qv-price">Rp0</span>
 
-							<p class="stext-102 cl3 p-t-23">
-								Batik tulis asli buatan pengrajin lokal dengan motif klasik. Dibuat dari kain katun berkualitas, nyaman dipakai untuk acara formal maupun harian.
-							</p>
+							<p class="stext-102 cl3 p-t-23" id="qv-description">—</p>
 
-							<div class="p-t-33">
-								<div class="flex-w flex-r-m p-b-10">
+							<form id="qv-form" action="{{ route('keranjang.add') }}" method="POST" class="p-t-33">
+								@csrf
+								<input type="hidden" name="slug" id="qv-slug" value="">
+
+								<div class="flex-w flex-r-m p-b-10" id="qv-size-row">
 									<div class="size-203 flex-c-m respon6">Ukuran</div>
 									<div class="size-204 respon6-next">
 										<div class="rs1-select2 bor8 bg0">
-											<select class="js-select2" name="size">
+											<select name="size" id="qv-size-select" style="width:100%; padding:8px;">
 												<option>Pilih ukuran</option>
-												<option>Ukuran S</option>
-												<option>Ukuran M</option>
-												<option>Ukuran L</option>
-												<option>Ukuran XL</option>
 											</select>
-											<div class="dropDownSelect2"></div>
 										</div>
 									</div>
 								</div>
 
-								<div class="flex-w flex-r-m p-b-10">
+								<div class="flex-w flex-r-m p-b-10" id="qv-color-row">
 									<div class="size-203 flex-c-m respon6">Warna</div>
 									<div class="size-204 respon6-next">
 										<div class="rs1-select2 bor8 bg0">
-											<select class="js-select2" name="color">
+											<select name="color" id="qv-color-select" style="width:100%; padding:8px;">
 												<option>Pilih warna</option>
-												<option>Merah</option>
-												<option>Biru</option>
-												<option>Putih</option>
-												<option>Abu-abu</option>
 											</select>
-											<div class="dropDownSelect2"></div>
 										</div>
 									</div>
 								</div>
@@ -528,25 +531,29 @@ Hak Cipta &copy;<script>document.write(new Date().getFullYear());</script> Batik
 									<div class="size-204 flex-w flex-m respon6-next">
 										<div class="wrap-num-product flex-w m-r-20 m-tb-10">
 											<div class="btn-num-product-down cl8 hov-btn3 trans-04 flex-c-m">
-												<i class="fs-16 zmdi zmdi-minus"></i>
+												<i class="fs-16 fa fa-minus"></i>
 											</div>
 
-											<input class="mtext-104 cl3 txt-center num-product" type="number" name="num-product" value="1">
+											<input class="mtext-104 cl3 txt-center num-product" type="number" name="qty" value="1" min="1" max="99">
 
 											<div class="btn-num-product-up cl8 hov-btn3 trans-04 flex-c-m">
-												<i class="fs-16 zmdi zmdi-plus"></i>
+												<i class="fs-16 fa fa-plus"></i>
 											</div>
 										</div>
 
-										<button class="flex-c-m stext-101 cl0 size-101 bg1 bor1 hov-btn1 p-lr-15 trans-04 js-addcart-detail">Tambah ke Keranjang</button>
+										<button type="submit" class="flex-c-m stext-101 cl0 size-101 bg1 bor1 hov-btn1 p-lr-15 trans-04">Tambah ke Keranjang</button>
 									</div>
 								</div>
-							</div>
+
+								<div class="p-t-15">
+									<a href="#" id="qv-detail-link" class="stext-106 cl6 hov-cl1 trans-04" style="text-decoration:underline;">Lihat detail lengkap &rarr;</a>
+								</div>
+							</form>
 
 							<div class="flex-w flex-m p-l-100 p-t-40 respon7">
 								<div class="flex-m bor9 p-r-10 m-r-11">
 									<a href="#" class="fs-14 cl3 hov-cl1 trans-04 lh-10 p-lr-5 p-tb-2 js-addwish-detail tooltip100" data-tooltip="Tambah ke Favorit">
-										<i class="zmdi zmdi-favorite"></i>
+										<i class="fa fa-heart"></i>
 									</a>
 								</div>
 
@@ -627,6 +634,30 @@ Hak Cipta &copy;<script>document.write(new Date().getFullYear());</script> Batik
 			$(this).on('click', function(){
 				swal(nameProduct, "berhasil ditambahkan ke keranjang!", "success");
 			});
+		});
+
+		// Quick View: populate modal dengan data produk yang diklik
+		$(document).on('click', '.js-show-modal1', function(e) {
+			var $btn = $(this);
+			var data = $btn.data();
+			if (!data.slug) return; // tombol tanpa data (mis. di halaman detail) — abaikan
+
+			$('#qv-name').text(data.name || '—');
+			$('#qv-price').text(data.price || '');
+			$('#qv-description').text(data.description || '');
+			$('#qv-image').attr('src', data.image || '');
+			$('#qv-slug').val(data.slug);
+			$('#qv-detail-link').attr('href', data.detailUrl || '#');
+
+			function fillSelect($sel, items, placeholder) {
+				$sel.empty().append($('<option>').text(placeholder));
+				(items || []).forEach(function(v) { $sel.append($('<option>').text(v)); });
+				$sel.closest('.flex-w.flex-r-m').toggle(items && items.length > 0);
+			}
+			fillSelect($('#qv-size-select'),  data.sizes,  'Pilih ukuran');
+			fillSelect($('#qv-color-select'), data.colors, 'Pilih warna');
+
+			$('#qv-form input[name="qty"]').val(1);
 		});
 	</script>
 	<script src="{{ asset('frontend/vendor/perfect-scrollbar/perfect-scrollbar.min.js') }}"></script>

@@ -13,7 +13,6 @@
 
 	<link rel="stylesheet" type="text/css" href="{{ asset('frontend/vendor/bootstrap/css/bootstrap.min.css') }}">
 	<link rel="stylesheet" type="text/css" href="{{ asset('frontend/fonts/font-awesome-4.7.0/css/font-awesome.min.css') }}">
-	<link rel="stylesheet" type="text/css" href="{{ asset('frontend/fonts/iconic/css/material-design-iconic-font.min.css') }}">
 	<link rel="stylesheet" type="text/css" href="{{ asset('frontend/css/util.css') }}">
 	<link rel="stylesheet" type="text/css" href="{{ asset('frontend/css/main.css') }}">
 	<style>
@@ -300,31 +299,31 @@
 		<div class="admin-sidebar-section">Menu Utama</div>
 		<ul class="admin-sidebar-menu">
 			<li class="{{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
-				<a href="{{ route('admin.dashboard') }}"><i class="zmdi zmdi-view-dashboard"></i><span>Dashboard</span></a>
+				<a href="{{ route('admin.dashboard') }}"><i class="fa fa-dashboard"></i><span>Dashboard</span></a>
 			</li>
 			<li class="{{ request()->routeIs('admin.produk*') ? 'active' : '' }}">
-				<a href="{{ route('admin.produk') }}"><i class="zmdi zmdi-shopping-basket"></i><span>Kelola Produk</span></a>
+				<a href="{{ route('admin.produk') }}"><i class="fa fa-shopping-basket"></i><span>Kelola Produk</span></a>
 			</li>
 			<li class="{{ request()->routeIs('admin.pesanan*') ? 'active' : '' }}">
-				<a href="{{ route('admin.pesanan') }}"><i class="zmdi zmdi-receipt"></i><span>Pesanan</span></a>
+				<a href="{{ route('admin.pesanan') }}"><i class="fa fa-file-text-o"></i><span>Pesanan</span></a>
 			</li>
 			<li class="{{ request()->routeIs('admin.laporan*') ? 'active' : '' }}">
-				<a href="{{ route('admin.laporan') }}"><i class="zmdi zmdi-chart"></i><span>Laporan Stok</span></a>
+				<a href="{{ route('admin.laporan') }}"><i class="fa fa-bar-chart"></i><span>Laporan Stok</span></a>
 			</li>
 		</ul>
 
 		<div class="admin-sidebar-section">Pengaturan</div>
 		<ul class="admin-sidebar-menu">
 			<li class="{{ request()->routeIs('admin.user*') ? 'active' : '' }}">
-				<a href="{{ route('admin.user') }}"><i class="zmdi zmdi-accounts"></i><span>Kelola User</span></a>
+				<a href="{{ route('admin.user') }}"><i class="fa fa-users"></i><span>Kelola User</span></a>
 			</li>
 			<li class="{{ request()->routeIs('admin.cms*') ? 'active' : '' }}">
-				<a href="{{ route('admin.cms') }}"><i class="zmdi zmdi-collection-text"></i><span>CMS</span></a>
+				<a href="{{ route('admin.cms') }}"><i class="fa fa-file-text-o"></i><span>CMS</span></a>
 			</li>
 		</ul>
 
 		<div class="admin-sidebar-footer">
-			<a href="{{ url('/') }}" style="color:#c29e5c;"><i class="zmdi zmdi-open-in-new"></i> Lihat Toko</a>
+			<a href="{{ url('/') }}" style="color:#c29e5c;"><i class="fa fa-external-link"></i> Lihat Toko</a>
 		</div>
 	</aside>
 
@@ -338,11 +337,11 @@
 
 			<div class="admin-topbar-right">
 				<a href="#" class="admin-topbar-icon" title="Notifikasi">
-					<i class="zmdi zmdi-notifications-none"></i>
+					<i class="fa fa-bell-o"></i>
 					<span class="dot"></span>
 				</a>
 				<a href="#" class="admin-topbar-icon" title="Pesan">
-					<i class="zmdi zmdi-email"></i>
+					<i class="fa fa-envelope-o"></i>
 				</a>
 
 				<div class="admin-user">
@@ -355,7 +354,7 @@
 
 				<form action="{{ route('logout') }}" method="POST" style="margin:0;">
 					@csrf
-					<button type="submit" class="admin-logout-btn" title="Keluar"><i class="zmdi zmdi-power"></i></button>
+					<button type="submit" class="admin-logout-btn" title="Keluar"><i class="fa fa-power-off"></i></button>
 				</form>
 			</div>
 		</header>

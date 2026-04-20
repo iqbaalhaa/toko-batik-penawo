@@ -7,7 +7,16 @@
 					<img src="{{ $p->image_url }}" alt="{{ $p->name }}">
 				</a>
 
-				<a href="#" class="block2-btn flex-c-m stext-103 cl2 size-102 bg0 bor2 hov-btn1 p-lr-15 trans-04 js-show-modal1">Lihat Cepat</a>
+				<a href="#" class="block2-btn flex-c-m stext-103 cl2 size-102 bg0 bor2 hov-btn1 p-lr-15 trans-04 js-show-modal1"
+					data-slug="{{ $p->slug }}"
+					data-name="{{ $p->name }}"
+					data-price="{{ $rupiah($p->price) }}"
+					data-description="{{ $p->description }}"
+					data-image="{{ $p->image_url }}"
+					data-sizes="{{ json_encode($p->sizes ?? []) }}"
+					data-colors="{{ json_encode($p->colors ?? []) }}"
+					data-detail-url="{{ route('produk.detail', $p->slug) }}"
+				>Lihat Cepat</a>
 			</div>
 
 			<div class="block2-txt flex-w flex-t p-t-14">

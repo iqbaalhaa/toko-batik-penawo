@@ -19,34 +19,34 @@
 	<!-- Stat cards -->
 	<div class="stat-grid">
 		<div class="stat-card">
-			<div class="stat-card-icon bg-brand"><i class="zmdi zmdi-shopping-basket"></i></div>
+			<div class="stat-card-icon bg-brand"><i class="fa fa-shopping-basket"></i></div>
 			<div>
 				<div class="stat-card-label">Total Produk</div>
 				<div class="stat-card-value">{{ $totalProducts }}</div>
-				<div class="stat-card-trend"><i class="zmdi zmdi-trending-up"></i> Aktif di katalog</div>
+				<div class="stat-card-trend"><i class="fa fa-line-chart"></i> Aktif di katalog</div>
 			</div>
 		</div>
 
 		<div class="stat-card">
-			<div class="stat-card-icon bg-blue"><i class="zmdi zmdi-receipt"></i></div>
+			<div class="stat-card-icon bg-blue"><i class="fa fa-file-text-o"></i></div>
 			<div>
 				<div class="stat-card-label">Total Pesanan</div>
 				<div class="stat-card-value">{{ $totalOrders }}</div>
-				<div class="stat-card-trend"><i class="zmdi zmdi-trending-up"></i> Semua periode</div>
+				<div class="stat-card-trend"><i class="fa fa-line-chart"></i> Semua periode</div>
 			</div>
 		</div>
 
 		<div class="stat-card">
-			<div class="stat-card-icon bg-green"><i class="zmdi zmdi-money"></i></div>
+			<div class="stat-card-icon bg-green"><i class="fa fa-money"></i></div>
 			<div>
 				<div class="stat-card-label">Pendapatan</div>
 				<div class="stat-card-value">{{ $rupiah($totalRevenue) }}</div>
-				<div class="stat-card-trend"><i class="zmdi zmdi-trending-up"></i> Pesanan dikirim &amp; selesai</div>
+				<div class="stat-card-trend"><i class="fa fa-line-chart"></i> Pesanan dikirim &amp; selesai</div>
 			</div>
 		</div>
 
 		<div class="stat-card">
-			<div class="stat-card-icon bg-red"><i class="zmdi zmdi-accounts"></i></div>
+			<div class="stat-card-icon bg-red"><i class="fa fa-users"></i></div>
 			<div>
 				<div class="stat-card-label">Pelanggan Aktif</div>
 				<div class="stat-card-value">{{ $totalCustomers }}</div>
@@ -154,16 +154,16 @@
 				</div>
 				<div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
 					<a href="{{ route('admin.produk') }}" class="btn-admin btn-admin-outline" style="justify-content:center;">
-						<i class="zmdi zmdi-plus-circle"></i> Tambah Produk
+						<i class="fa fa-plus-circle"></i> Tambah Produk
 					</a>
 					<a href="{{ route('admin.pesanan') }}" class="btn-admin btn-admin-outline" style="justify-content:center;">
-						<i class="zmdi zmdi-receipt"></i> Proses Pesanan
+						<i class="fa fa-file-text-o"></i> Proses Pesanan
 					</a>
 					<a href="{{ route('admin.user') }}" class="btn-admin btn-admin-outline" style="justify-content:center;">
-						<i class="zmdi zmdi-account-add"></i> Tambah User
+						<i class="fa fa-user-plus"></i> Tambah User
 					</a>
 					<a href="{{ route('admin.cms') }}" class="btn-admin btn-admin-outline" style="justify-content:center;">
-						<i class="zmdi zmdi-edit"></i> Edit Konten
+						<i class="fa fa-pencil-square-o"></i> Edit Konten
 					</a>
 				</div>
 			</div>

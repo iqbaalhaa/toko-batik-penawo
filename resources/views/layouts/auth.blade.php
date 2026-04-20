@@ -7,7 +7,6 @@
 	<link rel="icon" type="image/png" href="{{ asset('frontend/images/icons/favicon.png') }}"/>
 	<link rel="stylesheet" type="text/css" href="{{ asset('frontend/vendor/bootstrap/css/bootstrap.min.css') }}">
 	<link rel="stylesheet" type="text/css" href="{{ asset('frontend/fonts/font-awesome-4.7.0/css/font-awesome.min.css') }}">
-	<link rel="stylesheet" type="text/css" href="{{ asset('frontend/fonts/iconic/css/material-design-iconic-font.min.css') }}">
 	<link rel="stylesheet" type="text/css" href="{{ asset('frontend/css/util.css') }}">
 	<link rel="stylesheet" type="text/css" href="{{ asset('frontend/css/main.css') }}">
 	<style>
@@ -35,11 +34,11 @@
 				</div>
 
 				<div class="topbar-right">
-					<a href="#" class="topbar-link"><i class="zmdi zmdi-notifications-none"></i>Notifikasi</a>
+					<a href="#" class="topbar-link"><i class="fa fa-bell-o"></i>Notifikasi</a>
 					<span class="topbar-sep">|</span>
-					<a href="{{ route('kontak') }}" class="topbar-link"><i class="zmdi zmdi-help-outline"></i>Bantuan</a>
+					<a href="{{ route('kontak') }}" class="topbar-link"><i class="fa fa-question-circle-o"></i>Bantuan</a>
 					<span class="topbar-sep">|</span>
-					<a href="#" class="topbar-link"><i class="zmdi zmdi-globe"></i>Bahasa Indonesia</a>
+					<a href="#" class="topbar-link"><i class="fa fa-globe"></i>Bahasa Indonesia</a>
 					<span class="topbar-sep">|</span>
 					<a href="{{ route('register') }}" class="topbar-link topbar-link-strong">Daftar</a>
 					<span class="topbar-sep">|</span>

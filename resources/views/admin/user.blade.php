@@ -13,32 +13,32 @@
 
 	<div class="stat-grid" style="margin-bottom:22px;">
 		<div class="stat-card">
-			<div class="stat-card-icon bg-brand"><i class="zmdi zmdi-accounts"></i></div>
+			<div class="stat-card-icon bg-brand"><i class="fa fa-users"></i></div>
 			<div>
 				<div class="stat-card-label">Total User</div>
 				<div class="stat-card-value">{{ $users->count() }}</div>
 			</div>
 		</div>
 		<div class="stat-card">
-			<div class="stat-card-icon bg-red"><i class="zmdi zmdi-shield-security"></i></div>
+			<div class="stat-card-icon bg-red"><i class="fa fa-shield"></i></div>
 			<div>
 				<div class="stat-card-label">Admin &amp; Staff</div>
 				<div class="stat-card-value">{{ $users->whereIn('role', ['admin','staff'])->count() }}</div>
 			</div>
 		</div>
 		<div class="stat-card">
-			<div class="stat-card-icon bg-green"><i class="zmdi zmdi-account-circle"></i></div>
+			<div class="stat-card-icon bg-green"><i class="fa fa-user-circle"></i></div>
 			<div>
 				<div class="stat-card-label">Pelanggan</div>
 				<div class="stat-card-value">{{ $users->where('role','pelanggan')->count() }}</div>
 			</div>
 		</div>
 		<div class="stat-card">
-			<div class="stat-card-icon bg-blue"><i class="zmdi zmdi-account-add"></i></div>
+			<div class="stat-card-icon bg-blue"><i class="fa fa-user-plus"></i></div>
 			<div>
 				<div class="stat-card-label">Registrasi Bulan Ini</div>
 				<div class="stat-card-value">{{ $registeredThisMonth }}</div>
-				<div class="stat-card-trend"><i class="zmdi zmdi-calendar"></i> {{ now()->translatedFormat('F Y') }}</div>
+				<div class="stat-card-trend"><i class="fa fa-calendar"></i> {{ now()->translatedFormat('F Y') }}</div>
 			</div>
 		</div>
 	</div>
@@ -49,12 +49,12 @@
 				<h3 class="admin-card-title">Daftar User</h3>
 				<div class="admin-card-sub">Kelola akses akun pengguna</div>
 			</div>
-			<button type="button" class="btn-admin"><i class="zmdi zmdi-account-add"></i> Tambah User</button>
+			<button type="button" class="btn-admin"><i class="fa fa-user-plus"></i> Tambah User</button>
 		</div>
 
 		<div class="toolbar">
 			<div class="toolbar-search">
-				<i class="zmdi zmdi-search"></i>
+				<i class="fa fa-search"></i>
 				<input type="text" class="form-control-admin" placeholder="Cari nama atau email...">
 			</div>
 			<select class="form-control-admin" style="max-width:160px;">
@@ -107,9 +107,9 @@
 							@endif
 						</td>
 						<td>
-							<a href="#" class="btn-admin-icon" title="Detail"><i class="zmdi zmdi-eye"></i></a>
-							<a href="#" class="btn-admin-icon" title="Edit"><i class="zmdi zmdi-edit"></i></a>
-							<a href="#" class="btn-admin-icon danger" title="Hapus"><i class="zmdi zmdi-delete"></i></a>
+							<a href="#" class="btn-admin-icon" title="Detail"><i class="fa fa-eye"></i></a>
+							<a href="#" class="btn-admin-icon" title="Edit"><i class="fa fa-pencil-square-o"></i></a>
+							<a href="#" class="btn-admin-icon danger" title="Hapus"><i class="fa fa-trash-o"></i></a>
 						</td>
 					</tr>
 					@empty
@@ -122,9 +122,9 @@
 		<div style="display:flex; justify-content:space-between; align-items:center; padding-top:18px; border-top:1px solid #f2efe7; margin-top:8px;">
 			<div style="font-size:13px; color:#9a9288;">Menampilkan 1 - {{ $users->count() }} dari {{ $users->count() }} user</div>
 			<div>
-				<button type="button" class="btn-admin-icon" disabled><i class="zmdi zmdi-chevron-left"></i></button>
+				<button type="button" class="btn-admin-icon" disabled><i class="fa fa-chevron-left"></i></button>
 				<button type="button" class="btn-admin btn-admin-sm">1</button>
-				<button type="button" class="btn-admin-icon"><i class="zmdi zmdi-chevron-right"></i></button>
+				<button type="button" class="btn-admin-icon"><i class="fa fa-chevron-right"></i></button>
 			</div>
 		</div>
 	</div>
