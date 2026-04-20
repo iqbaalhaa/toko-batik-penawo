@@ -112,7 +112,25 @@
       "Bash(cp f:/Project/toko-batik-penawo/public/frontend/images/product-01.jpg /tmp/bukti.jpg)",
       "Bash(rm -f /tmp/co5.txt)",
       "Bash(curl -s -c /tmp/co5.txt http://127.0.0.1:8783/login)",
-      "Bash(curl -s -b /tmp/co5.txt -c /tmp/co5.txt http://127.0.0.1:8783/login)"
+      "Bash(curl -s -b /tmp/co5.txt -c /tmp/co5.txt http://127.0.0.1:8783/login)",
+      "Bash(rm -f /tmp/co6.txt)",
+      "Bash(curl -s -c /tmp/co6.txt http://127.0.0.1:8784/login)",
+      "Bash(curl -s -b /tmp/co6.txt -c /tmp/co6.txt http://127.0.0.1:8784/login)",
+      "Bash(curl -s -b /tmp/co6.txt http://127.0.0.1:8784/admin/pesanan)",
+      "Bash(curl -s -b /tmp/co6.txt -c /tmp/co6.txt http://127.0.0.1:8784/admin/pesanan)",
+      "Bash(echo \"Current orders: $\\(php artisan tinker --execute='echo App\\\\Models\\\\Order::count\\(\\);' 2>&1)",
+      "Bash(rm -f /tmp/co7.txt)",
+      "Bash(curl -s -c /tmp/co7.txt http://127.0.0.1:8785/login)",
+      "Bash(curl -s -b /tmp/co7.txt -c /tmp/co7.txt http://127.0.0.1:8785/login)",
+      "Bash(curl -s -b /tmp/co7.txt \"http://127.0.0.1:8785/admin/pesanan?page=1\" -o /tmp/pg.html)",
+      "Bash(curl -s -b /tmp/co7.txt \"http://127.0.0.1:8785/admin/pesanan?page=2\")",
+      "Bash(curl -s -b /tmp/co7.txt \"http://127.0.0.1:8785/admin/pesanan?status=selesai\")",
+      "Bash(curl -s -b /tmp/co7.txt \"http://127.0.0.1:8785/admin/pesanan?q=tester\")",
+      "Bash(rm -f /tmp/co8.txt)",
+      "Bash(curl -s -c /tmp/co8.txt http://127.0.0.1:8786/login)",
+      "Bash(curl -s -b /tmp/co8.txt -c /tmp/co8.txt http://127.0.0.1:8786/login)",
+      "Bash(curl -s -b /tmp/co8.txt -c /tmp/co8.txt http://127.0.0.1:8786/admin/laporan)",
+      "Bash(curl -s -b /tmp/co8.txt \"http://127.0.0.1:8786/admin/laporan?type=masuk\")"
     ]
   }
 }

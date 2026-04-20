@@ -563,18 +563,160 @@ Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
         return redirect()->route('admin.produk')->with('status', 'Produk berhasil dihapus.');
     })->name('produk.destroy');
 
-    Route::get('/pesanan', function () {
+    Route::get('/pesanan', function (Request $request) {
+        $query = Order::with('items');
+
+        if ($request->filled('q')) {
+            $q = $request->q;
+            $query->where(function ($w) use ($q) {
+                $w->where('invoice_number', 'like', "%{$q}%")
+                  ->orWhere('customer_name', 'like', "%{$q}%")
+                  ->orWhere('customer_email', 'like', "%{$q}%");
+            });
+        }
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+        if ($request->filled('date')) {
+            $query->whereDate('created_at', $request->date);
+        }
+
         return view('admin.pesanan', [
-            'orders' => Order::with('items')->latest()->get(),
+            'orders' => $query->latest()->paginate(10)->withQueryString(),
+            'counts' => [
+                'total'          => Order::count(),
+                'perlu_diproses' => Order::whereIn('status', ['diproses', 'menunggu_bayar'])->count(),
+                'selesai'        => Order::where('status', 'selesai')->count(),
+                'dibatalkan'     => Order::where('status', 'dibatalkan')->count(),
+            ],
         ]);
     })->name('pesanan');
 
-    Route::get('/laporan', function () {
-        return view('admin.laporan', [
-            'movements' => StockMovement::with(['product', 'user'])->orderBy('occurred_at', 'desc')->get(),
-            'lowStock'  => Product::whereColumn('stock', '<', 'stock_min')->get(),
+    Route::patch('/pesanan/{order}/status', function (Request $request, \App\Models\Order $order) {
+        $data = $request->validate([
+            'status' => 'required|in:menunggu_bayar,diproses,dikirim,selesai,dibatalkan',
         ]);
+        $oldStatus = $order->status;
+        $oldLabel  = $order->status_label;
+        $order->status = $data['status'];
+        $order->save();
+
+        // Auto stok keluar: saat order baru PERTAMA KALI masuk status "dikirim"
+        // (dari non-dikirim/selesai), potong stok + log mutasi.
+        $newStatus = $data['status'];
+        $wasShipped = in_array($oldStatus, ['dikirim', 'selesai']);
+        $nowShipped = in_array($newStatus, ['dikirim', 'selesai']);
+        if (! $wasShipped && $nowShipped) {
+            $authUser = session('auth_user');
+            foreach ($order->items as $item) {
+                if (! $item->product_id) continue;
+                $p = Product::find($item->product_id);
+                if (! $p) continue;
+
+                StockMovement::create([
+                    'product_id'  => $p->id,
+                    'user_id'     => $authUser['id'] ?? null,
+                    'type'        => 'keluar',
+                    'qty'         => $item->qty,
+                    'reference'   => $order->invoice_number,
+                    'note'        => 'Auto: pengiriman pesanan',
+                    'occurred_at' => now(),
+                ]);
+                $p->stock = max(0, $p->stock - $item->qty);
+                if ($p->stock === 0 && $p->status === 'aktif') {
+                    $p->status = 'habis';
+                }
+                $p->save();
+            }
+        }
+
+        return back()->with('status', "Status {$order->invoice_number} diubah: {$oldLabel} → {$order->status_label}.");
+    })->name('pesanan.status');
+
+    Route::get('/laporan', function (Request $request) {
+        // Base query untuk filter
+        $baseQuery = StockMovement::query();
+        if ($request->filled('q')) {
+            $q = $request->q;
+            $baseQuery->whereHas('product', function ($w) use ($q) {
+                $w->where('name', 'like', "%{$q}%")->orWhere('sku', 'like', "%{$q}%");
+            });
+        }
+        if ($request->filled('type') && in_array($request->type, ['masuk', 'keluar'])) {
+            $baseQuery->where('type', $request->type);
+        }
+        if ($request->filled('from')) {
+            $baseQuery->whereDate('occurred_at', '>=', $request->from);
+        }
+        if ($request->filled('to')) {
+            $baseQuery->whereDate('occurred_at', '<=', $request->to);
+        }
+
+        // Totals periode (dari query yang SAMA supaya konsisten dengan tabel)
+        $totalIn  = (clone $baseQuery)->where('type', 'masuk')->sum('qty');
+        $totalOut = (clone $baseQuery)->where('type', 'keluar')->sum('qty');
+        $trxIn    = (clone $baseQuery)->where('type', 'masuk')->count();
+        $trxOut   = (clone $baseQuery)->where('type', 'keluar')->count();
+
+        $movements = $baseQuery->with(['product', 'user'])
+            ->orderBy('occurred_at', 'desc')
+            ->paginate(15)
+            ->withQueryString();
+
+        $lowStock = Product::whereColumn('stock', '<', 'stock_min')->get();
+        $products = Product::orderBy('name')->get(['id', 'sku', 'name', 'stock']);
+
+        return view('admin.laporan', compact(
+            'movements', 'lowStock', 'products',
+            'totalIn', 'totalOut', 'trxIn', 'trxOut'
+        ));
     })->name('laporan');
+
+    // Tambah mutasi stok manual (masuk / keluar)
+    Route::post('/laporan/mutasi', function (Request $request) {
+        $data = $request->validate([
+            'product_id' => 'required|exists:products,id',
+            'type'       => 'required|in:masuk,keluar',
+            'qty'        => 'required|integer|min:1|max:9999',
+            'reference'  => 'nullable|string|max:100',
+            'note'       => 'nullable|string|max:200',
+        ]);
+
+        $product = Product::findOrFail($data['product_id']);
+
+        if ($data['type'] === 'keluar' && $product->stock < $data['qty']) {
+            return back()->withErrors(['qty' => "Stok {$product->name} hanya {$product->stock}, tidak cukup untuk dikurangi {$data['qty']}."])->withInput();
+        }
+
+        $authUser = session('auth_user');
+
+        StockMovement::create([
+            'product_id'  => $product->id,
+            'user_id'     => $authUser['id'] ?? null,
+            'type'        => $data['type'],
+            'qty'         => $data['qty'],
+            'reference'   => $data['reference'] ?? null,
+            'note'        => $data['note'] ?? null,
+            'occurred_at' => now(),
+        ]);
+
+        // Update stock di tabel products
+        $product->stock = $data['type'] === 'masuk'
+            ? $product->stock + $data['qty']
+            : max(0, $product->stock - $data['qty']);
+
+        // Auto-sync status: stok 0 → habis; stok > 0 dan status habis → aktif
+        if ($product->stock === 0 && $product->status === 'aktif') {
+            $product->status = 'habis';
+        } elseif ($product->stock > 0 && $product->status === 'habis') {
+            $product->status = 'aktif';
+        }
+
+        $product->save();
+
+        $label = $data['type'] === 'masuk' ? 'masuk' : 'keluar';
+        return back()->with('status', "Mutasi stok {$label} sebanyak {$data['qty']} unit untuk {$product->name} berhasil dicatat.");
+    })->name('laporan.mutasi');
 
     Route::get('/user', function () {
         return view('admin.user', [
