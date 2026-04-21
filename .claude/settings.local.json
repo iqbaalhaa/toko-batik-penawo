@@ -130,7 +130,10 @@
       "Bash(curl -s -c /tmp/co8.txt http://127.0.0.1:8786/login)",
       "Bash(curl -s -b /tmp/co8.txt -c /tmp/co8.txt http://127.0.0.1:8786/login)",
       "Bash(curl -s -b /tmp/co8.txt -c /tmp/co8.txt http://127.0.0.1:8786/admin/laporan)",
-      "Bash(curl -s -b /tmp/co8.txt \"http://127.0.0.1:8786/admin/laporan?type=masuk\")"
+      "Bash(curl -s -b /tmp/co8.txt \"http://127.0.0.1:8786/admin/laporan?type=masuk\")",
+      "Bash(composer require *)",
+      "Bash(php -l routes/web.php)",
+      "Bash(php -l resources/views/home/checkout.blade.php)"
     ]
   }
 }

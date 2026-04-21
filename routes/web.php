@@ -7,6 +7,7 @@ use App\Models\StockMovement;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 
@@ -144,7 +145,7 @@ Route::post('/checkout/confirm', function (Request $request) {
         'recipient_name'   => 'required|string|max:100',
         'recipient_phone'  => 'required|string|max:25',
         'shipping_address' => 'required|string|max:500',
-        'payment_method'   => 'required|in:BCA Transfer,Mandiri VA,BRI VA,BCA VA,OVO,GoPay,Dana,ShopeePay,COD',
+        'payment_method'   => 'required|in:Midtrans,COD',
         'note'             => 'nullable|string|max:300',
     ]);
 
@@ -199,6 +200,76 @@ Route::post('/checkout/confirm', function (Request $request) {
         $order->items()->create($item);
     }
 
+    // Generate Midtrans Snap token untuk non-COD
+    $snapToken = null;
+    $snapError = null;
+    if ($data['payment_method'] === 'Midtrans') {
+        try {
+            \Midtrans\Config::$serverKey    = config('services.midtrans.server_key');
+            \Midtrans\Config::$isProduction = config('services.midtrans.is_production');
+            \Midtrans\Config::$isSanitized  = config('services.midtrans.is_sanitized');
+            \Midtrans\Config::$is3ds        = config('services.midtrans.is_3ds');
+            // Workaround SSL untuk environment lokal (Windows/XAMPP tanpa CA bundle)
+            if (app()->environment('local')) {
+                \Midtrans\Config::$curlOptions = [
+                    CURLOPT_SSL_VERIFYPEER => false,
+                    CURLOPT_SSL_VERIFYHOST => false,
+                    CURLOPT_HTTPHEADER     => [], // required by midtrans-php (diakses tanpa isset)
+                ];
+            }
+
+            $itemDetails = [];
+            foreach ($items as $it) {
+                $itemDetails[] = [
+                    'id'       => (string) ($it['product_id'] ?? $it['product_name']),
+                    'price'    => (int) $it['price'],
+                    'quantity' => (int) $it['qty'],
+                    'name'     => \Illuminate\Support\Str::limit($it['product_name'], 50, ''),
+                ];
+            }
+            if ($shipping > 0) {
+                $itemDetails[] = [
+                    'id'       => 'SHIPPING',
+                    'price'    => (int) $shipping,
+                    'quantity' => 1,
+                    'name'     => 'Ongkos Kirim',
+                ];
+            }
+
+            [$firstName, $lastName] = array_pad(explode(' ', trim($data['recipient_name']), 2), 2, '');
+
+            $payload = [
+                'transaction_details' => [
+                    'order_id'     => $order->invoice_number,
+                    'gross_amount' => (int) $total,
+                ],
+                'item_details'        => $itemDetails,
+                'customer_details'    => [
+                    'first_name'   => $firstName ?: $authUser['name'],
+                    'last_name'    => $lastName,
+                    'email'        => $authUser['email'],
+                    'phone'        => $data['recipient_phone'],
+                    'shipping_address' => [
+                        'first_name' => $firstName ?: $authUser['name'],
+                        'last_name'  => $lastName,
+                        'phone'      => $data['recipient_phone'],
+                        'address'    => \Illuminate\Support\Str::limit($data['shipping_address'], 200, ''),
+                    ],
+                ],
+                'callbacks' => [
+                    'finish' => route('pesanan.sukses', $order->invoice_number),
+                ],
+            ];
+
+            $snapToken = \Midtrans\Snap::getSnapToken($payload);
+            $order->snap_token = $snapToken;
+            $order->save();
+        } catch (\Throwable $e) {
+            Log::error('Midtrans snap token error', ['invoice' => $order->invoice_number, 'err' => $e->getMessage()]);
+            $snapError = $e->getMessage();
+        }
+    }
+
     // Bersihkan cart dan checkout pending
     foreach ($slugs as $slug) {
         unset($cart[$slug]);
@@ -206,8 +277,146 @@ Route::post('/checkout/confirm', function (Request $request) {
     session(['cart' => $cart]);
     session()->forget('checkout_pending');
 
-    return redirect()->route('pesanan.sukses', $order->invoice_number);
+    $redirectUrl = route('pesanan.sukses', $order->invoice_number);
+
+    // AJAX / Midtrans flow: kembalikan JSON supaya front-end bisa buka Snap langsung
+    if ($request->expectsJson() || $request->ajax()) {
+        if ($data['payment_method'] === 'Midtrans' && ! $snapToken) {
+            return response()->json([
+                'error'        => 'Gagal menyiapkan pembayaran Midtrans. ' . ($snapError ? '(' . $snapError . ')' : ''),
+                'redirect_url' => $redirectUrl,
+            ], 500);
+        }
+        return response()->json([
+            'invoice'      => $order->invoice_number,
+            'snap_token'   => $snapToken,
+            'redirect_url' => $redirectUrl,
+        ]);
+    }
+
+    return redirect($redirectUrl);
 })->name('checkout.confirm');
+
+// Midtrans Snap: regenerate token (kalau hilang / kadaluarsa)
+Route::post('/pesanan/{invoice}/midtrans/token', function (string $invoice) {
+    $order = \App\Models\Order::where('invoice_number', $invoice)->firstOrFail();
+    $authUser = session('auth_user');
+    if (! $authUser || ($order->customer_email !== $authUser['email'] && ($authUser['role'] ?? null) !== 'admin')) {
+        abort(403);
+    }
+    if ($order->payment_method !== 'Midtrans' || $order->status !== 'menunggu_bayar') {
+        return response()->json(['error' => 'Pesanan tidak dapat dibayar ulang.'], 422);
+    }
+
+    try {
+        \Midtrans\Config::$serverKey    = config('services.midtrans.server_key');
+        \Midtrans\Config::$isProduction = config('services.midtrans.is_production');
+        \Midtrans\Config::$isSanitized  = config('services.midtrans.is_sanitized');
+        \Midtrans\Config::$is3ds        = config('services.midtrans.is_3ds');
+        if (app()->environment('local')) {
+            \Midtrans\Config::$curlOptions = [
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_SSL_VERIFYHOST => false,
+            ];
+        }
+
+        $itemDetails = [];
+        foreach ($order->items as $it) {
+            $itemDetails[] = [
+                'id'       => (string) ($it->product_id ?? $it->product_name),
+                'price'    => (int) $it->price,
+                'quantity' => (int) $it->qty,
+                'name'     => \Illuminate\Support\Str::limit($it->product_name, 50, ''),
+            ];
+        }
+        $subtotal = collect($order->items)->sum(fn ($it) => $it->price * $it->qty);
+        $shipping = max(0, (int) $order->total - (int) $subtotal);
+        if ($shipping > 0) {
+            $itemDetails[] = [
+                'id' => 'SHIPPING', 'price' => $shipping, 'quantity' => 1, 'name' => 'Ongkos Kirim',
+            ];
+        }
+
+        $payload = [
+            'transaction_details' => [
+                'order_id'     => $order->invoice_number . '-' . time(),
+                'gross_amount' => (int) $order->total,
+            ],
+            'item_details'        => $itemDetails,
+            'customer_details'    => [
+                'first_name' => $order->customer_name,
+                'email'      => $order->customer_email,
+            ],
+            'callbacks' => ['finish' => route('pesanan.sukses', $order->invoice_number)],
+        ];
+
+        $snapToken = \Midtrans\Snap::getSnapToken($payload);
+        $order->snap_token = $snapToken;
+        $order->save();
+
+        return response()->json(['snap_token' => $snapToken]);
+    } catch (\Throwable $e) {
+        Log::error('Midtrans re-token error', ['invoice' => $invoice, 'err' => $e->getMessage()]);
+        return response()->json(['error' => 'Gagal memuat pembayaran. Coba lagi.'], 500);
+    }
+})->name('midtrans.token');
+
+// Midtrans Webhook — dipanggil oleh server Midtrans ketika status berubah
+Route::post('/midtrans/notification', function (Request $request) {
+    try {
+        \Midtrans\Config::$serverKey    = config('services.midtrans.server_key');
+        \Midtrans\Config::$isProduction = config('services.midtrans.is_production');
+        if (app()->environment('local')) {
+            \Midtrans\Config::$curlOptions = [
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_SSL_VERIFYHOST => false,
+                CURLOPT_HTTPHEADER     => [],
+            ];
+        }
+
+        $notif = new \Midtrans\Notification();
+
+        $orderIdRaw    = $notif->order_id;         // bisa INV-...-{timestamp}
+        $invoice       = explode('-', $orderIdRaw);
+        // invoice_number pattern: INV-YYYYMMDD-0001 → 3 bagian. Kalau ada suffix retry, potong.
+        $invoiceNumber = count($invoice) >= 3 ? implode('-', array_slice($invoice, 0, 3)) : $orderIdRaw;
+
+        $order = \App\Models\Order::where('invoice_number', $invoiceNumber)->first();
+        if (! $order) {
+            Log::warning('Midtrans notif: order tidak ditemukan', ['order_id' => $orderIdRaw]);
+            return response()->json(['status' => 'order_not_found'], 404);
+        }
+
+        $txStatus   = $notif->transaction_status;
+        $fraud      = $notif->fraud_status ?? null;
+        $paymentType = $notif->payment_type ?? null;
+        $txId        = $notif->transaction_id ?? null;
+
+        $order->midtrans_transaction_status = $txStatus;
+        $order->midtrans_payment_type       = $paymentType;
+        $order->midtrans_transaction_id     = $txId;
+
+        if (in_array($txStatus, ['capture', 'settlement']) && (! $fraud || $fraud === 'accept')) {
+            if ($order->status === 'menunggu_bayar') {
+                $order->status  = 'diproses';
+                $order->paid_at = now();
+            }
+        } elseif (in_array($txStatus, ['deny', 'cancel', 'expire'])) {
+            if ($order->status === 'menunggu_bayar') {
+                $order->status = 'dibatalkan';
+            }
+        } elseif ($txStatus === 'pending') {
+            // biarkan menunggu_bayar
+        }
+
+        $order->save();
+
+        return response()->json(['status' => 'ok']);
+    } catch (\Throwable $e) {
+        Log::error('Midtrans notif error', ['err' => $e->getMessage()]);
+        return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+    }
+})->name('midtrans.notification');
 
 // Step 4: halaman sukses / invoice
 Route::get('/pesanan/{invoice}', function (string $invoice) {
@@ -218,50 +427,49 @@ Route::get('/pesanan/{invoice}', function (string $invoice) {
     if (! $isOwner) {
         return redirect()->route('home')->withErrors(['email' => 'Anda tidak dapat melihat pesanan ini.']);
     }
-    return view('home.pesanan-sukses', compact('order'));
-})->name('pesanan.sukses');
 
-// Upload bukti transfer (pelanggan)
-Route::post('/pesanan/{invoice}/bayar', function (Request $request, string $invoice) {
-    $order = \App\Models\Order::where('invoice_number', $invoice)->firstOrFail();
+    // Sinkronkan status dengan Midtrans — webhook bisa tidak sampai di lokal,
+    // jadi saat user mendarat di halaman invoice, kita cek langsung ke API.
+    if ($order->payment_method === 'Midtrans' && $order->status === 'menunggu_bayar') {
+        try {
+            \Midtrans\Config::$serverKey    = config('services.midtrans.server_key');
+            \Midtrans\Config::$isProduction = config('services.midtrans.is_production');
+            if (app()->environment('local')) {
+                \Midtrans\Config::$curlOptions = [
+                    CURLOPT_SSL_VERIFYPEER => false,
+                    CURLOPT_SSL_VERIFYHOST => false,
+                    CURLOPT_HTTPHEADER     => [],
+                ];
+            }
 
-    $authUser = session('auth_user');
-    if (! $authUser || $order->customer_email !== $authUser['email']) {
-        return redirect()->route('home')->withErrors(['email' => 'Tidak ada akses.']);
-    }
+            $status = \Midtrans\Transaction::status($order->invoice_number);
+            $status = is_object($status) ? (array) $status : (array) $status;
 
-    if ($order->status !== 'menunggu_bayar') {
-        return redirect()->route('pesanan.sukses', $invoice)->withErrors(['proof' => 'Pesanan ini bukan dalam status menunggu pembayaran.']);
-    }
+            $txStatus    = $status['transaction_status'] ?? null;
+            $fraud       = $status['fraud_status'] ?? null;
+            $paymentType = $status['payment_type'] ?? null;
+            $txId        = $status['transaction_id'] ?? null;
 
-    $request->validate([
-        'proof' => 'required|image|mimes:jpg,jpeg,png,webp|max:2048',
-    ]);
+            if ($txStatus) {
+                $order->midtrans_transaction_status = $txStatus;
+                $order->midtrans_payment_type       = $paymentType;
+                $order->midtrans_transaction_id     = $txId;
 
-    $file = $request->file('proof');
-    $filename = $order->invoice_number . '-' . time() . '.' . $file->getClientOriginalExtension();
-    $destination = public_path('uploads/bukti-transfer');
-    if (! is_dir($destination)) {
-        mkdir($destination, 0755, true);
-    }
-
-    // Hapus file lama jika ada
-    if ($order->payment_proof && str_starts_with($order->payment_proof, 'uploads/')) {
-        $old = public_path($order->payment_proof);
-        if (is_file($old)) {
-            @unlink($old);
+                if (in_array($txStatus, ['capture', 'settlement']) && (! $fraud || $fraud === 'accept')) {
+                    $order->status  = 'diproses';
+                    $order->paid_at = $order->paid_at ?? now();
+                } elseif (in_array($txStatus, ['deny', 'cancel', 'expire'])) {
+                    $order->status = 'dibatalkan';
+                }
+                $order->save();
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Midtrans sync status error', ['invoice' => $invoice, 'err' => $e->getMessage()]);
         }
     }
 
-    $file->move($destination, $filename);
-
-    $order->payment_proof = 'uploads/bukti-transfer/' . $filename;
-    $order->paid_at       = now();
-    $order->status        = 'diproses';
-    $order->save();
-
-    return redirect()->route('pesanan.sukses', $invoice)->with('status', 'Bukti transfer berhasil diunggah. Pesanan sedang diverifikasi.');
-})->name('pesanan.bayar');
+    return view('home.pesanan-sukses', compact('order'));
+})->name('pesanan.sukses');
 Route::get('/tentang', fn () => view('home.tentang'))->name('tentang');
 Route::get('/kontak', fn () => view('home.kontak'))->name('kontak');
 

@@ -10,6 +10,8 @@ class Order extends Model
         'invoice_number', 'user_id', 'customer_name', 'customer_email',
         'total', 'payment_method', 'payment_proof', 'paid_at',
         'status', 'shipping_address', 'note',
+        'snap_token', 'midtrans_transaction_id', 'midtrans_payment_type',
+        'midtrans_transaction_status',
     ];
 
     protected $casts = [

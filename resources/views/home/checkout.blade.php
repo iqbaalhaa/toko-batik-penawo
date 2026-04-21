@@ -107,7 +107,7 @@
 				</div>
 			@endif
 
-			<form action="{{ route('checkout.confirm') }}" method="POST">
+			<form action="{{ route('checkout.confirm') }}" method="POST" id="checkoutForm">
 				@csrf
 				<div class="row">
 					<!-- Left: Alamat + Metode Bayar -->
@@ -138,26 +138,26 @@
 						<div class="checkout-card">
 							<h3 class="checkout-card-title"><i class="fa fa-credit-card m-r-6" style="color:#c29e5c;"></i> Metode Pembayaran</h3>
 
-							<div class="payment-group-label">Transfer Bank</div>
-							@foreach(['BCA Transfer','Mandiri VA','BRI VA','BCA VA'] as $pm)
 							<label class="payment-option">
-								<input type="radio" name="payment_method" value="{{ $pm }}" {{ old('payment_method') === $pm ? 'checked' : '' }}>
-								<span class="payment-option-body"><i class="fa fa-university m-r-6" style="color:#6c665e;"></i> {{ $pm }}</span>
+								<input type="radio" name="payment_method" value="Midtrans" {{ old('payment_method', 'Midtrans') === 'Midtrans' ? 'checked' : '' }}>
+								<span class="payment-option-body">
+									<i class="fa fa-credit-card m-r-6" style="color:#6c665e;"></i>
+									Bayar Online via Midtrans
+									<div style="font-size:11.5px; color:#9a9288; margin-top:3px;">
+										Kartu Kredit, Transfer Bank / VA, E-Wallet (GoPay, OVO, ShopeePay, Dana), QRIS, dan lainnya.
+									</div>
+								</span>
 							</label>
-							@endforeach
 
-							<div class="payment-group-label">E-Wallet</div>
-							@foreach(['OVO','GoPay','Dana','ShopeePay'] as $pm)
-							<label class="payment-option">
-								<input type="radio" name="payment_method" value="{{ $pm }}" {{ old('payment_method') === $pm ? 'checked' : '' }}>
-								<span class="payment-option-body"><i class="fa fa-mobile m-r-6" style="color:#6c665e;"></i> {{ $pm }}</span>
-							</label>
-							@endforeach
-
-							<div class="payment-group-label">Lainnya</div>
 							<label class="payment-option">
 								<input type="radio" name="payment_method" value="COD" {{ old('payment_method') === 'COD' ? 'checked' : '' }}>
-								<span class="payment-option-body"><i class="fa fa-money m-r-6" style="color:#6c665e;"></i> Bayar di Tempat (COD)</span>
+								<span class="payment-option-body">
+									<i class="fa fa-money m-r-6" style="color:#6c665e;"></i>
+									Bayar di Tempat (COD)
+									<div style="font-size:11.5px; color:#9a9288; margin-top:3px;">
+										Bayar tunai saat pesanan tiba di alamat Anda.
+									</div>
+								</span>
 							</label>
 						</div>
 					</div>
@@ -202,9 +202,11 @@
 								</div>
 							</div>
 
-							<button type="submit" class="checkout-btn-pay">
+							<button type="submit" class="checkout-btn-pay" id="btnBayar">
 								<i class="fa fa-lock m-r-6"></i> Bayar Sekarang
 							</button>
+
+							<div id="checkoutError" class="checkout-errors" style="display:none; margin-top:12px;"></div>
 
 							<div style="margin-top:10px; text-align:center;">
 								<a href="{{ route('keranjang') }}" class="stext-106 cl6 hov-cl1 trans-04" style="font-size:12.5px;">
@@ -217,4 +219,69 @@
 			</form>
 		</div>
 	</section>
+
+	<script src="https://app.{{ config('services.midtrans.is_production') ? '' : 'sandbox.' }}midtrans.com/snap/snap.js"
+		data-client-key="{{ config('services.midtrans.client_key') }}"></script>
+	<script>
+	(function(){
+		var form = document.getElementById('checkoutForm');
+		var btn  = document.getElementById('btnBayar');
+		var errBox = document.getElementById('checkoutError');
+		if (!form) return;
+
+		function showError(msg){
+			errBox.style.display = 'block';
+			errBox.innerHTML = '<strong>Gagal:</strong> ' + msg;
+			btn.disabled = false;
+			btn.innerHTML = '<i class="fa fa-lock m-r-6"></i> Bayar Sekarang';
+			window.scrollTo({ top: errBox.getBoundingClientRect().top + window.scrollY - 100, behavior: 'smooth' });
+		}
+
+		form.addEventListener('submit', function(e){
+			var selected = form.querySelector('input[name="payment_method"]:checked');
+			if (!selected) return; // biar validator server yang menangkap
+			var method = selected.value;
+
+			// COD: biarkan form submit normal (full-page redirect ke pesanan sukses)
+			if (method !== 'Midtrans') return;
+
+			e.preventDefault();
+			errBox.style.display = 'none';
+			btn.disabled = true;
+			btn.innerHTML = '<i class="fa fa-spinner fa-spin m-r-6"></i> Menyiapkan pembayaran...';
+
+			var data = new FormData(form);
+			fetch(form.action, {
+				method: 'POST',
+				headers: {
+					'Accept': 'application/json',
+					'X-Requested-With': 'XMLHttpRequest'
+				},
+				body: data,
+				credentials: 'same-origin'
+			})
+			.then(function(r){ return r.json().then(function(j){ return { ok: r.ok, body: j }; }); })
+			.then(function(res){
+				if (!res.ok || !res.body.snap_token) {
+					showError(res.body.error || 'Tidak dapat memuat modul pembayaran.');
+					return;
+				}
+				if (!window.snap) { showError('Script Midtrans Snap gagal dimuat.'); return; }
+				btn.innerHTML = '<i class="fa fa-lock m-r-6"></i> Buka Pembayaran...';
+				window.snap.pay(res.body.snap_token, {
+					onSuccess: function(){ window.location.href = res.body.redirect_url; },
+					onPending: function(){ window.location.href = res.body.redirect_url; },
+					onError:   function(){ showError('Pembayaran gagal. Silakan coba lagi.'); },
+					onClose:   function(){
+						// user menutup popup; arahkan ke halaman pesanan agar bisa retry
+						window.location.href = res.body.redirect_url;
+					}
+				});
+			})
+			.catch(function(err){
+				showError('Tidak dapat terhubung ke server. ' + (err.message || ''));
+			});
+		});
+	})();
+	</script>
 @endsection

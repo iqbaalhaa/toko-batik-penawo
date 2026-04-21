@@ -134,6 +134,10 @@
 			'dibatalkan'     => ['label' => 'Dibatalkan',           'class' => 'status-menunggu'],
 		];
 		$s = $statusMap[$order->status] ?? ['label' => $order->status, 'class' => 'status-menunggu'];
+		// Tampilkan "Dibayar" untuk pesanan Midtrans yang sudah lunas tapi belum dikirim
+		if ($order->payment_method === 'Midtrans' && $order->paid_at && $order->status === 'diproses') {
+			$s = ['label' => 'Dibayar', 'class' => 'status-selesai'];
+		}
 	@endphp
 
 	<section class="bg-img1 txt-center p-lr-15 p-tb-70" style="background-image: url('{{ asset('frontend/images/bg-02.jpg') }}');">
@@ -201,94 +205,18 @@
 					</div>
 				</div>
 
-				@if($order->payment_method !== 'COD' && $order->status === 'menunggu_bayar')
-					<div class="payment-instructions">
-						<strong>Petunjuk Pembayaran:</strong><br>
-						Segera lakukan pembayaran sebesar <strong>{{ $rupiah($order->total) }}</strong> melalui <strong>{{ $order->payment_method }}</strong>.
-						Pesanan akan diproses setelah bukti transfer Anda kami verifikasi.
-					</div>
-
+				@if($order->payment_method === 'Midtrans' && $order->paid_at)
 					<div class="proof-card">
-						<h4><i class="fa fa-upload m-r-6" style="color:#c29e5c;"></i> Unggah Bukti Transfer</h4>
-						<p class="hint">Upload screenshot atau foto bukti transfer Anda (JPG/PNG/WebP, maksimal 2 MB).</p>
-
-						@if($errors->has('proof'))
-							<div class="proof-error"><i class="fa fa-exclamation-triangle"></i> {{ $errors->first('proof') }}</div>
-						@endif
-
-						<form action="{{ route('pesanan.bayar', $order->invoice_number) }}" method="POST" enctype="multipart/form-data" id="proofForm">
-							@csrf
-							<label for="proofInput" class="proof-dropzone" id="proofDropzone">
-								<i class="fa fa-cloud-upload"></i>
-								<div class="proof-dropzone-label">Klik untuk pilih file bukti transfer</div>
-								<div class="proof-dropzone-sub">atau drag & drop foto di sini</div>
-							</label>
-							<input type="file" name="proof" id="proofInput" accept="image/jpeg,image/png,image/webp" required>
-							<img id="proofPreview" alt="Preview bukti transfer">
-							<div class="proof-filename" id="proofFilename"></div>
-							<button type="submit" class="proof-submit-btn" id="proofSubmit">
-								<i class="fa fa-check m-r-6"></i> Kirim Bukti Transfer
-							</button>
-						</form>
-					</div>
-
-					<script>
-					(function(){
-						var input = document.getElementById('proofInput');
-						var preview = document.getElementById('proofPreview');
-						var filenameEl = document.getElementById('proofFilename');
-						var submit = document.getElementById('proofSubmit');
-						var dropzone = document.getElementById('proofDropzone');
-						if (!input) return;
-
-						function handleFile(file) {
-							if (!file) return;
-							if (file.size > 2 * 1024 * 1024) {
-								alert('Ukuran file melebihi 2 MB.'); input.value = ''; return;
-							}
-							if (!/^image\/(jpeg|png|webp)$/.test(file.type)) {
-								alert('Format tidak didukung. Gunakan JPG, PNG, atau WebP.'); input.value = ''; return;
-							}
-							var reader = new FileReader();
-							reader.onload = function(e) {
-								preview.src = e.target.result;
-								preview.style.display = 'block';
-								filenameEl.textContent = file.name + ' · ' + (file.size / 1024).toFixed(1) + ' KB';
-								submit.classList.add('ready');
-							};
-							reader.readAsDataURL(file);
-						}
-
-						input.addEventListener('change', function(e){ handleFile(e.target.files[0]); });
-
-						// Drag & drop
-						['dragenter','dragover'].forEach(function(ev){
-							dropzone.addEventListener(ev, function(e){ e.preventDefault(); dropzone.style.borderColor = '#c29e5c'; dropzone.style.background = '#faf0d7'; });
-						});
-						['dragleave','drop'].forEach(function(ev){
-							dropzone.addEventListener(ev, function(e){ e.preventDefault(); dropzone.style.borderColor = ''; dropzone.style.background = ''; });
-						});
-						dropzone.addEventListener('drop', function(e){
-							e.preventDefault();
-							if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-								input.files = e.dataTransfer.files;
-								handleFile(e.dataTransfer.files[0]);
-							}
-						});
-					})();
-					</script>
-				@elseif($order->payment_proof)
-					<div class="proof-card">
-						<h4><i class="fa fa-check-circle m-r-6" style="color:#2f7a4c;"></i> Bukti Transfer Terkirim</h4>
+						<h4><i class="fa fa-check-circle m-r-6" style="color:#2f7a4c;"></i> Pembayaran Berhasil</h4>
 						<div class="proof-existing">
-							<a href="{{ $order->payment_proof_url }}" target="_blank">
-								<img src="{{ $order->payment_proof_url }}" alt="Bukti transfer" class="proof-thumb">
-							</a>
+							<div class="proof-existing-icon"><i class="fa fa-check-circle"></i></div>
 							<div class="proof-existing-text">
-								<strong>Terima kasih, bukti transfer sudah kami terima.</strong>
-								<div class="meta">Diunggah pada {{ $order->paid_at?->translatedFormat('d F Y, H:i') }} WIB · Pesanan sedang diverifikasi.</div>
-								<div style="margin-top:8px;">
-									<a href="{{ $order->payment_proof_url }}" target="_blank"><i class="fa fa-external-link"></i> Buka gambar</a>
+								<strong>Pembayaran sebesar {{ $rupiah($order->total) }} telah kami terima.</strong>
+								<div class="meta">
+									Dibayar pada {{ $order->paid_at?->translatedFormat('d F Y, H:i') }} WIB
+									@if($order->midtrans_payment_type)
+										· via {{ strtoupper(str_replace('_', ' ', $order->midtrans_payment_type)) }}
+									@endif
 								</div>
 							</div>
 						</div>
