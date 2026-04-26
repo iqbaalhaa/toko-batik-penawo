@@ -70,6 +70,8 @@
 	}
 	.btn-bulk.danger { background: #d86a59; color: #fff; }
 	.btn-bulk.danger:hover { background: #c3554a; }
+	.btn-bulk.primary { background: #c29e5c; color: #fff; }
+	.btn-bulk.primary:hover { background: #a88541; }
 	.btn-bulk.outline { background: #fff; color: #6c665e; border-color: #ddd6c6; }
 	.btn-bulk.outline:hover { color: #2d2a26; border-color: #c29e5c; }
 
@@ -81,35 +83,6 @@
 	}
 	.admin-table th.col-check, .admin-table td.col-check { width: 38px; text-align: center; padding-right: 6px; }
 	.admin-table tr.row-selected { background: #fbf3df !important; }
-
-	/* Confirm modal */
-	.modal-overlay {
-		position: fixed; inset: 0; background: rgba(31,29,27,.55);
-		display: none; align-items: center; justify-content: center;
-		z-index: 1200; padding: 20px;
-	}
-	.modal-overlay.show { display: flex; }
-	.modal-box {
-		background: #fff; border-radius: 8px; max-width: 420px; width: 100%;
-		box-shadow: 0 20px 60px rgba(0,0,0,.25);
-		animation: modalIn .15s ease-out;
-		overflow: hidden;
-	}
-	@keyframes modalIn { from { transform: translateY(-12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-	.modal-icon {
-		width: 56px; height: 56px; border-radius: 50%;
-		display: flex; align-items: center; justify-content: center;
-		background: #fbe4df; color: #a5432f; font-size: 26px;
-		margin: 28px auto 16px;
-	}
-	.modal-title { font-size: 17px; font-weight: 600; color: #2d2a26; text-align: center; padding: 0 28px; margin: 0; }
-	.modal-message { font-size: 13.5px; color: #6c665e; text-align: center; padding: 8px 28px 22px; line-height: 1.55; margin: 0; }
-	.modal-actions { display: flex; gap: 10px; padding: 14px 22px; border-top: 1px solid #f2efe7; background: #faf7ef; }
-	.modal-actions button { flex: 1; padding: 10px 16px; border-radius: 4px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit; transition: background .15s, color .15s, border-color .15s; }
-	.modal-btn-cancel { background: #fff; color: #4d4640; border: 1px solid #ddd6c6; }
-	.modal-btn-cancel:hover { background: #faf7ef; color: #2d2a26; border-color: #c29e5c; }
-	.modal-btn-confirm { background: #d86a59; color: #fff; border: 1px solid transparent; }
-	.modal-btn-confirm:hover { background: #c3554a; }
 </style>
 @endpush
 
@@ -195,7 +168,12 @@
 			<span><span class="bulk-count" id="bulkCount">0</span> pesanan dipilih</span>
 			<div class="bulk-actions">
 				<button type="button" class="btn-bulk outline" id="bulkClearBtn"><i class="fa fa-times"></i> Batal</button>
-				<button type="button" class="btn-bulk danger" id="bulkDeleteBtn"><i class="fa fa-trash-o"></i> Hapus Terpilih</button>
+				<button type="button" class="btn-bulk primary" id="bulkPrintBtn"><i class="fa fa-print"></i> Cetak Terpilih</button>
+				<button type="button" class="btn-bulk danger" id="bulkDeleteBtn"
+					data-confirm-trigger="bulkDeleteForm"
+					data-confirm-title="Hapus pesanan terpilih?"
+					data-confirm-message="Seluruh data pesanan beserta item di dalamnya akan dihapus permanen. Tindakan ini tidak bisa dibatalkan."
+					data-confirm-ok="Hapus Semua"><i class="fa fa-trash-o"></i> Hapus Terpilih</button>
 			</div>
 		</div>
 
@@ -242,11 +220,11 @@
 						</td>
 						<td>
 							<a href="{{ route('pesanan.sukses', $order->invoice_number) }}" target="_blank" class="btn-admin-icon" title="Detail"><i class="fa fa-eye"></i></a>
-							<a href="#" class="btn-admin-icon" title="Cetak Invoice"><i class="fa fa-print"></i></a>
+							<a href="{{ route('admin.pesanan.cetak', $order) }}" target="_blank" class="btn-admin-icon" title="Cetak Invoice"><i class="fa fa-print"></i></a>
 							<form action="{{ route('admin.pesanan.destroy', $order) }}" method="POST" style="display:inline;"
-								data-confirm-delete
 								data-confirm-title="Hapus pesanan {{ $order->invoice_number }}?"
-								data-confirm-message="Data pesanan beserta seluruh item di dalamnya akan dihapus permanen. Tindakan ini tidak bisa dibatalkan.">
+								data-confirm-message="Data pesanan beserta seluruh item di dalamnya akan dihapus permanen. Tindakan ini tidak bisa dibatalkan."
+								data-confirm-ok="Hapus Pesanan">
 								@csrf
 								@method('DELETE')
 								<button type="submit" class="btn-admin-icon danger" title="Hapus"><i class="fa fa-trash-o"></i></button>
@@ -299,18 +277,6 @@
 		@endif
 	</div>
 
-	<!-- Modal konfirmasi (mengganti popup confirm() bawaan) -->
-	<div class="modal-overlay" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
-		<div class="modal-box">
-			<div class="modal-icon"><i class="fa fa-exclamation-triangle"></i></div>
-			<h3 class="modal-title" id="confirmTitle">Hapus pesanan?</h3>
-			<p class="modal-message" id="confirmMessage">Tindakan ini tidak bisa dibatalkan.</p>
-			<div class="modal-actions">
-				<button type="button" class="modal-btn-cancel" id="confirmNo">Batal</button>
-				<button type="button" class="modal-btn-confirm" id="confirmYes"><i class="fa fa-trash-o"></i> Hapus</button>
-			</div>
-		</div>
-	</div>
 @endsection
 
 @push('scripts')
@@ -336,6 +302,10 @@
 			checkAll.checked = (rowChecks.length > 0 && n === rowChecks.length);
 			checkAll.indeterminate = (n > 0 && n < rowChecks.length);
 		}
+		// Update pesan konfirmasi dengan jumlah dinamis
+		if (bulkDeleteBtn) {
+			bulkDeleteBtn.dataset.confirmTitle = 'Hapus ' + n + ' pesanan terpilih?';
+		}
 	}
 
 	if (checkAll) {
@@ -353,59 +323,32 @@
 		});
 	}
 
-	// Konfirmasi modal kustom
-	var modal = document.getElementById('confirmModal');
-	var modalTitle = document.getElementById('confirmTitle');
-	var modalMessage = document.getElementById('confirmMessage');
-	var btnYes = document.getElementById('confirmYes');
-	var btnNo = document.getElementById('confirmNo');
-	var pending = null;
+	// Bulk cetak invoice — buka tab baru dengan POST form dinamis
+	var bulkPrintBtn = document.getElementById('bulkPrintBtn');
+	if (bulkPrintBtn) {
+		bulkPrintBtn.addEventListener('click', function(){
+			var checked = rowChecks.filter(function(cb){ return cb.checked; });
+			if (!checked.length) return;
 
-	function showConfirm(title, message, onYes) {
-		modalTitle.textContent = title;
-		modalMessage.textContent = message;
-		pending = onYes;
-		modal.classList.add('show');
-		setTimeout(function(){ btnNo.focus(); }, 0);
-	}
-	function hideConfirm() {
-		modal.classList.remove('show');
-		pending = null;
-	}
-	btnNo.addEventListener('click', hideConfirm);
-	btnYes.addEventListener('click', function(){
-		var fn = pending;
-		hideConfirm();
-		if (fn) fn();
-	});
-	modal.addEventListener('click', function(e){ if (e.target === modal) hideConfirm(); });
-	document.addEventListener('keydown', function(e){
-		if (e.key === 'Escape' && modal.classList.contains('show')) hideConfirm();
-	});
+			var f = document.createElement('form');
+			f.method = 'POST';
+			f.action = @json(route('admin.pesanan.cetak-massal'));
+			f.target = '_blank';
 
-	// Intercept submit form hapus per-baris
-	document.querySelectorAll('form[data-confirm-delete]').forEach(function(form){
-		form.addEventListener('submit', function(e){
-			if (form.dataset.confirmed === '1') return;
-			e.preventDefault();
-			showConfirm(
-				form.dataset.confirmTitle || 'Hapus pesanan?',
-				form.dataset.confirmMessage || 'Tindakan ini tidak bisa dibatalkan.',
-				function(){ form.dataset.confirmed = '1'; form.submit(); }
-			);
-		});
-	});
+			var csrf = document.createElement('input');
+			csrf.type = 'hidden'; csrf.name = '_token';
+			csrf.value = @json(csrf_token());
+			f.appendChild(csrf);
 
-	// Bulk delete
-	if (bulkDeleteBtn) {
-		bulkDeleteBtn.addEventListener('click', function(){
-			var n = rowChecks.filter(function(cb){ return cb.checked; }).length;
-			if (!n) return;
-			showConfirm(
-				'Hapus ' + n + ' pesanan terpilih?',
-				'Seluruh data pesanan beserta item di dalamnya akan dihapus permanen. Tindakan ini tidak bisa dibatalkan.',
-				function(){ document.getElementById('bulkDeleteForm').submit(); }
-			);
+			checked.forEach(function(cb){
+				var i = document.createElement('input');
+				i.type = 'hidden'; i.name = 'ids[]'; i.value = cb.value;
+				f.appendChild(i);
+			});
+
+			document.body.appendChild(f);
+			f.submit();
+			document.body.removeChild(f);
 		});
 	}
 })();

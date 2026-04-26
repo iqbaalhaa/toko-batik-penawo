@@ -134,7 +134,10 @@
 										</td>
 										<td class="column-5 row-total">{{ $rupiah($item['price'] * $item['qty']) }}</td>
 										<td class="column-action">
-											<form action="{{ route('keranjang.remove', $item['cart_key']) }}" method="POST" onsubmit="return confirm('Hapus {{ $item['name'] }} dari keranjang?');" style="margin:0;">
+											<form action="{{ route('keranjang.remove', $item['cart_key']) }}" method="POST" style="margin:0;"
+												data-confirm-title="Hapus dari keranjang?"
+												data-confirm-message="Hapus {{ $item['name'] }} dari keranjang Anda."
+												data-confirm-ok="Hapus">
 												@csrf
 												@method('DELETE')
 												<button type="submit" class="cart-remove-btn" title="Hapus"><i class="fa fa-trash-o"></i></button>
@@ -146,7 +149,10 @@
 							</div>
 
 							<div style="padding-top:14px; text-align:right;">
-								<form action="{{ route('keranjang.clear') }}" method="POST" onsubmit="return confirm('Kosongkan seluruh keranjang?');" style="display:inline; margin:0;">
+								<form action="{{ route('keranjang.clear') }}" method="POST" style="display:inline; margin:0;"
+									data-confirm-title="Kosongkan keranjang?"
+									data-confirm-message="Seluruh produk akan dihapus dari keranjang Anda."
+									data-confirm-ok="Kosongkan">
 									@csrf
 									<button type="submit" class="stext-106 cl6 hov-cl1 trans-04" style="background:none; border:0; padding:0; cursor:pointer; text-decoration:underline;">
 										<i class="fa fa-trash-o"></i> Kosongkan Keranjang

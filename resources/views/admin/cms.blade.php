@@ -68,7 +68,9 @@
 							<button type="button" class="btn-admin-icon" title="Edit"
 								onclick='openBannerModal(@json($b))'><i class="fa fa-pencil-square-o"></i></button>
 							<form action="{{ route('admin.cms.banner.destroy', $b) }}" method="POST" style="display:inline;"
-								onsubmit="return confirm('Hapus banner ini?');">
+								data-confirm-title="Hapus banner?"
+								data-confirm-message='Banner "{{ $b->title }}" akan dihapus dari slider beranda.'
+								data-confirm-ok="Hapus Banner">
 								@csrf @method('DELETE')
 								<button type="submit" class="btn-admin-icon danger" title="Hapus"><i class="fa fa-trash-o"></i></button>
 							</form>
@@ -231,7 +233,9 @@
 							<button type="button" class="btn-admin-icon" title="Edit"
 								onclick='openCategoryModal(@json($c))'><i class="fa fa-pencil-square-o"></i></button>
 							<form action="{{ route('admin.cms.kategori.destroy', $c) }}" method="POST" style="display:inline;"
-								onsubmit="return confirm('Hapus kategori &quot;{{ $c->name }}&quot;?');">
+								data-confirm-title="Hapus kategori?"
+								data-confirm-message='Kategori "{{ $c->name }}" akan dihapus. Hanya bisa dihapus jika belum dipakai produk.'
+								data-confirm-ok="Hapus Kategori">
 								@csrf @method('DELETE')
 								<button type="submit" class="btn-admin-icon danger" title="Hapus"><i class="fa fa-trash-o"></i></button>
 							</form>

@@ -330,6 +330,30 @@ Route::post('/checkout/confirm', function (Request $request) {
     return redirect($redirectUrl);
 })->name('checkout.confirm');
 
+// Pelanggan konfirmasi pesanan diterima → ubah status ke "selesai"
+Route::post('/pesanan/{invoice}/selesai', function (string $invoice) {
+    $authUser = session('auth_user');
+    if (! $authUser) {
+        return redirect()->route('login')->withErrors(['email' => 'Silakan masuk untuk mengonfirmasi pesanan.']);
+    }
+
+    $order = \App\Models\Order::where('invoice_number', $invoice)->firstOrFail();
+
+    // Hanya pemilik pesanan (atau admin) yang boleh konfirmasi
+    if ($order->customer_email !== $authUser['email'] && ($authUser['role'] ?? null) !== 'admin') {
+        abort(403);
+    }
+    if ($order->status !== 'dikirim') {
+        return back()->withErrors(['status' => 'Pesanan hanya dapat dikonfirmasi setelah berstatus Dikirim.']);
+    }
+
+    $order->status = 'selesai';
+    $order->save();
+
+    return redirect()->route('pesanan.sukses', $order->invoice_number)
+        ->with('status', 'Terima kasih! Pesanan ditandai selesai.');
+})->name('pesanan.selesai');
+
 // Midtrans Snap: regenerate token (kalau hilang / kadaluarsa)
 Route::post('/pesanan/{invoice}/midtrans/token', function (string $invoice) {
     $order = \App\Models\Order::where('invoice_number', $invoice)->firstOrFail();
@@ -886,6 +910,23 @@ Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
 
         return back()->with('status', "Status {$order->invoice_number} diubah: {$oldLabel} → {$order->status_label}.");
     })->name('pesanan.status');
+
+    Route::get('/pesanan/{order}/cetak', function (\App\Models\Order $order) {
+        $order->load('items');
+        return view('admin.pesanan-cetak', compact('order'));
+    })->name('pesanan.cetak');
+
+    Route::post('/pesanan/cetak-massal', function (Request $request) {
+        $data = $request->validate([
+            'ids'   => 'required|array|min:1',
+            'ids.*' => 'integer|exists:orders,id',
+        ]);
+        $orders = \App\Models\Order::with('items')
+            ->whereIn('id', $data['ids'])
+            ->latest()
+            ->get();
+        return view('admin.pesanan-cetak-massal', compact('orders'));
+    })->name('pesanan.cetak-massal');
 
     Route::delete('/pesanan/bulk', function (Request $request) {
         $data = $request->validate([

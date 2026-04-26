@@ -133,7 +133,10 @@
 								@endphp
 								data-images="{{ json_encode($imagePairs) }}"
 							><i class="fa fa-pencil-square-o"></i></button>
-							<form action="{{ route('admin.produk.destroy', $p) }}" method="POST" style="display:inline;" onsubmit="return confirm('Hapus produk &quot;{{ $p->name }}&quot;? Tindakan ini tidak dapat dibatalkan.');">
+							<form action="{{ route('admin.produk.destroy', $p) }}" method="POST" style="display:inline;"
+								data-confirm-title="Hapus produk?"
+								data-confirm-message='{{ $p->name }} akan dihapus permanen beserta semua fotonya. Tindakan ini tidak dapat dibatalkan.'
+								data-confirm-ok="Hapus Produk">
 								@csrf
 								@method('DELETE')
 								<button type="submit" class="btn-admin-icon danger" title="Hapus"><i class="fa fa-trash-o"></i></button>

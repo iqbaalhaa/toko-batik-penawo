@@ -148,7 +148,12 @@
       "Bash(php -l app/Providers/AppServiceProvider.php)",
       "Bash(php -l app/Models/User.php)",
       "Bash(php -l resources/views/home/akun/profil.blade.php)",
-      "Bash(php -l resources/views/home/akun/pesanan.blade.php)"
+      "Bash(php -l resources/views/home/akun/pesanan.blade.php)",
+      "Bash(php -l resources/views/admin/pesanan-cetak.blade.php)",
+      "Bash(php -l resources/views/admin/pesanan.blade.php)",
+      "Bash(php -l resources/views/admin/_struk.blade.php)",
+      "Bash(php -l resources/views/admin/pesanan-cetak-massal.blade.php)",
+      "Bash(php -l resources/views/partials/confirm-modal.blade.php)"
     ]
   }
 }

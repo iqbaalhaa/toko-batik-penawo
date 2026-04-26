@@ -121,6 +121,21 @@
 		.profile-dropdown-link:hover { background: #faf6ed; color: #c29e5c; text-decoration: none; }
 		.profile-dropdown-link i { font-size: 16px; margin-right: 12px; width: 18px; text-align: center; }
 		.profile-dropdown-link-accent { color: #c29e5c; font-weight: 500; }
+		.profile-dropdown-link-admin {
+			background: #faf6ed; color: #8a6b2b !important; font-weight: 600;
+			border-left: 3px solid #c29e5c;
+		}
+		.profile-dropdown-link-admin:hover {
+			background: #f5ecd7 !important; color: #8a6b2b !important;
+		}
+		.profile-dropdown-link-admin i { color: #c29e5c; }
+		.profile-dropdown-badge {
+			margin-left: auto;
+			padding: 2px 8px; border-radius: 999px;
+			background: #c29e5c; color: #fff;
+			font-size: 10px; font-weight: 600;
+			letter-spacing: .5px; text-transform: uppercase;
+		}
 		.profile-dropdown-divider { height: 1px; background: #eee; margin: 6px 0; }
 		.profile-dropdown form { margin: 0; padding: 0; }
 		.profile-dropdown form button { width: 100%; background: none; border: 0; text-align: left; cursor: pointer; font: inherit; }
@@ -246,7 +261,13 @@
 							<a href="{{ route('login') }}" class="topbar-link topbar-link-strong">Masuk</a>
 						@else
 							<span class="topbar-sep">|</span>
-							<span class="topbar-link"><i class="fa fa-user-o"></i>Halo, {{ $authUser['name'] }}</span>
+							@if(($authUser['role'] ?? null) === 'admin')
+								<a href="{{ route('admin.dashboard') }}" class="topbar-link topbar-link-strong" title="Buka Dashboard Admin">
+									<i class="fa fa-user-o"></i>Halo, {{ $authUser['name'] }}
+								</a>
+							@else
+								<span class="topbar-link"><i class="fa fa-user-o"></i>Halo, {{ $authUser['name'] }}</span>
+							@endif
 							<span class="topbar-sep">|</span>
 							<form action="{{ route('logout') }}" method="POST" class="topbar-logout">
 								@csrf
@@ -338,6 +359,14 @@
 										<div class="profile-dropdown-greet">Halo, {{ $authUser['name'] }}</div>
 										<div class="profile-dropdown-sub">{{ $authUser['email'] }}</div>
 									</div>
+
+									@if(($authUser['role'] ?? null) === 'admin')
+										<a href="{{ route('admin.dashboard') }}" class="profile-dropdown-link profile-dropdown-link-admin">
+											<i class="fa fa-tachometer"></i>Dashboard Admin
+											<span class="profile-dropdown-badge">Admin</span>
+										</a>
+										<div class="profile-dropdown-divider"></div>
+									@endif
 
 									<a href="{{ route('akun.profil') }}" class="profile-dropdown-link"><i class="fa fa-user"></i>Profil Saya</a>
 									<a href="{{ route('akun.pesanan') }}" class="profile-dropdown-link"><i class="fa fa-file-text-o"></i>Pesanan Saya</a>
@@ -680,6 +709,8 @@
 			</div>
 		</div>
 	</div>
+
+	@include('partials.confirm-modal')
 
 	<script src="{{ asset('frontend/vendor/jquery/jquery-3.2.1.min.js') }}"></script>
 	<script src="{{ asset('frontend/vendor/animsition/js/animsition.min.js') }}"></script>

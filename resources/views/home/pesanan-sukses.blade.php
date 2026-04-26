@@ -44,6 +44,96 @@
 	.status-dikirim  { background: #e1ecf8; color: #3a5fa0; }
 	.status-selesai  { background: #e3f3e9; color: #2f7a4c; }
 
+	/* Order status timeline */
+	.order-timeline {
+		margin-top: 26px; padding: 6px 4px 0;
+		display: flex; justify-content: space-between; align-items: flex-start;
+		position: relative;
+	}
+	.order-timeline-step {
+		flex: 1; text-align: center; position: relative; z-index: 2;
+		min-width: 0;
+	}
+	.order-timeline-step::before {
+		content: ''; position: absolute;
+		top: 19px; left: calc(-50% + 19px); right: calc(50% + 19px);
+		height: 2px; background: #ece8de; z-index: -1;
+		transition: background .3s;
+	}
+	.order-timeline-step:first-child::before { display: none; }
+	.order-timeline-step.done::before,
+	.order-timeline-step.current::before { background: #c29e5c; }
+
+	.order-timeline-icon {
+		width: 38px; height: 38px; border-radius: 50%;
+		background: #f5f2ea; color: #c8c2b6;
+		display: inline-flex; align-items: center; justify-content: center;
+		font-size: 15px;
+		border: 2px solid #ece8de;
+		transition: all .25s;
+		margin: 0 auto 10px;
+	}
+	.order-timeline-step.done .order-timeline-icon {
+		background: #c29e5c; color: #fff; border-color: #c29e5c;
+	}
+	.order-timeline-step.current .order-timeline-icon {
+		background: #fff; color: #c29e5c; border-color: #c29e5c;
+		box-shadow: 0 0 0 4px rgba(194, 158, 92, .2);
+		animation: pulseGold 1.6s ease-in-out infinite;
+	}
+	@keyframes pulseGold {
+		0%, 100% { box-shadow: 0 0 0 4px rgba(194, 158, 92, .2); }
+		50%      { box-shadow: 0 0 0 7px rgba(194, 158, 92, .12); }
+	}
+	.order-timeline-label {
+		font-size: 12.5px; color: #9a9288; font-weight: 500;
+		line-height: 1.3;
+	}
+	.order-timeline-step.done .order-timeline-label,
+	.order-timeline-step.current .order-timeline-label { color: #2d2a26; font-weight: 600; }
+	.order-timeline-time { font-size: 10.5px; color: #bdb7ab; margin-top: 3px; }
+
+	.order-cancelled-banner {
+		margin-top: 22px; padding: 14px 18px;
+		background: #fbe4df; border: 1px solid #f2c6be; border-left: 4px solid #d86a59;
+		border-radius: 6px; color: #a5432f; font-size: 13px;
+		text-align: left; display: flex; align-items: center; gap: 10px;
+	}
+	.order-cancelled-banner i { font-size: 18px; }
+	.order-cancelled-banner strong { color: #8a2f20; }
+
+	/* Konfirmasi terima pesanan */
+	.confirm-receipt-box {
+		margin-top: 22px; padding: 18px 20px;
+		background: #faf6ed; border: 1px solid #e4d5aa;
+		border-left: 4px solid #c29e5c; border-radius: 6px;
+		text-align: left;
+	}
+	.confirm-receipt-text {
+		font-size: 13px; color: #6c665e;
+		display: flex; align-items: center; gap: 8px;
+		margin-bottom: 12px; line-height: 1.55;
+	}
+	.confirm-receipt-text i { color: #c29e5c; font-size: 16px; flex-shrink: 0; }
+	.confirm-receipt-text strong { color: #8a6b2b; }
+	.confirm-receipt-box form { margin: 0; }
+	.confirm-receipt-btn {
+		width: 100%; padding: 12px 18px;
+		background: #56a676; color: #fff;
+		border: 0; border-radius: 4px;
+		font-size: 14px; font-weight: 600; letter-spacing: .2px;
+		cursor: pointer; font-family: inherit;
+		transition: background .15s;
+	}
+	.confirm-receipt-btn:hover { background: #438a5e; }
+
+	@media (max-width: 540px) {
+		.order-timeline-label { font-size: 10.5px; }
+		.order-timeline-time { display: none; }
+		.order-timeline-icon { width: 32px; height: 32px; font-size: 13px; margin-bottom: 6px; }
+		.order-timeline-step::before { top: 16px; left: calc(-50% + 16px); right: calc(50% + 16px); }
+	}
+
 	.order-items { list-style: none; margin: 0; padding: 0; }
 	.order-items li { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f2efe7; font-size: 13.5px; }
 	.order-items li:last-child { border-bottom: 0; }
@@ -157,9 +247,75 @@
 						<span>No. Pesanan: <strong>{{ $order->invoice_number }}</strong></span>
 					</div>
 
-					<div>
-						<span class="status-pill {{ $s['class'] }}">{{ $s['label'] }}</span>
-					</div>
+					@php
+						$isCancelled = $order->status === 'dibatalkan';
+						$paid        = $order->paid_at !== null || in_array($order->status, ['diproses', 'dikirim', 'selesai']);
+						$shipped     = in_array($order->status, ['dikirim', 'selesai']);
+						$completed   = $order->status === 'selesai';
+
+						$steps = [
+							['label' => 'Dipesan',  'icon' => 'fa-shopping-bag', 'time' => $order->created_at,           'done' => true],
+							['label' => 'Dibayar',  'icon' => 'fa-credit-card',  'time' => $paid ? $order->paid_at : null, 'done' => $paid],
+							['label' => 'Dikirim',  'icon' => 'fa-truck',        'time' => null,                          'done' => $shipped],
+							['label' => 'Selesai',  'icon' => 'fa-check-circle', 'time' => null,                          'done' => $completed],
+						];
+
+						// Tandai step pertama yang belum selesai sebagai "current"
+						$currentIdx = null;
+						foreach ($steps as $i => $st) {
+							if (! $st['done']) { $currentIdx = $i; break; }
+						}
+					@endphp
+
+					@if($isCancelled)
+						<div class="order-cancelled-banner">
+							<i class="fa fa-times-circle"></i>
+							<div>
+								<strong>Pesanan dibatalkan.</strong>
+								Pesanan ini sudah tidak dapat diproses lebih lanjut.
+							</div>
+						</div>
+					@else
+						<div class="order-timeline">
+							@foreach($steps as $i => $st)
+								<div class="order-timeline-step {{ $st['done'] ? 'done' : ($currentIdx === $i ? 'current' : '') }}">
+									<div class="order-timeline-icon">
+										@if($st['done'])
+											<i class="fa fa-check"></i>
+										@else
+											<i class="fa {{ $st['icon'] }}"></i>
+										@endif
+									</div>
+									<div class="order-timeline-label">{{ $st['label'] }}</div>
+									@if($st['time'])
+										<div class="order-timeline-time">{{ $st['time']->translatedFormat('d M, H:i') }}</div>
+									@endif
+								</div>
+							@endforeach
+						</div>
+
+						@php
+							$isOwner = session('auth_user.email') === $order->customer_email;
+						@endphp
+						@if($order->status === 'dikirim' && $isOwner)
+							<div class="confirm-receipt-box">
+								<div class="confirm-receipt-text">
+									<i class="fa fa-info-circle"></i>
+									Pesanan Anda sudah <strong>dikirim</strong>. Klik tombol di bawah jika paket sudah Anda terima.
+								</div>
+								<form action="{{ route('pesanan.selesai', $order->invoice_number) }}" method="POST"
+									data-confirm-title="Konfirmasi Penerimaan"
+									data-confirm-message='Pastikan paket pesanan {{ $order->invoice_number }} sudah Anda terima dengan baik dan dalam kondisi sesuai. Tindakan ini tidak dapat dibatalkan.'
+									data-confirm-ok="Ya, Sudah Diterima"
+									data-confirm-variant="success">
+									@csrf
+									<button type="submit" class="confirm-receipt-btn">
+										<i class="fa fa-check-circle m-r-6"></i> Pesanan Sudah Diterima
+									</button>
+								</form>
+							</div>
+						@endif
+					@endif
 				</div>
 
 				<div class="detail-card">
@@ -246,4 +402,5 @@
 			</div>
 		</div>
 	</section>
+
 @endsection
