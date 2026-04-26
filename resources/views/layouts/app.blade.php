@@ -142,6 +142,69 @@
 		}
 		.flash-close:hover { opacity: 1; }
 
+		/* Toast notifikasi keranjang */
+		.cart-toast {
+			position: fixed; top: 24px; right: 24px;
+			width: 340px; max-width: calc(100vw - 32px);
+			background: #fff;
+			border: 1px solid #ece8de;
+			border-left: 4px solid #56a676;
+			border-radius: 6px;
+			box-shadow: 0 14px 38px rgba(45, 42, 38, .22);
+			padding: 14px 36px 14px 16px;
+			display: flex; gap: 12px;
+			z-index: 9999;
+			animation: cartToastIn .35s cubic-bezier(.2,.8,.3,1.2);
+		}
+		.cart-toast.hide { animation: cartToastOut .25s ease-out forwards; }
+		@keyframes cartToastIn {
+			from { transform: translateX(24px); opacity: 0; }
+			to { transform: translateX(0); opacity: 1; }
+		}
+		@keyframes cartToastOut {
+			to { transform: translateX(24px); opacity: 0; }
+		}
+		.cart-toast-img-wrap { position: relative; flex-shrink: 0; }
+		.cart-toast-img {
+			width: 56px; height: 56px;
+			border-radius: 4px; object-fit: cover;
+			background: #f5f2ea; display: block;
+		}
+		.cart-toast-badge {
+			position: absolute; top: -8px; left: -8px;
+			width: 24px; height: 24px; border-radius: 50%;
+			background: #56a676; color: #fff;
+			display: flex; align-items: center; justify-content: center;
+			font-size: 12px;
+			box-shadow: 0 2px 6px rgba(0,0,0,.18);
+		}
+		.cart-toast-body { flex: 1; min-width: 0; }
+		.cart-toast-title { font-size: 13px; font-weight: 600; color: #2d2a26; }
+		.cart-toast-name {
+			font-size: 12.5px; color: #6c665e;
+			margin-top: 2px;
+			white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+		}
+		.cart-toast-actions { display: flex; gap: 8px; margin-top: 10px; }
+		.cart-toast-btn {
+			padding: 6px 12px; font-size: 11.5px; font-weight: 500;
+			border-radius: 3px; text-decoration: none;
+			border: 1px solid transparent; cursor: pointer;
+			font-family: inherit; line-height: 1.4;
+			transition: background .15s, color .15s, border-color .15s;
+		}
+		.cart-toast-btn.primary { background: #c29e5c; color: #fff; }
+		.cart-toast-btn.primary:hover { background: #a88541; color: #fff; text-decoration: none; }
+		.cart-toast-btn.outline { background: #fff; color: #6c665e; border-color: #ddd6c6; }
+		.cart-toast-btn.outline:hover { color: #2d2a26; border-color: #c29e5c; }
+		.cart-toast-close {
+			position: absolute; top: 6px; right: 8px;
+			background: none; border: 0; padding: 2px 6px;
+			color: #c8c2b6; cursor: pointer;
+			font-size: 20px; line-height: 1;
+		}
+		.cart-toast-close:hover { color: #2d2a26; }
+
 		/* Global topbar */
 		.topbar-global { background: #2d2d2d; color: #e2e2e2; font-size: 12.5px; }
 		.topbar-global .topbar-inner { display: flex; justify-content: space-between; align-items: center; height: 36px; }
@@ -172,8 +235,6 @@
 					</div>
 
 					<div class="topbar-right">
-						<a href="#" class="topbar-link"><i class="fa fa-bell-o"></i>Notifikasi</a>
-						<span class="topbar-sep">|</span>
 						<a href="{{ route('kontak') }}" class="topbar-link"><i class="fa fa-question-circle-o"></i>Bantuan</a>
 						<span class="topbar-sep">|</span>
 						<a href="#" class="topbar-link"><i class="fa fa-globe"></i>Bahasa Indonesia</a>
@@ -396,6 +457,38 @@
 			</div>
 		</div>
 		<script>setTimeout(function(){ var b=document.getElementById('flashBanner'); if(b){ b.style.transition='opacity .4s'; b.style.opacity='0'; setTimeout(function(){b.style.display='none';},400); } }, 4000);</script>
+	@endif
+
+	@if(session('cart_added'))
+		@php $ca = session('cart_added'); @endphp
+		<div class="cart-toast" id="cartToast" role="alert" aria-live="polite">
+			<button type="button" class="cart-toast-close" onclick="hideCartToast()" aria-label="Tutup">&times;</button>
+			<div class="cart-toast-img-wrap">
+				<img src="{{ $ca['image'] ?? asset('frontend/images/product-01.jpg') }}" alt="{{ $ca['name'] }}" class="cart-toast-img">
+				<span class="cart-toast-badge"><i class="fa fa-check"></i></span>
+			</div>
+			<div class="cart-toast-body">
+				<div class="cart-toast-title">Berhasil ditambahkan!</div>
+				<div class="cart-toast-name">{{ $ca['qty'] }}× {{ $ca['name'] }}</div>
+				@php $variantParts = array_filter([$ca['size'] ?? null, $ca['color'] ?? null]); @endphp
+				@if($variantParts)
+					<div style="font-size:11px; color:#9a9288; margin-top:2px;">{{ implode(' · ', $variantParts) }}</div>
+				@endif
+				<div class="cart-toast-actions">
+					<a href="{{ route('keranjang') }}" class="cart-toast-btn primary"><i class="fa fa-shopping-cart"></i> Lihat Keranjang</a>
+					<button type="button" class="cart-toast-btn outline" onclick="hideCartToast()">Lanjut Belanja</button>
+				</div>
+			</div>
+		</div>
+		<script>
+			function hideCartToast() {
+				var t = document.getElementById('cartToast');
+				if (!t || t.classList.contains('hide')) return;
+				t.classList.add('hide');
+				setTimeout(function(){ t.style.display = 'none'; }, 260);
+			}
+			setTimeout(hideCartToast, 5000);
+		</script>
 	@endif
 
 	@yield('content')

@@ -25,6 +25,12 @@ class User extends Authenticatable
         'role',
         'phone',
         'status',
+        'address',
+        'city',
+        'province',
+        'postal_code',
+        'birth_date',
+        'gender',
     ];
 
     public function orders()
@@ -56,7 +62,8 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
-            'password' => 'hashed',
+            'password'          => 'hashed',
+            'birth_date'        => 'date',
         ];
     }
 }

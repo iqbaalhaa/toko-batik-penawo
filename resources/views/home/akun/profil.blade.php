@@ -157,6 +157,50 @@
 						</div>
 
 						<div class="akun-card">
+							<h3 class="akun-card-title">Alamat Pengiriman</h3>
+							<p class="akun-card-sub">Alamat ini akan otomatis terisi saat checkout.</p>
+
+							<div class="row">
+								<div class="col-md-12" style="margin-bottom:14px;">
+									<label class="akun-label">Alamat Lengkap</label>
+									<textarea name="address" class="akun-input" rows="3" placeholder="Jalan, nomor rumah, RT/RW, kelurahan, kecamatan">{{ old('address', $user->address) }}</textarea>
+								</div>
+								<div class="col-md-6" style="margin-bottom:14px;">
+									<label class="akun-label">Kota / Kabupaten</label>
+									<input type="text" name="city" class="akun-input" placeholder="Mis. Kerinci" value="{{ old('city', $user->city) }}">
+								</div>
+								<div class="col-md-4" style="margin-bottom:14px;">
+									<label class="akun-label">Provinsi</label>
+									<input type="text" name="province" class="akun-input" placeholder="Mis. Jambi" value="{{ old('province', $user->province) }}">
+								</div>
+								<div class="col-md-2" style="margin-bottom:14px;">
+									<label class="akun-label">Kode Pos</label>
+									<input type="text" name="postal_code" class="akun-input" placeholder="37173" maxlength="10" value="{{ old('postal_code', $user->postal_code) }}">
+								</div>
+							</div>
+						</div>
+
+						<div class="akun-card">
+							<h3 class="akun-card-title">Detail Tambahan</h3>
+							<p class="akun-card-sub">Opsional — bantu kami menyajikan rekomendasi yang lebih sesuai.</p>
+
+							<div class="row">
+								<div class="col-md-6" style="margin-bottom:14px;">
+									<label class="akun-label">Tanggal Lahir</label>
+									<input type="date" name="birth_date" class="akun-input" value="{{ old('birth_date', optional($user->birth_date)->format('Y-m-d')) }}">
+								</div>
+								<div class="col-md-6" style="margin-bottom:14px;">
+									<label class="akun-label">Jenis Kelamin</label>
+									<select name="gender" class="akun-input">
+										<option value="">— Tidak ingin menyebutkan —</option>
+										<option value="pria"   @selected(old('gender', $user->gender) === 'pria')>Pria</option>
+										<option value="wanita" @selected(old('gender', $user->gender) === 'wanita')>Wanita</option>
+									</select>
+								</div>
+							</div>
+						</div>
+
+						<div class="akun-card">
 							<h3 class="akun-card-title">Ubah Password</h3>
 							<p class="akun-card-sub">Kosongkan bila tidak ingin mengubah password.</p>
 

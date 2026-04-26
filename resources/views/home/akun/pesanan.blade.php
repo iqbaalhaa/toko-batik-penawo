@@ -144,7 +144,14 @@
 								<div>
 									<span class="order-total-label">Total</span>
 									<span class="order-total-value">{{ $rupiah($order->total) }}</span>
-									<span style="color:#9a9288; font-size:12px; margin-left:8px;">· {{ $order->payment_method }}</span>
+									@php
+										$paymentLabel = match($order->payment_method) {
+											'Midtrans' => 'Bayar Online',
+											'COD'      => 'Bayar di Tempat',
+											default    => $order->payment_method ?? '—',
+										};
+									@endphp
+									<span style="color:#9a9288; font-size:12px; margin-left:8px;">· {{ $paymentLabel }}</span>
 								</div>
 								<a href="{{ route('pesanan.sukses', $order->invoice_number) }}" class="order-btn order-btn-primary">
 									<i class="fa fa-eye m-r-4"></i> Lihat Detail

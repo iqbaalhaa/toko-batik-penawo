@@ -20,6 +20,11 @@
 		display: inline-block;
 		background: transparent;
 	}
+	/* CTA hero — lebar lebih pendek, tinggi tetap */
+	.hero-text-col .layer-slick1 .size-101 {
+		min-width: 0;
+		padding: 0 22px;
+	}
 	@media (max-width: 991px) {
 		.section-slide .item-slick1.hero-split { min-height: auto; padding: 30px 0; }
 		.hero-row { min-height: 0; }

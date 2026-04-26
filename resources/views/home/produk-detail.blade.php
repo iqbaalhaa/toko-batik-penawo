@@ -73,7 +73,10 @@
 							{{ $product->description }}
 						</p>
 
-						<div class="p-t-33">
+						<form action="{{ route('keranjang.add') }}" method="POST" class="p-t-33">
+							@csrf
+							<input type="hidden" name="slug" value="{{ $product->slug }}">
+
 							<div class="flex-w flex-r-m p-b-10">
 								<div class="size-203 flex-c-m respon6">Ukuran</div>
 								<div class="size-204 respon6-next">
@@ -104,9 +107,7 @@
 								</div>
 							</div>
 
-							<form action="{{ route('keranjang.add') }}" method="POST" class="flex-w flex-r-m p-b-10">
-								@csrf
-								<input type="hidden" name="slug" value="{{ $product->slug }}">
+							<div class="flex-w flex-r-m p-b-10">
 								<div class="size-204 flex-w flex-m respon6-next">
 									<div class="wrap-num-product flex-w m-r-20 m-tb-10">
 										<div class="btn-num-product-down cl8 hov-btn3 trans-04 flex-c-m">
@@ -122,8 +123,8 @@
 
 									<button type="submit" class="flex-c-m stext-101 cl0 size-101 bg1 bor1 hov-btn1 p-lr-15 trans-04">Tambah ke Keranjang</button>
 								</div>
-							</form>
-						</div>
+							</div>
+						</form>
 
 						<div class="flex-w flex-m p-l-100 p-t-40 respon7">
 							<div class="flex-m bor9 p-r-10 m-r-11">

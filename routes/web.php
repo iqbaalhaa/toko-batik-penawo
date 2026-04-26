@@ -38,31 +38,62 @@ Route::post('/keranjang/add', function (Request $request) {
     }
 
     $data = $request->validate([
-        'slug' => 'required|string|exists:products,slug',
-        'qty'  => 'required|integer|min:1|max:99',
+        'slug'  => 'required|string|exists:products,slug',
+        'qty'   => 'required|integer|min:1|max:99',
+        'size'  => 'nullable|string|max:50',
+        'color' => 'nullable|string|max:50',
     ]);
 
+    // Normalisasi: placeholder "Pilih ukuran/warna" dianggap kosong
+    $size  = $data['size']  ?? null;
+    $color = $data['color'] ?? null;
+    if ($size  && stripos($size,  'pilih') === 0) $size  = null;
+    if ($color && stripos($color, 'pilih') === 0) $color = null;
+
+    $cartKey = substr(md5($data['slug'] . '|' . ($size ?? '') . '|' . ($color ?? '')), 0, 12);
+
     $cart = session('cart', []);
-    $cart[$data['slug']] = min(99, (int) ($cart[$data['slug']] ?? 0) + $data['qty']);
+    // Buang sisa entry format lama (slug => int) supaya tidak bentrok
+    foreach ($cart as $k => $v) {
+        if (! is_array($v)) unset($cart[$k]);
+    }
+
+    if (isset($cart[$cartKey])) {
+        $cart[$cartKey]['qty'] = min(99, (int) $cart[$cartKey]['qty'] + (int) $data['qty']);
+    } else {
+        $cart[$cartKey] = [
+            'slug'  => $data['slug'],
+            'qty'   => min(99, (int) $data['qty']),
+            'size'  => $size,
+            'color' => $color,
+        ];
+    }
     session(['cart' => $cart]);
 
-    return redirect()->back()->with('status', 'Produk ditambahkan ke keranjang.');
+    $product = Product::where('slug', $data['slug'])->first();
+    return redirect()->back()->with('cart_added', [
+        'name'  => $product?->name ?? 'Produk',
+        'qty'   => (int) $data['qty'],
+        'image' => $product?->image_url,
+        'size'  => $size,
+        'color' => $color,
+    ]);
 })->name('keranjang.add');
 
-Route::patch('/keranjang/{slug}', function (Request $request, string $slug) {
+Route::patch('/keranjang/{cartKey}', function (Request $request, string $cartKey) {
     $cart = session('cart', []);
-    if (! isset($cart[$slug])) {
+    if (! isset($cart[$cartKey]) || ! is_array($cart[$cartKey])) {
         abort(404);
     }
     $qty = (int) $request->input('qty', 1);
-    $cart[$slug] = max(1, min(99, $qty));
+    $cart[$cartKey]['qty'] = max(1, min(99, $qty));
     session(['cart' => $cart]);
     return redirect()->route('keranjang')->with('status', 'Jumlah produk diperbarui.');
 })->name('keranjang.update');
 
-Route::delete('/keranjang/{slug}', function (string $slug) {
+Route::delete('/keranjang/{cartKey}', function (string $cartKey) {
     $cart = session('cart', []);
-    unset($cart[$slug]);
+    unset($cart[$cartKey]);
     session(['cart' => $cart]);
     return redirect()->route('keranjang')->with('status', 'Produk dihapus dari keranjang.');
 })->name('keranjang.remove');
@@ -72,7 +103,7 @@ Route::post('/keranjang/clear', function () {
     return redirect()->route('keranjang')->with('status', 'Keranjang dikosongkan.');
 })->name('keranjang.clear');
 
-// Step 1: dari keranjang — stash item terpilih ke session, redirect ke halaman bayar
+// Step 1: dari keranjang — stash cart_keys terpilih ke session, redirect ke halaman bayar
 Route::post('/checkout', function (Request $request) {
     $authUser = session('auth_user');
     if (! $authUser) {
@@ -85,12 +116,12 @@ Route::post('/checkout', function (Request $request) {
     ]);
 
     $cart = session('cart', []);
-    $selectedSlugs = array_values(array_intersect($data['selected'], array_keys($cart)));
-    if (empty($selectedSlugs)) {
+    $selectedKeys = array_values(array_intersect($data['selected'], array_keys($cart)));
+    if (empty($selectedKeys)) {
         return redirect()->route('keranjang')->withErrors(['selected' => 'Produk yang dipilih tidak ada di keranjang.']);
     }
 
-    session(['checkout_pending' => $selectedSlugs]);
+    session(['checkout_pending' => $selectedKeys]);
     return redirect()->route('checkout.show');
 })->name('checkout');
 
@@ -107,24 +138,29 @@ Route::get('/checkout', function () {
     }
 
     $cart = session('cart', []);
-    $slugs = array_values(array_intersect($pending, array_keys($cart)));
-    if (empty($slugs)) {
+    $keys = array_values(array_intersect($pending, array_keys($cart)));
+    if (empty($keys)) {
         session()->forget('checkout_pending');
         return redirect()->route('keranjang')->withErrors(['selected' => 'Item checkout sudah tidak tersedia di keranjang.']);
     }
 
+    $slugs = collect($keys)->map(fn ($k) => $cart[$k]['slug'] ?? null)->filter()->unique()->values()->all();
     $products = Product::whereIn('slug', $slugs)->get()->keyBy('slug');
     $items = [];
     $subtotal = 0;
-    foreach ($slugs as $slug) {
-        $p = $products[$slug] ?? null;
+    foreach ($keys as $k) {
+        $row = $cart[$k] ?? null;
+        $p = $row ? ($products[$row['slug']] ?? null) : null;
         if (! $p) continue;
-        $qty = (int) $cart[$slug];
+        $qty = (int) $row['qty'];
         $items[] = [
+            'cart_key'  => $k,
             'slug'      => $p->slug,
             'name'      => $p->name,
             'qty'       => $qty,
             'price'     => (int) $p->price,
+            'size'      => $row['size'] ?? null,
+            'color'     => $row['color'] ?? null,
             'image_url' => $p->image_url,
             'subtotal'  => $p->price * $qty,
         ];
@@ -132,8 +168,9 @@ Route::get('/checkout', function () {
     }
 
     $total = $subtotal;
+    $user  = User::find($authUser['id'] ?? null);
 
-    return view('home.checkout', compact('items', 'subtotal', 'total'));
+    return view('home.checkout', compact('items', 'subtotal', 'total', 'user'));
 })->name('checkout.show');
 
 // Step 3: konfirmasi — buat Order + OrderItems, bersihkan cart/pending, redirect ke halaman sukses
@@ -152,21 +189,25 @@ Route::post('/checkout/confirm', function (Request $request) {
 
     $pending = session('checkout_pending', []);
     $cart = session('cart', []);
-    $slugs = array_values(array_intersect($pending, array_keys($cart)));
-    if (empty($slugs)) {
+    $keys = array_values(array_intersect($pending, array_keys($cart)));
+    if (empty($keys)) {
         return redirect()->route('keranjang')->withErrors(['selected' => 'Item checkout sudah tidak tersedia.']);
     }
 
+    $slugs = collect($keys)->map(fn ($k) => $cart[$k]['slug'] ?? null)->filter()->unique()->values()->all();
     $products = Product::whereIn('slug', $slugs)->get()->keyBy('slug');
     $items = [];
     $subtotal = 0;
-    foreach ($slugs as $slug) {
-        $p = $products[$slug] ?? null;
+    foreach ($keys as $k) {
+        $row = $cart[$k] ?? null;
+        $p = $row ? ($products[$row['slug']] ?? null) : null;
         if (! $p) continue;
-        $qty = (int) $cart[$slug];
+        $qty = (int) $row['qty'];
         $items[] = [
             'product_id'   => $p->id,
             'product_name' => $p->name,
+            'size'         => $row['size'] ?? null,
+            'color'        => $row['color'] ?? null,
             'qty'          => $qty,
             'price'        => (int) $p->price,
         ];
@@ -218,11 +259,14 @@ Route::post('/checkout/confirm', function (Request $request) {
 
         $itemDetails = [];
         foreach ($items as $it) {
+            $variantSuffix = '';
+            $variantParts  = array_filter([$it['size'] ?? null, $it['color'] ?? null]);
+            if ($variantParts) $variantSuffix = ' (' . implode(', ', $variantParts) . ')';
             $itemDetails[] = [
                 'id'       => (string) ($it['product_id'] ?? $it['product_name']),
                 'price'    => (int) $it['price'],
                 'quantity' => (int) $it['qty'],
-                'name'     => \Illuminate\Support\Str::limit($it['product_name'], 50, ''),
+                'name'     => \Illuminate\Support\Str::limit($it['product_name'] . $variantSuffix, 50, ''),
             ];
         }
 
@@ -260,8 +304,8 @@ Route::post('/checkout/confirm', function (Request $request) {
     }
 
     // Bersihkan cart dan checkout pending
-    foreach ($slugs as $slug) {
-        unset($cart[$slug]);
+    foreach ($keys as $k) {
+        unset($cart[$k]);
     }
     session(['cart' => $cart]);
     session()->forget('checkout_pending');
@@ -272,7 +316,7 @@ Route::post('/checkout/confirm', function (Request $request) {
     if ($request->expectsJson() || $request->ajax()) {
         if (! $snapToken) {
             return response()->json([
-                'error'        => 'Gagal menyiapkan pembayaran Midtrans. ' . ($snapError ? '(' . $snapError . ')' : ''),
+                'error'        => 'Gagal menyiapkan pembayaran. ' . ($snapError ? '(' . $snapError . ')' : ''),
                 'redirect_url' => $redirectUrl,
             ], 500);
         }
@@ -548,13 +592,25 @@ Route::prefix('akun')->name('akun.')->group(function () {
             'name'             => 'required|string|min:2|max:60',
             'email'            => 'required|email|unique:users,email,' . $user->id,
             'phone'            => 'nullable|string|max:25',
+            'address'          => 'nullable|string|max:500',
+            'city'             => 'nullable|string|max:80',
+            'province'         => 'nullable|string|max:80',
+            'postal_code'      => 'nullable|string|max:10',
+            'birth_date'       => 'nullable|date|before:today',
+            'gender'           => 'nullable|in:pria,wanita',
             'current_password' => 'nullable|string',
             'new_password'     => 'nullable|string|min:6|confirmed',
         ]);
 
-        $user->name  = $data['name'];
-        $user->email = $data['email'];
-        $user->phone = $data['phone'] ?? null;
+        $user->name        = $data['name'];
+        $user->email       = $data['email'];
+        $user->phone       = $data['phone']       ?? null;
+        $user->address     = $data['address']     ?? null;
+        $user->city        = $data['city']        ?? null;
+        $user->province    = $data['province']    ?? null;
+        $user->postal_code = $data['postal_code'] ?? null;
+        $user->birth_date  = $data['birth_date']  ?? null;
+        $user->gender      = $data['gender']      ?? null;
 
         if (! empty($data['new_password'])) {
             if (empty($data['current_password']) || ! Hash::check($data['current_password'], $user->password)) {

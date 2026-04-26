@@ -34,6 +34,15 @@
 	}
 	#checkout-btn[disabled] { opacity: .55; cursor: not-allowed; }
 	.table_row.row-selected { background: #fffaf0; }
+	.cart-variant { margin-top: 6px; display: flex; gap: 6px; flex-wrap: wrap; }
+	.cart-variant-chip {
+		display: inline-block;
+		padding: 2px 9px;
+		font-size: 11.5px; color: #6c665e;
+		background: #f5ecd7; border: 1px solid #e4d5aa;
+		border-radius: 999px;
+		letter-spacing: .2px;
+	}
 </style>
 @endpush
 
@@ -80,10 +89,10 @@
 									</tr>
 
 									@foreach($cartItems as $i => $item)
-									<tr class="table_row" data-price="{{ $item['price'] }}" data-slug="{{ $item['slug'] }}">
+									<tr class="table_row" data-price="{{ $item['price'] }}" data-cart-key="{{ $item['cart_key'] }}">
 										<td class="column-check">
 											<label class="cart-checkbox-label">
-												<input type="checkbox" name="selected[]" value="{{ $i }}" class="cart-item-check">
+												<input type="checkbox" name="selected[]" value="{{ $item['cart_key'] }}" class="cart-item-check">
 												<span></span>
 											</label>
 										</td>
@@ -98,10 +107,16 @@
 											<a href="{{ route('produk.detail', $item['slug']) }}" class="cl2 hov-cl1 trans-04">
 												{{ $item['name'] }}
 											</a>
+											@if($item['size'] || $item['color'])
+												<div class="cart-variant">
+													@if($item['size'])<span class="cart-variant-chip">Ukuran: {{ $item['size'] }}</span>@endif
+													@if($item['color'])<span class="cart-variant-chip">Warna: {{ $item['color'] }}</span>@endif
+												</div>
+											@endif
 										</td>
 										<td class="column-3">{{ $rupiah($item['price']) }}</td>
 										<td class="column-4">
-											<form action="{{ route('keranjang.update', $item['slug']) }}" method="POST" class="js-qty-form">
+											<form action="{{ route('keranjang.update', $item['cart_key']) }}" method="POST" class="js-qty-form">
 												@csrf
 												@method('PATCH')
 												<div class="wrap-num-product flex-w m-l-auto m-r-0">
@@ -119,7 +134,7 @@
 										</td>
 										<td class="column-5 row-total">{{ $rupiah($item['price'] * $item['qty']) }}</td>
 										<td class="column-action">
-											<form action="{{ route('keranjang.remove', $item['slug']) }}" method="POST" onsubmit="return confirm('Hapus {{ $item['name'] }} dari keranjang?');" style="margin:0;">
+											<form action="{{ route('keranjang.remove', $item['cart_key']) }}" method="POST" onsubmit="return confirm('Hapus {{ $item['name'] }} dari keranjang?');" style="margin:0;">
 												@csrf
 												@method('DELETE')
 												<button type="submit" class="cart-remove-btn" title="Hapus"><i class="fa fa-trash-o"></i></button>
@@ -278,7 +293,7 @@
 				if (checkoutBtn.disabled) return;
 				var selected = rows
 					.filter(function(r){ return r.querySelector('.cart-item-check').checked; })
-					.map(function(r){ return r.dataset.slug; });
+					.map(function(r){ return r.dataset.cartKey; });
 				if (selected.length === 0) return;
 
 				var token = document.querySelector('input[name="_token"]');

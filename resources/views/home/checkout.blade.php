@@ -115,19 +115,32 @@
 						<div class="checkout-card">
 							<h3 class="checkout-card-title"><i class="fa fa-map-marker m-r-6" style="color:#c29e5c;"></i> Alamat Pengiriman</h3>
 
+							@php
+								$prefillAddress = trim(implode(', ', array_filter([
+									$user?->address,
+									$user?->city,
+									$user?->province,
+									$user?->postal_code,
+								])));
+							@endphp
 							<div class="row">
 								<div class="col-md-6" style="margin-bottom:14px;">
 									<label class="checkout-label">Nama Penerima <span style="color:#a5432f;">*</span></label>
-									<input type="text" name="recipient_name" class="checkout-input" value="{{ old('recipient_name', auth()->user()->name ?? session('auth_user.name')) }}" required>
+									<input type="text" name="recipient_name" class="checkout-input" value="{{ old('recipient_name', $user?->name ?? session('auth_user.name')) }}" required>
 								</div>
 								<div class="col-md-6" style="margin-bottom:14px;">
 									<label class="checkout-label">No. Telepon / WhatsApp <span style="color:#a5432f;">*</span></label>
-									<input type="text" name="recipient_phone" class="checkout-input" placeholder="08xx xxxx xxxx" value="{{ old('recipient_phone') }}" required>
+									<input type="text" name="recipient_phone" class="checkout-input" placeholder="08xx xxxx xxxx" value="{{ old('recipient_phone', $user?->phone) }}" required>
 								</div>
 							</div>
 							<div style="margin-bottom:14px;">
 								<label class="checkout-label">Alamat Lengkap <span style="color:#a5432f;">*</span></label>
-								<textarea name="shipping_address" class="checkout-textarea" placeholder="Jalan, nomor rumah, RT/RW, kelurahan, kecamatan, kota, provinsi, kode pos" required>{{ old('shipping_address') }}</textarea>
+								<textarea name="shipping_address" class="checkout-textarea" placeholder="Jalan, nomor rumah, RT/RW, kelurahan, kecamatan, kota, provinsi, kode pos" required>{{ old('shipping_address', $prefillAddress) }}</textarea>
+								@if(! $prefillAddress)
+									<div style="font-size:11.5px; color:#9a9288; margin-top:4px;">
+										<i class="fa fa-info-circle"></i> Lengkapi alamat di <a href="{{ route('akun.profil') }}" style="color:#c29e5c;">profil Anda</a> agar otomatis terisi di checkout berikutnya.
+									</div>
+								@endif
 							</div>
 							<div>
 								<label class="checkout-label">Catatan untuk Penjual <small style="color:#9a9288;">(opsional)</small></label>
@@ -142,7 +155,7 @@
 								<input type="radio" name="payment_method" value="Midtrans" checked>
 								<span class="payment-option-body">
 									<i class="fa fa-credit-card m-r-6" style="color:#6c665e;"></i>
-									Bayar Online via Midtrans
+									Bayar Online
 									<div style="font-size:11.5px; color:#9a9288; margin-top:3px;">
 										Kartu Kredit, Transfer Bank / VA, E-Wallet (GoPay, OVO, ShopeePay, Dana), QRIS, dan lainnya.
 									</div>
@@ -162,6 +175,10 @@
 									<img src="{{ $item['image_url'] }}" alt="{{ $item['name'] }}">
 									<div>
 										<div class="checkout-item-name">{{ $item['name'] }}</div>
+										@php $variantParts = array_filter([$item['size'] ?? null, $item['color'] ?? null]); @endphp
+										@if($variantParts)
+											<div style="font-size:11.5px; color:#9a9288; margin-top:1px;">{{ implode(' · ', $variantParts) }}</div>
+										@endif
 										<div class="checkout-item-qty">{{ $item['qty'] }} × {{ $rupiah($item['price']) }}</div>
 									</div>
 									<div class="checkout-item-sub">{{ $rupiah($item['subtotal']) }}</div>
@@ -237,7 +254,7 @@
 					showError(res.body.error || 'Tidak dapat memuat modul pembayaran.');
 					return;
 				}
-				if (!window.snap) { showError('Script Midtrans Snap gagal dimuat.'); return; }
+				if (!window.snap) { showError('Script pembayaran gagal dimuat.'); return; }
 				btn.innerHTML = '<i class="fa fa-lock m-r-6"></i> Buka Pembayaran...';
 				window.snap.pay(res.body.snap_token, {
 					onSuccess: function(){ window.location.href = res.body.redirect_url; },

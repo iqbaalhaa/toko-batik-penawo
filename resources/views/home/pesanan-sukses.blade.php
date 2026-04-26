@@ -184,7 +184,14 @@
 					@endif
 					<div class="detail-row">
 						<span class="label">Metode Pembayaran</span>
-						<span class="value"><strong>{{ $order->payment_method }}</strong></span>
+						@php
+							$paymentLabel = match($order->payment_method) {
+								'Midtrans' => 'Bayar Online',
+								'COD'      => 'Bayar di Tempat',
+								default    => $order->payment_method ?? '—',
+							};
+						@endphp
+						<span class="value"><strong>{{ $paymentLabel }}</strong></span>
 					</div>
 				</div>
 
@@ -192,8 +199,14 @@
 					<h4>Rincian Produk</h4>
 					<ul class="order-items">
 						@foreach($order->items as $it)
+						@php $variantParts = array_filter([$it->size, $it->color]); @endphp
 						<li>
-							<span class="name">{{ $it->product_name }}</span>
+							<span class="name">
+								{{ $it->product_name }}
+								@if($variantParts)
+									<small style="display:block; color:#9a9288; font-weight:400; margin-top:2px;">{{ implode(' · ', $variantParts) }}</small>
+								@endif
+							</span>
 							<span class="qty">{{ $it->qty }} × {{ $rupiah($it->price) }}</span>
 							<span class="sub">{{ $rupiah($it->qty * $it->price) }}</span>
 						</li>
