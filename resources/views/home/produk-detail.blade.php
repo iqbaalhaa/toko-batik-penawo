@@ -200,7 +200,7 @@
 
 										<li class="flex-w flex-t p-b-7">
 											<span class="stext-102 cl3 size-205">Kategori</span>
-											<span class="stext-102 cl6 size-206">{{ $product->category?->name ?? '—' }}</span>
+											<span class="stext-102 cl6 size-206">{{ $product->categories->pluck('name')->join(', ') ?: '—' }}</span>
 										</li>
 									</ul>
 								</div>
@@ -286,7 +286,7 @@
 
 		<div class="bg6 flex-c-m flex-w size-302 m-t-73 p-tb-15">
 			<span class="stext-107 cl6 p-lr-25">SKU: {{ $product->sku }}</span>
-			<span class="stext-107 cl6 p-lr-25">Kategori: {{ $product->category?->name ?? '—' }}</span>
+			<span class="stext-107 cl6 p-lr-25">Kategori: {{ $product->categories->pluck('name')->join(', ') ?: '—' }}</span>
 		</div>
 	</section>
 

@@ -1,8 +1,10 @@
 <?php
 
+use App\Models\Banner;
 use App\Models\Category;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\SiteSetting;
 use App\Models\StockMovement;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -12,18 +14,19 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 
 Route::get('/', function () {
-    $products = Product::with('category')->where('status', '!=', 'arsip')->latest()->take(16)->get();
+    $products = Product::with('categories')->where('status', '!=', 'arsip')->latest()->take(16)->get();
     $categories = Category::orderBy('sort_order')->get();
-    return view('home.index', compact('products', 'categories'));
+    $banners = Banner::where('is_active', true)->orderBy('sort_order')->orderBy('id')->get();
+    return view('home.index', compact('products', 'categories', 'banners'));
 })->name('home');
 Route::get('/produk', function () {
-    $products = Product::with('category')->where('status', '!=', 'arsip')->latest()->paginate(12)->withQueryString();
+    $products = Product::with('categories')->where('status', '!=', 'arsip')->latest()->paginate(12)->withQueryString();
     $categories = Category::orderBy('sort_order')->get();
     return view('home.produk', compact('products', 'categories'));
 })->name('produk');
 
 Route::get('/produk/{slug}', function (string $slug) {
-    $product = Product::with('category')->where('slug', $slug)->firstOrFail();
+    $product = Product::with('categories')->where('slug', $slug)->firstOrFail();
     return view('home.produk-detail', ['product' => $product]);
 })->name('produk.detail');
 
@@ -128,10 +131,9 @@ Route::get('/checkout', function () {
         $subtotal += $p->price * $qty;
     }
 
-    $shipping = $subtotal >= 500000 ? 0 : 20000;
-    $total = $subtotal + $shipping;
+    $total = $subtotal;
 
-    return view('home.checkout', compact('items', 'subtotal', 'shipping', 'total'));
+    return view('home.checkout', compact('items', 'subtotal', 'total'));
 })->name('checkout.show');
 
 // Step 3: konfirmasi — buat Order + OrderItems, bersihkan cart/pending, redirect ke halaman sukses
@@ -145,7 +147,6 @@ Route::post('/checkout/confirm', function (Request $request) {
         'recipient_name'   => 'required|string|max:100',
         'recipient_phone'  => 'required|string|max:25',
         'shipping_address' => 'required|string|max:500',
-        'payment_method'   => 'required|in:Midtrans,COD',
         'note'             => 'nullable|string|max:300',
     ]);
 
@@ -172,15 +173,13 @@ Route::post('/checkout/confirm', function (Request $request) {
         $subtotal += $p->price * $qty;
     }
 
-    $shipping = $subtotal >= 500000 ? 0 : 20000;
-    $total = $subtotal + $shipping;
+    $total = $subtotal;
 
     $user = User::find($authUser['id'] ?? null);
     $invoice = 'INV-' . now()->format('Ymd') . '-' . str_pad((string) (\App\Models\Order::count() + 1), 4, '0', STR_PAD_LEFT);
 
     $noteParts = array_filter([
         'Penerima: ' . $data['recipient_name'] . ' (' . $data['recipient_phone'] . ')',
-        'Ongkir: Rp' . number_format($shipping, 0, ',', '.'),
         $data['note'] ? 'Catatan: ' . $data['note'] : null,
     ]);
 
@@ -190,8 +189,8 @@ Route::post('/checkout/confirm', function (Request $request) {
         'customer_name'    => $authUser['name'],
         'customer_email'   => $authUser['email'],
         'total'            => $total,
-        'payment_method'   => $data['payment_method'],
-        'status'           => $data['payment_method'] === 'COD' ? 'diproses' : 'menunggu_bayar',
+        'payment_method'   => 'Midtrans',
+        'status'           => 'menunggu_bayar',
         'shipping_address' => $data['shipping_address'],
         'note'             => implode(' · ', $noteParts),
     ]);
@@ -200,74 +199,64 @@ Route::post('/checkout/confirm', function (Request $request) {
         $order->items()->create($item);
     }
 
-    // Generate Midtrans Snap token untuk non-COD
+    // Generate Midtrans Snap token
     $snapToken = null;
     $snapError = null;
-    if ($data['payment_method'] === 'Midtrans') {
-        try {
-            \Midtrans\Config::$serverKey    = config('services.midtrans.server_key');
-            \Midtrans\Config::$isProduction = config('services.midtrans.is_production');
-            \Midtrans\Config::$isSanitized  = config('services.midtrans.is_sanitized');
-            \Midtrans\Config::$is3ds        = config('services.midtrans.is_3ds');
-            // Workaround SSL untuk environment lokal (Windows/XAMPP tanpa CA bundle)
-            if (app()->environment('local')) {
-                \Midtrans\Config::$curlOptions = [
-                    CURLOPT_SSL_VERIFYPEER => false,
-                    CURLOPT_SSL_VERIFYHOST => false,
-                    CURLOPT_HTTPHEADER     => [], // required by midtrans-php (diakses tanpa isset)
-                ];
-            }
-
-            $itemDetails = [];
-            foreach ($items as $it) {
-                $itemDetails[] = [
-                    'id'       => (string) ($it['product_id'] ?? $it['product_name']),
-                    'price'    => (int) $it['price'],
-                    'quantity' => (int) $it['qty'],
-                    'name'     => \Illuminate\Support\Str::limit($it['product_name'], 50, ''),
-                ];
-            }
-            if ($shipping > 0) {
-                $itemDetails[] = [
-                    'id'       => 'SHIPPING',
-                    'price'    => (int) $shipping,
-                    'quantity' => 1,
-                    'name'     => 'Ongkos Kirim',
-                ];
-            }
-
-            [$firstName, $lastName] = array_pad(explode(' ', trim($data['recipient_name']), 2), 2, '');
-
-            $payload = [
-                'transaction_details' => [
-                    'order_id'     => $order->invoice_number,
-                    'gross_amount' => (int) $total,
-                ],
-                'item_details'        => $itemDetails,
-                'customer_details'    => [
-                    'first_name'   => $firstName ?: $authUser['name'],
-                    'last_name'    => $lastName,
-                    'email'        => $authUser['email'],
-                    'phone'        => $data['recipient_phone'],
-                    'shipping_address' => [
-                        'first_name' => $firstName ?: $authUser['name'],
-                        'last_name'  => $lastName,
-                        'phone'      => $data['recipient_phone'],
-                        'address'    => \Illuminate\Support\Str::limit($data['shipping_address'], 200, ''),
-                    ],
-                ],
-                'callbacks' => [
-                    'finish' => route('pesanan.sukses', $order->invoice_number),
-                ],
+    try {
+        \Midtrans\Config::$serverKey    = config('services.midtrans.server_key');
+        \Midtrans\Config::$isProduction = config('services.midtrans.is_production');
+        \Midtrans\Config::$isSanitized  = config('services.midtrans.is_sanitized');
+        \Midtrans\Config::$is3ds        = config('services.midtrans.is_3ds');
+        // Workaround SSL untuk environment lokal (Windows/XAMPP tanpa CA bundle)
+        if (app()->environment('local')) {
+            \Midtrans\Config::$curlOptions = [
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_SSL_VERIFYHOST => false,
+                CURLOPT_HTTPHEADER     => [], // required by midtrans-php (diakses tanpa isset)
             ];
-
-            $snapToken = \Midtrans\Snap::getSnapToken($payload);
-            $order->snap_token = $snapToken;
-            $order->save();
-        } catch (\Throwable $e) {
-            Log::error('Midtrans snap token error', ['invoice' => $order->invoice_number, 'err' => $e->getMessage()]);
-            $snapError = $e->getMessage();
         }
+
+        $itemDetails = [];
+        foreach ($items as $it) {
+            $itemDetails[] = [
+                'id'       => (string) ($it['product_id'] ?? $it['product_name']),
+                'price'    => (int) $it['price'],
+                'quantity' => (int) $it['qty'],
+                'name'     => \Illuminate\Support\Str::limit($it['product_name'], 50, ''),
+            ];
+        }
+
+        [$firstName, $lastName] = array_pad(explode(' ', trim($data['recipient_name']), 2), 2, '');
+
+        $payload = [
+            'transaction_details' => [
+                'order_id'     => $order->invoice_number,
+                'gross_amount' => (int) $total,
+            ],
+            'item_details'        => $itemDetails,
+            'customer_details'    => [
+                'first_name'   => $firstName ?: $authUser['name'],
+                'last_name'    => $lastName,
+                'email'        => $authUser['email'],
+                'phone'        => $data['recipient_phone'],
+                'shipping_address' => [
+                    'first_name' => $firstName ?: $authUser['name'],
+                    'last_name'  => $lastName,
+                    'phone'      => $data['recipient_phone'],
+                    'address'    => \Illuminate\Support\Str::limit($data['shipping_address'], 200, ''),
+                ],
+            ],
+            'callbacks' => [
+                'finish' => route('pesanan.sukses', $order->invoice_number),
+            ],
+        ];
+
+        $snapToken = \Midtrans\Snap::getSnapToken($payload);
+        $order->snap_token = $snapToken;
+        $order->save();
+    } catch (\Throwable $e) {
+        Log::error('Midtrans snap token error', ['invoice' => $order->invoice_number, 'err' => $e->getMessage()]);
+        $snapError = $e->getMessage();
     }
 
     // Bersihkan cart dan checkout pending
@@ -281,7 +270,7 @@ Route::post('/checkout/confirm', function (Request $request) {
 
     // AJAX / Midtrans flow: kembalikan JSON supaya front-end bisa buka Snap langsung
     if ($request->expectsJson() || $request->ajax()) {
-        if ($data['payment_method'] === 'Midtrans' && ! $snapToken) {
+        if (! $snapToken) {
             return response()->json([
                 'error'        => 'Gagal menyiapkan pembayaran Midtrans. ' . ($snapError ? '(' . $snapError . ')' : ''),
                 'redirect_url' => $redirectUrl,
@@ -329,14 +318,6 @@ Route::post('/pesanan/{invoice}/midtrans/token', function (string $invoice) {
                 'name'     => \Illuminate\Support\Str::limit($it->product_name, 50, ''),
             ];
         }
-        $subtotal = collect($order->items)->sum(fn ($it) => $it->price * $it->qty);
-        $shipping = max(0, (int) $order->total - (int) $subtotal);
-        if ($shipping > 0) {
-            $itemDetails[] = [
-                'id' => 'SHIPPING', 'price' => $shipping, 'quantity' => 1, 'name' => 'Ongkos Kirim',
-            ];
-        }
-
         $payload = [
             'transaction_details' => [
                 'order_id'     => $order->invoice_number . '-' . time(),
@@ -628,7 +609,7 @@ Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
     })->name('dashboard');
 
     Route::get('/produk', function (Request $request) {
-        $query = Product::with('category');
+        $query = Product::with('categories');
 
         if ($request->filled('q')) {
             $q = $request->q;
@@ -637,7 +618,7 @@ Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
             });
         }
         if ($request->filled('category_id')) {
-            $query->where('category_id', $request->category_id);
+            $query->whereHas('categories', fn ($q) => $q->where('categories.id', $request->category_id));
         }
         if ($request->filled('status')) {
             $query->where('status', $request->status);
@@ -669,9 +650,10 @@ Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
 
     $productValidationRules = function (?int $ignoreId = null) {
         return [
-            'name'        => 'required|string|max:150',
-            'sku'         => 'required|string|max:30|unique:products,sku' . ($ignoreId ? ",{$ignoreId}" : ''),
-            'category_id' => 'required|exists:categories,id',
+            'name'           => 'required|string|max:150',
+            'sku'            => 'required|string|max:30|unique:products,sku' . ($ignoreId ? ",{$ignoreId}" : ''),
+            'category_ids'   => 'required|array|min:1',
+            'category_ids.*' => 'integer|exists:categories,id',
             'price'       => 'required|integer|min:0',
             'stock'       => 'required|integer|min:0',
             'stock_min'   => 'nullable|integer|min:0',
@@ -691,6 +673,9 @@ Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
     Route::post('/produk', function (Request $request) use ($moveProductImages, $productValidationRules) {
         $data = $request->validate($productValidationRules());
 
+        $categoryIds = $data['category_ids'];
+        unset($data['category_ids']);
+
         $data['slug']      = Str::slug($data['name']) . '-' . strtolower($data['sku']);
         $data['stock_min'] = $data['stock_min'] ?? 10;
         $data['colors']    = ! empty($data['colors']) ? array_values(array_filter(array_map('trim', explode(',', $data['colors'])))) : [];
@@ -704,13 +689,17 @@ Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
         $data['image']  = $uploaded[0] ?? null;
 
         unset($data['existing_images']);
-        Product::create($data);
+        $product = Product::create($data);
+        $product->categories()->sync($categoryIds);
 
         return redirect()->route('admin.produk')->with('status', 'Produk berhasil ditambahkan.');
     })->name('produk.store');
 
     Route::put('/produk/{product}', function (Request $request, Product $product) use ($moveProductImages, $productValidationRules) {
         $data = $request->validate($productValidationRules($product->id));
+
+        $categoryIds = $data['category_ids'];
+        unset($data['category_ids']);
 
         // Merge kept existing + newly uploaded, cap at 7
         $currentImages = is_array($product->images) ? $product->images : ($product->image ? [$product->image] : []);
@@ -749,6 +738,7 @@ Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
 
         unset($data['existing_images']);
         $product->update($data);
+        $product->categories()->sync($categoryIds);
 
         return redirect()->route('admin.produk')->with('status', 'Produk berhasil diperbarui.');
     })->name('produk.update');
@@ -840,6 +830,43 @@ Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
 
         return back()->with('status', "Status {$order->invoice_number} diubah: {$oldLabel} → {$order->status_label}.");
     })->name('pesanan.status');
+
+    Route::delete('/pesanan/bulk', function (Request $request) {
+        $data = $request->validate([
+            'ids'   => 'required|array|min:1',
+            'ids.*' => 'integer|exists:orders,id',
+        ]);
+
+        $orders = \App\Models\Order::whereIn('id', $data['ids'])->get();
+        foreach ($orders as $order) {
+            if ($order->payment_proof && str_starts_with($order->payment_proof, 'uploads/')) {
+                $full = public_path($order->payment_proof);
+                if (is_file($full)) {
+                    @unlink($full);
+                }
+            }
+            $order->delete();
+        }
+
+        return redirect()->route('admin.pesanan')->with('status', "{$orders->count()} pesanan berhasil dihapus.");
+    })->name('pesanan.bulk-destroy');
+
+    Route::delete('/pesanan/{order}', function (\App\Models\Order $order) {
+        $invoice = $order->invoice_number;
+
+        // Hapus file bukti transfer (legacy) jika ada
+        if ($order->payment_proof && str_starts_with($order->payment_proof, 'uploads/')) {
+            $full = public_path($order->payment_proof);
+            if (is_file($full)) {
+                @unlink($full);
+            }
+        }
+
+        // order_items akan ikut terhapus via cascadeOnDelete
+        $order->delete();
+
+        return redirect()->route('admin.pesanan')->with('status', "Pesanan {$invoice} berhasil dihapus.");
+    })->name('pesanan.destroy');
 
     Route::get('/laporan', function (Request $request) {
         // Base query untuk filter
@@ -935,6 +962,165 @@ Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
     Route::get('/cms', function () {
         return view('admin.cms', [
             'categories' => Category::withCount('products')->orderBy('sort_order')->get(),
+            'banners'    => Banner::orderBy('sort_order')->orderBy('id')->get(),
         ]);
     })->name('cms');
+
+    // ---- CMS: Site Settings (Tentang / Kontak / Footer) ----
+    Route::post('/cms/settings/{group}', function (Request $request, string $group) {
+        $allowedKeys = [
+            'tentang' => [
+                'about_title', 'about_subtitle', 'about_story', 'about_mission', 'about_quote',
+            ],
+            'kontak'  => [
+                'store_name', 'contact_email', 'contact_phone', 'contact_address',
+                'contact_hours', 'contact_maps_embed',
+                'social_facebook', 'social_instagram', 'social_pinterest', 'social_youtube',
+            ],
+            'footer'  => [
+                'footer_copyright', 'footer_newsletter_text', 'footer_topbar_promo',
+            ],
+        ];
+        if (! isset($allowedKeys[$group])) {
+            abort(404);
+        }
+
+        $data = $request->only($allowedKeys[$group]);
+        $pairs = [];
+        foreach ($allowedKeys[$group] as $key) {
+            $pairs[$key] = $data[$key] ?? null;
+        }
+        SiteSetting::setMany($pairs);
+
+        return redirect()->route('admin.cms', ['#tab-' . $group])
+            ->with('status', 'Pengaturan ' . ucfirst($group) . ' berhasil disimpan.');
+    })->name('cms.settings.save');
+
+    // ---- CMS: Banner CRUD ----
+    $moveBannerImage = function (Request $request, string $field = 'image'): ?string {
+        $file = $request->file($field);
+        if (! $file) {
+            return null;
+        }
+        $destination = public_path('uploads/banners');
+        if (! is_dir($destination)) {
+            mkdir($destination, 0755, true);
+        }
+        $filename = time() . '-' . uniqid() . '.' . $file->getClientOriginalExtension();
+        $file->move($destination, $filename);
+        return 'uploads/banners/' . $filename;
+    };
+
+    $bannerImageMessages = [
+        'image.uploaded' => 'Upload gambar gagal. File mungkin lebih besar dari batas server (cek upload_max_filesize di php.ini).',
+        'image.max'      => 'Ukuran gambar tidak boleh lebih dari 3 MB.',
+        'image.image'    => 'File harus berupa gambar (JPG, PNG, atau WebP).',
+        'image.mimes'    => 'Format gambar harus JPG, PNG, atau WebP.',
+    ];
+
+    Route::post('/cms/banner', function (Request $request) use ($moveBannerImage, $bannerImageMessages) {
+        $data = $request->validate([
+            'title'      => 'required|string|max:120',
+            'subtitle'   => 'nullable|string|max:160',
+            'image'            => 'required|image|mimes:jpg,jpeg,png,webp|max:3072',
+            'image_max_height' => 'nullable|integer|min:120|max:1200',
+            'link'             => 'nullable|string|max:200',
+            'cta_text'         => 'nullable|string|max:60',
+            'sort_order'       => 'nullable|integer|min:0|max:9999',
+            'is_active'        => 'nullable|in:0,1',
+        ], $bannerImageMessages);
+
+        $data['image']      = $moveBannerImage($request);
+        $data['cta_text']   = $data['cta_text']   ?? 'Belanja Sekarang';
+        $data['sort_order'] = $data['sort_order'] ?? 0;
+        $data['is_active']  = (bool) ($data['is_active'] ?? 0);
+
+        Banner::create($data);
+        return redirect()->route('admin.cms', ['#tab-banner'])->with('status', 'Banner ditambahkan.');
+    })->name('cms.banner.store');
+
+    Route::put('/cms/banner/{banner}', function (Request $request, Banner $banner) use ($moveBannerImage, $bannerImageMessages) {
+        $data = $request->validate([
+            'title'            => 'required|string|max:120',
+            'subtitle'         => 'nullable|string|max:160',
+            'image'            => 'nullable|image|mimes:jpg,jpeg,png,webp|max:3072',
+            'image_max_height' => 'nullable|integer|min:120|max:1200',
+            'link'             => 'nullable|string|max:200',
+            'cta_text'         => 'nullable|string|max:60',
+            'sort_order'       => 'nullable|integer|min:0|max:9999',
+            'is_active'        => 'nullable|in:0,1',
+        ], $bannerImageMessages);
+
+        if ($request->hasFile('image')) {
+            // hapus file lama
+            if ($banner->image && str_starts_with($banner->image, 'uploads/')) {
+                @unlink(public_path($banner->image));
+            }
+            $data['image'] = $moveBannerImage($request);
+        } else {
+            unset($data['image']);
+        }
+        $data['cta_text']   = $data['cta_text']   ?? 'Belanja Sekarang';
+        $data['sort_order'] = $data['sort_order'] ?? 0;
+        $data['is_active']  = (bool) ($data['is_active'] ?? 0);
+
+        $banner->update($data);
+        return redirect()->route('admin.cms', ['#tab-banner'])->with('status', 'Banner diperbarui.');
+    })->name('cms.banner.update');
+
+    Route::delete('/cms/banner/{banner}', function (Banner $banner) {
+        if ($banner->image && str_starts_with($banner->image, 'uploads/')) {
+            @unlink(public_path($banner->image));
+        }
+        $banner->delete();
+        return redirect()->route('admin.cms', ['#tab-banner'])->with('status', 'Banner dihapus.');
+    })->name('cms.banner.destroy');
+
+    // ---- CMS: Kategori CRUD ----
+    Route::post('/cms/kategori', function (Request $request) {
+        $data = $request->validate([
+            'name'       => 'required|string|max:80',
+            'sort_order' => 'nullable|integer|min:0|max:9999',
+        ]);
+        $slug = \Illuminate\Support\Str::slug($data['name']);
+        // pastikan unik
+        $base = $slug; $i = 1;
+        while (Category::where('slug', $slug)->exists()) {
+            $slug = $base . '-' . (++$i);
+        }
+        Category::create([
+            'name'       => $data['name'],
+            'slug'       => $slug,
+            'sort_order' => $data['sort_order'] ?? 0,
+        ]);
+        return redirect()->route('admin.cms', ['#tab-kategori'])->with('status', 'Kategori ditambahkan.');
+    })->name('cms.kategori.store');
+
+    Route::put('/cms/kategori/{category}', function (Request $request, Category $category) {
+        $data = $request->validate([
+            'name'       => 'required|string|max:80',
+            'sort_order' => 'nullable|integer|min:0|max:9999',
+        ]);
+        $newSlug = \Illuminate\Support\Str::slug($data['name']);
+        if ($newSlug !== $category->slug) {
+            $base = $newSlug; $i = 1;
+            while (Category::where('slug', $newSlug)->where('id', '!=', $category->id)->exists()) {
+                $newSlug = $base . '-' . (++$i);
+            }
+            $category->slug = $newSlug;
+        }
+        $category->name = $data['name'];
+        $category->sort_order = $data['sort_order'] ?? $category->sort_order;
+        $category->save();
+        return redirect()->route('admin.cms', ['#tab-kategori'])->with('status', 'Kategori diperbarui.');
+    })->name('cms.kategori.update');
+
+    Route::delete('/cms/kategori/{category}', function (Category $category) {
+        if ($category->products()->exists()) {
+            return redirect()->route('admin.cms', ['#tab-kategori'])
+                ->withErrors(['kategori' => "Kategori '{$category->name}' masih dipakai produk dan tidak bisa dihapus."]);
+        }
+        $category->delete();
+        return redirect()->route('admin.cms', ['#tab-kategori'])->with('status', 'Kategori dihapus.');
+    })->name('cms.kategori.destroy');
 });

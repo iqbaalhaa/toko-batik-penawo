@@ -16,11 +16,11 @@ class StockMovementSeeder extends Seeder
 
         // Restok / barang masuk
         $incoming = [
-            ['sku' => 'BP-001', 'qty' => 20, 'note' => 'Restok dari pengrajin Jogja',  'ref' => 'PO-2026-041', 'date' => '2026-04-19 08:00:00'],
+            ['sku' => 'BP-001', 'qty' => 20, 'note' => 'Restok dari pengrajin Kerinci',  'ref' => 'PO-2026-041', 'date' => '2026-04-19 08:00:00'],
             ['sku' => 'BP-008', 'qty' => 15, 'note' => 'Produksi internal batch 4',    'ref' => 'PO-2026-040', 'date' => '2026-04-18 09:30:00'],
             ['sku' => 'BP-023', 'qty' => 12, 'note' => 'Restok supplier alas kaki',    'ref' => 'PO-2026-039', 'date' => '2026-04-17 10:15:00'],
             ['sku' => 'BP-024', 'qty' => 8,  'note' => 'Produksi internal',            'ref' => 'PO-2026-038', 'date' => '2026-04-16 14:00:00'],
-            ['sku' => 'BP-011', 'qty' => 25, 'note' => 'Restok pengrajin Jogja',       'ref' => 'PO-2026-037', 'date' => '2026-04-15 11:20:00'],
+            ['sku' => 'BP-011', 'qty' => 25, 'note' => 'Restok pengrajin Kerinci',     'ref' => 'PO-2026-037', 'date' => '2026-04-15 11:20:00'],
             ['sku' => 'BP-002', 'qty' => 10, 'note' => 'Restok batch reguler',         'ref' => 'PO-2026-036', 'date' => '2026-04-14 13:45:00'],
             ['sku' => 'BP-021', 'qty' => 18, 'note' => 'Restok supplier sutra',        'ref' => 'PO-2026-035', 'date' => '2026-04-13 09:00:00'],
             ['sku' => 'BP-029', 'qty' => 30, 'note' => 'Produksi internal bros',       'ref' => 'PO-2026-034', 'date' => '2026-04-12 15:30:00'],

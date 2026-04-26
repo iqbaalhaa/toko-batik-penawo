@@ -4,7 +4,7 @@
 	<title>@yield('title', 'Batik Penawo')</title>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<link rel="icon" type="image/png" href="{{ asset('frontend/images/icons/favicon.png') }}"/>
+	<link rel="icon" type="image/x-icon" href="{{ asset('image/favicon.ico') }}"/>
 	<link rel="stylesheet" type="text/css" href="{{ asset('frontend/vendor/bootstrap/css/bootstrap.min.css') }}">
 	<link rel="stylesheet" type="text/css" href="{{ asset('frontend/fonts/font-awesome-4.7.0/css/font-awesome.min.css') }}">
 	<link rel="stylesheet" type="text/css" href="{{ asset('frontend/css/util.css') }}">
@@ -30,7 +30,7 @@
 		<div class="container">
 			<div class="topbar-inner">
 				<div class="topbar-left">
-					Gratis ongkir untuk pembelian di atas Rp500.000
+					&nbsp;
 				</div>
 
 				<div class="topbar-right">

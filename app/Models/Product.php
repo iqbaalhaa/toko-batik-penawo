@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Product extends Model
 {
     protected $fillable = [
-        'category_id', 'sku', 'name', 'slug', 'description',
+        'sku', 'name', 'slug', 'description',
         'price', 'stock', 'stock_min', 'image', 'images', 'weight',
         'material', 'colors', 'sizes', 'status',
     ];
@@ -21,9 +21,9 @@ class Product extends Model
         'stock_min' => 'integer',
     ];
 
-    public function category()
+    public function categories()
     {
-        return $this->belongsTo(Category::class);
+        return $this->belongsToMany(Category::class);
     }
 
     public function stockMovements()

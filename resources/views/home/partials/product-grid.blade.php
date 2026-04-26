@@ -1,6 +1,6 @@
 <div class="row isotope-grid">
 	@foreach($products as $p)
-	<div class="col-sm-6 col-md-4 col-lg-3 p-b-35 isotope-item {{ $p->category?->slug }}">
+	<div class="col-sm-6 col-md-4 col-lg-3 p-b-35 isotope-item {{ $p->categories->pluck('slug')->join(' ') }}">
 		<div class="block2">
 			<div class="block2-pic hov-img0">
 				<a href="{{ route('produk.detail', $p->slug) }}" class="dis-block">

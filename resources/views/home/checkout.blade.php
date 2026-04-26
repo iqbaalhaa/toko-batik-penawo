@@ -138,24 +138,13 @@
 						<div class="checkout-card">
 							<h3 class="checkout-card-title"><i class="fa fa-credit-card m-r-6" style="color:#c29e5c;"></i> Metode Pembayaran</h3>
 
-							<label class="payment-option">
-								<input type="radio" name="payment_method" value="Midtrans" {{ old('payment_method', 'Midtrans') === 'Midtrans' ? 'checked' : '' }}>
+							<label class="payment-option" style="border-color:#c29e5c; background:#faf6ed;">
+								<input type="radio" name="payment_method" value="Midtrans" checked>
 								<span class="payment-option-body">
 									<i class="fa fa-credit-card m-r-6" style="color:#6c665e;"></i>
 									Bayar Online via Midtrans
 									<div style="font-size:11.5px; color:#9a9288; margin-top:3px;">
 										Kartu Kredit, Transfer Bank / VA, E-Wallet (GoPay, OVO, ShopeePay, Dana), QRIS, dan lainnya.
-									</div>
-								</span>
-							</label>
-
-							<label class="payment-option">
-								<input type="radio" name="payment_method" value="COD" {{ old('payment_method') === 'COD' ? 'checked' : '' }}>
-								<span class="payment-option-body">
-									<i class="fa fa-money m-r-6" style="color:#6c665e;"></i>
-									Bayar di Tempat (COD)
-									<div style="font-size:11.5px; color:#9a9288; margin-top:3px;">
-										Bayar tunai saat pesanan tiba di alamat Anda.
 									</div>
 								</span>
 							</label>
@@ -185,17 +174,6 @@
 									<span>Subtotal ({{ count($items) }} produk)</span>
 									<span>{{ $rupiah($subtotal) }}</span>
 								</div>
-								<div class="summary-row">
-									<span>Ongkos Kirim</span>
-									<span class="{{ $shipping === 0 ? 'free' : '' }}">
-										{{ $shipping === 0 ? 'GRATIS' : $rupiah($shipping) }}
-									</span>
-								</div>
-								@if($shipping > 0)
-									<div style="font-size:11.5px; color:#9a9288; padding-left:1px;">
-										<i class="fa fa-info-circle"></i> Belanja {{ $rupiah(500000 - $subtotal) }} lagi untuk gratis ongkir.
-									</div>
-								@endif
 								<div class="summary-row total">
 									<span>Total Bayar</span>
 									<span>{{ $rupiah($total) }}</span>
@@ -238,13 +216,6 @@
 		}
 
 		form.addEventListener('submit', function(e){
-			var selected = form.querySelector('input[name="payment_method"]:checked');
-			if (!selected) return; // biar validator server yang menangkap
-			var method = selected.value;
-
-			// COD: biarkan form submit normal (full-page redirect ke pesanan sukses)
-			if (method !== 'Midtrans') return;
-
 			e.preventDefault();
 			errBox.style.display = 'none';
 			btn.disabled = true;

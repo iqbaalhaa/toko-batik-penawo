@@ -2,64 +2,99 @@
 
 @section('title', 'Batik Penawo | Beranda')
 
+@push('styles')
+<style>
+	.section-slide .item-slick1.hero-split {
+		height: auto !important;
+		min-height: 540px;
+		background: transparent !important;
+		background-image: none !important;
+		padding: 50px 0 30px;
+	}
+	.hero-row { align-items: center; min-height: 440px; }
+	.hero-text-col { padding: 20px 24px; }
+	.hero-image-col { padding: 0 24px; display: flex; justify-content: center; align-items: center; }
+	.hero-image-wrap { width: 100%; text-align: center; background: transparent; }
+	.hero-image-wrap img {
+		width: auto; max-width: 100%; height: auto;
+		display: inline-block;
+		background: transparent;
+	}
+	@media (max-width: 991px) {
+		.section-slide .item-slick1.hero-split { min-height: auto; padding: 30px 0; }
+		.hero-row { min-height: 0; }
+		.hero-image-col { order: -1; margin-bottom: 18px; padding: 0 16px; }
+		.hero-text-col { padding: 10px 16px 28px; text-align: center; }
+	}
+</style>
+@endpush
+
 @section('content')
 	<!-- Slider -->
 	<section class="section-slide">
 		<div class="wrap-slick1">
 			<div class="slick1">
-				<div class="item-slick1" style="background-image: url({{ asset('frontend/images/slide-01.jpg') }});">
-					<div class="container h-full">
-						<div class="flex-col-l-m h-full p-t-100 p-b-30 respon5">
-							<div class="layer-slick1 animated visible-false" data-appear="fadeInDown" data-delay="0">
-								<span class="ltext-101 cl2 respon2">Koleksi Batik Wanita</span>
-							</div>
+				@forelse($banners as $banner)
+					<div class="item-slick1 hero-split">
+						<div class="container h-full">
+							<div class="row hero-row">
+								<div class="col-md-6 hero-text-col">
+									@if($banner->subtitle)
+									<div class="layer-slick1 animated visible-false" data-appear="fadeInDown" data-delay="0">
+										<span class="ltext-101 cl2 respon2">
+											{{ $banner->subtitle }}
+										</span>
+									</div>
+									@endif
 
-							<div class="layer-slick1 animated visible-false" data-appear="fadeInUp" data-delay="800">
-								<h2 class="ltext-201 cl2 p-t-19 p-b-43 respon1">KOLEKSI BARU</h2>
-							</div>
+									<div class="layer-slick1 animated visible-false" data-appear="fadeInUp" data-delay="800">
+										<h2 class="ltext-201 cl2 p-t-19 p-b-43 respon1">
+											{{ $banner->title }}
+										</h2>
+									</div>
 
-							<div class="layer-slick1 animated visible-false" data-appear="zoomIn" data-delay="1600">
-								<a href="{{ route('produk') }}" class="flex-c-m stext-101 cl0 size-101 bg1 bor1 hov-btn1 p-lr-15 trans-04">Belanja Sekarang</a>
+									<div class="layer-slick1 animated visible-false" data-appear="zoomIn" data-delay="1600">
+										<a href="{{ $banner->link ?: route('produk') }}" class="flex-c-m stext-101 cl0 size-101 bg1 bor1 hov-btn1 p-lr-15 trans-04">
+											{{ $banner->cta_text ?: 'Belanja Sekarang' }}
+										</a>
+									</div>
+								</div>
+
+								<div class="col-md-6 hero-image-col">
+									<div class="hero-image-wrap layer-slick1 animated visible-false" data-appear="fadeIn" data-delay="400">
+										<img src="{{ $banner->image_url }}" alt="{{ $banner->title }}" style="max-height: {{ $banner->image_max_height ?? 480 }}px;">
+									</div>
+								</div>
 							</div>
 						</div>
 					</div>
-				</div>
+				@empty
+					<div class="item-slick1 hero-split">
+						<div class="container h-full">
+							<div class="row hero-row">
+								<div class="col-md-6 hero-text-col">
+									<div class="layer-slick1 animated visible-false" data-appear="fadeInDown" data-delay="0">
+										<span class="ltext-101 cl2 respon2">Selamat Datang</span>
+									</div>
 
-				<div class="item-slick1" style="background-image: url({{ asset('frontend/images/slide-02.jpg') }});">
-					<div class="container h-full">
-						<div class="flex-col-l-m h-full p-t-100 p-b-30 respon5">
-							<div class="layer-slick1 animated visible-false" data-appear="rollIn" data-delay="0">
-								<span class="ltext-101 cl2 respon2">Batik Pria Eksklusif</span>
-							</div>
+									<div class="layer-slick1 animated visible-false" data-appear="fadeInUp" data-delay="800">
+										<h2 class="ltext-201 cl2 p-t-19 p-b-43 respon1">{{ $setting('store_name', 'Batik Penawo') }}</h2>
+									</div>
 
-							<div class="layer-slick1 animated visible-false" data-appear="lightSpeedIn" data-delay="800">
-								<h2 class="ltext-201 cl2 p-t-19 p-b-43 respon1">Kemeja & Blazer Batik</h2>
-							</div>
+									<div class="layer-slick1 animated visible-false" data-appear="zoomIn" data-delay="1600">
+										<a href="{{ route('produk') }}" class="flex-c-m stext-101 cl0 size-101 bg1 bor1 hov-btn1 p-lr-15 trans-04">Belanja Sekarang</a>
+									</div>
+								</div>
 
-							<div class="layer-slick1 animated visible-false" data-appear="slideInUp" data-delay="1600">
-								<a href="{{ route('produk') }}" class="flex-c-m stext-101 cl0 size-101 bg1 bor1 hov-btn1 p-lr-15 trans-04">Belanja Sekarang</a>
-							</div>
-						</div>
-					</div>
-				</div>
-
-				<div class="item-slick1" style="background-image: url({{ asset('frontend/images/slide-03.jpg') }});">
-					<div class="container h-full">
-						<div class="flex-col-l-m h-full p-t-100 p-b-30 respon5">
-							<div class="layer-slick1 animated visible-false" data-appear="rotateInDownLeft" data-delay="0">
-								<span class="ltext-101 cl2 respon2">Batik Penawo</span>
-							</div>
-
-							<div class="layer-slick1 animated visible-false" data-appear="rotateInUpRight" data-delay="800">
-								<h2 class="ltext-201 cl2 p-t-19 p-b-43 respon1">Produk Terbaru</h2>
-							</div>
-
-							<div class="layer-slick1 animated visible-false" data-appear="rotateIn" data-delay="1600">
-								<a href="{{ route('produk') }}" class="flex-c-m stext-101 cl0 size-101 bg1 bor1 hov-btn1 p-lr-15 trans-04">Belanja Sekarang</a>
+								<div class="col-md-6 hero-image-col">
+									<div class="hero-image-wrap layer-slick1 animated visible-false" data-appear="fadeIn" data-delay="400">
+										<img src="{{ asset('frontend/images/slide-01.jpg') }}" alt="Batik Penawo" style="max-height: 480px;">
+									</div>
+								</div>
 							</div>
 						</div>
 					</div>
-				</div>
+				@endforelse
 			</div>
 		</div>
 	</section>

@@ -55,7 +55,7 @@ class OrderSeeder extends Seeder
                     'total'            => $total,
                     'payment_method'   => $o['payment'],
                     'status'           => $o['status'],
-                    'shipping_address' => 'Jl. Contoh No. 10, Yogyakarta',
+                    'shipping_address' => 'Jl. Contoh No. 10, Kerinci',
                     'created_at'       => $o['date'],
                     'updated_at'       => $o['date'],
                 ]

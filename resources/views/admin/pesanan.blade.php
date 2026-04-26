@@ -50,6 +50,66 @@
 	.admin-pager-btn:hover { border-color: #c29e5c; color: #c29e5c; text-decoration: none; }
 	.admin-pager-btn.active { background: #c29e5c; border-color: #c29e5c; color: #fff; font-weight: 600; }
 	.admin-pager-btn.disabled { opacity: .4; cursor: not-allowed; pointer-events: none; }
+
+	/* Bulk action bar */
+	.bulk-bar {
+		display: none;
+		align-items: center; gap: 12px;
+		padding: 10px 14px; margin-bottom: 14px;
+		background: #fbf3df; border: 1px solid #ecd9a5; border-radius: 6px;
+		color: #6e5824; font-size: 13px;
+	}
+	.bulk-bar.show { display: flex; }
+	.bulk-bar .bulk-count { color: #2d2a26; font-weight: 600; }
+	.bulk-bar .bulk-actions { margin-left: auto; display: flex; gap: 8px; }
+	.btn-bulk {
+		padding: 7px 14px; border-radius: 4px; font-size: 12.5px; font-weight: 500;
+		border: 1px solid transparent; cursor: pointer;
+		display: inline-flex; align-items: center; gap: 6px;
+		font-family: inherit;
+	}
+	.btn-bulk.danger { background: #d86a59; color: #fff; }
+	.btn-bulk.danger:hover { background: #c3554a; }
+	.btn-bulk.outline { background: #fff; color: #6c665e; border-color: #ddd6c6; }
+	.btn-bulk.outline:hover { color: #2d2a26; border-color: #c29e5c; }
+
+	/* Checkbox styling */
+	.row-check, .check-all {
+		width: 16px; height: 16px;
+		accent-color: #c29e5c;
+		cursor: pointer; vertical-align: middle;
+	}
+	.admin-table th.col-check, .admin-table td.col-check { width: 38px; text-align: center; padding-right: 6px; }
+	.admin-table tr.row-selected { background: #fbf3df !important; }
+
+	/* Confirm modal */
+	.modal-overlay {
+		position: fixed; inset: 0; background: rgba(31,29,27,.55);
+		display: none; align-items: center; justify-content: center;
+		z-index: 1200; padding: 20px;
+	}
+	.modal-overlay.show { display: flex; }
+	.modal-box {
+		background: #fff; border-radius: 8px; max-width: 420px; width: 100%;
+		box-shadow: 0 20px 60px rgba(0,0,0,.25);
+		animation: modalIn .15s ease-out;
+		overflow: hidden;
+	}
+	@keyframes modalIn { from { transform: translateY(-12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+	.modal-icon {
+		width: 56px; height: 56px; border-radius: 50%;
+		display: flex; align-items: center; justify-content: center;
+		background: #fbe4df; color: #a5432f; font-size: 26px;
+		margin: 28px auto 16px;
+	}
+	.modal-title { font-size: 17px; font-weight: 600; color: #2d2a26; text-align: center; padding: 0 28px; margin: 0; }
+	.modal-message { font-size: 13.5px; color: #6c665e; text-align: center; padding: 8px 28px 22px; line-height: 1.55; margin: 0; }
+	.modal-actions { display: flex; gap: 10px; padding: 14px 22px; border-top: 1px solid #f2efe7; background: #faf7ef; }
+	.modal-actions button { flex: 1; padding: 10px 16px; border-radius: 4px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit; transition: background .15s, color .15s, border-color .15s; }
+	.modal-btn-cancel { background: #fff; color: #4d4640; border: 1px solid #ddd6c6; }
+	.modal-btn-cancel:hover { background: #faf7ef; color: #2d2a26; border-color: #c29e5c; }
+	.modal-btn-confirm { background: #d86a59; color: #fff; border: 1px solid transparent; }
+	.modal-btn-confirm:hover { background: #c3554a; }
 </style>
 @endpush
 
@@ -123,10 +183,27 @@
 			@endif
 		</form>
 
+		<!-- Hidden bulk delete form (checkbox terhubung lewat atribut form="bulkDeleteForm") -->
+		<form id="bulkDeleteForm" action="{{ route('admin.pesanan.bulk-destroy') }}" method="POST" style="display:none;">
+			@csrf
+			@method('DELETE')
+		</form>
+
+		<!-- Bulk action bar -->
+		<div class="bulk-bar" id="bulkBar">
+			<i class="fa fa-check-square-o"></i>
+			<span><span class="bulk-count" id="bulkCount">0</span> pesanan dipilih</span>
+			<div class="bulk-actions">
+				<button type="button" class="btn-bulk outline" id="bulkClearBtn"><i class="fa fa-times"></i> Batal</button>
+				<button type="button" class="btn-bulk danger" id="bulkDeleteBtn"><i class="fa fa-trash-o"></i> Hapus Terpilih</button>
+			</div>
+		</div>
+
 		<div style="overflow-x:auto;">
 			<table class="admin-table">
 				<thead>
 					<tr>
+						<th class="col-check"><input type="checkbox" id="checkAll" class="check-all" title="Pilih semua"></th>
 						<th>No. Pesanan</th>
 						<th>Tanggal</th>
 						<th>Pelanggan</th>
@@ -140,6 +217,9 @@
 				<tbody>
 					@forelse($orders as $order)
 					<tr>
+						<td class="col-check">
+							<input type="checkbox" name="ids[]" value="{{ $order->id }}" form="bulkDeleteForm" class="row-check" aria-label="Pilih pesanan {{ $order->invoice_number }}">
+						</td>
 						<td><strong style="color:#2d2a26;">{{ $order->invoice_number }}</strong></td>
 						<td>{{ $order->created_at->format('d M Y') }}</td>
 						<td>
@@ -163,10 +243,18 @@
 						<td>
 							<a href="{{ route('pesanan.sukses', $order->invoice_number) }}" target="_blank" class="btn-admin-icon" title="Detail"><i class="fa fa-eye"></i></a>
 							<a href="#" class="btn-admin-icon" title="Cetak Invoice"><i class="fa fa-print"></i></a>
+							<form action="{{ route('admin.pesanan.destroy', $order) }}" method="POST" style="display:inline;"
+								data-confirm-delete
+								data-confirm-title="Hapus pesanan {{ $order->invoice_number }}?"
+								data-confirm-message="Data pesanan beserta seluruh item di dalamnya akan dihapus permanen. Tindakan ini tidak bisa dibatalkan.">
+								@csrf
+								@method('DELETE')
+								<button type="submit" class="btn-admin-icon danger" title="Hapus"><i class="fa fa-trash-o"></i></button>
+							</form>
 						</td>
 					</tr>
 					@empty
-					<tr><td colspan="8" style="text-align:center; padding:24px; color:#9a9288;">
+					<tr><td colspan="9" style="text-align:center; padding:24px; color:#9a9288;">
 						@if(request()->hasAny(['q','status','date']))
 							Tidak ada pesanan yang cocok dengan filter. <a href="{{ route('admin.pesanan') }}">Reset</a>
 						@else
@@ -210,4 +298,116 @@
 		</div>
 		@endif
 	</div>
+
+	<!-- Modal konfirmasi (mengganti popup confirm() bawaan) -->
+	<div class="modal-overlay" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+		<div class="modal-box">
+			<div class="modal-icon"><i class="fa fa-exclamation-triangle"></i></div>
+			<h3 class="modal-title" id="confirmTitle">Hapus pesanan?</h3>
+			<p class="modal-message" id="confirmMessage">Tindakan ini tidak bisa dibatalkan.</p>
+			<div class="modal-actions">
+				<button type="button" class="modal-btn-cancel" id="confirmNo">Batal</button>
+				<button type="button" class="modal-btn-confirm" id="confirmYes"><i class="fa fa-trash-o"></i> Hapus</button>
+			</div>
+		</div>
+	</div>
 @endsection
+
+@push('scripts')
+<script>
+(function(){
+	var checkAll = document.getElementById('checkAll');
+	var rowChecks = Array.prototype.slice.call(document.querySelectorAll('.row-check'));
+	var bulkBar = document.getElementById('bulkBar');
+	var bulkCount = document.getElementById('bulkCount');
+	var bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+	var bulkClearBtn = document.getElementById('bulkClearBtn');
+
+	function refreshBulk() {
+		var checked = rowChecks.filter(function(cb){ return cb.checked; });
+		var n = checked.length;
+		bulkCount.textContent = n;
+		bulkBar.classList.toggle('show', n > 0);
+		rowChecks.forEach(function(cb){
+			var tr = cb.closest('tr');
+			if (tr) tr.classList.toggle('row-selected', cb.checked);
+		});
+		if (checkAll) {
+			checkAll.checked = (rowChecks.length > 0 && n === rowChecks.length);
+			checkAll.indeterminate = (n > 0 && n < rowChecks.length);
+		}
+	}
+
+	if (checkAll) {
+		checkAll.addEventListener('change', function(){
+			rowChecks.forEach(function(cb){ cb.checked = checkAll.checked; });
+			refreshBulk();
+		});
+	}
+	rowChecks.forEach(function(cb){ cb.addEventListener('change', refreshBulk); });
+
+	if (bulkClearBtn) {
+		bulkClearBtn.addEventListener('click', function(){
+			rowChecks.forEach(function(cb){ cb.checked = false; });
+			refreshBulk();
+		});
+	}
+
+	// Konfirmasi modal kustom
+	var modal = document.getElementById('confirmModal');
+	var modalTitle = document.getElementById('confirmTitle');
+	var modalMessage = document.getElementById('confirmMessage');
+	var btnYes = document.getElementById('confirmYes');
+	var btnNo = document.getElementById('confirmNo');
+	var pending = null;
+
+	function showConfirm(title, message, onYes) {
+		modalTitle.textContent = title;
+		modalMessage.textContent = message;
+		pending = onYes;
+		modal.classList.add('show');
+		setTimeout(function(){ btnNo.focus(); }, 0);
+	}
+	function hideConfirm() {
+		modal.classList.remove('show');
+		pending = null;
+	}
+	btnNo.addEventListener('click', hideConfirm);
+	btnYes.addEventListener('click', function(){
+		var fn = pending;
+		hideConfirm();
+		if (fn) fn();
+	});
+	modal.addEventListener('click', function(e){ if (e.target === modal) hideConfirm(); });
+	document.addEventListener('keydown', function(e){
+		if (e.key === 'Escape' && modal.classList.contains('show')) hideConfirm();
+	});
+
+	// Intercept submit form hapus per-baris
+	document.querySelectorAll('form[data-confirm-delete]').forEach(function(form){
+		form.addEventListener('submit', function(e){
+			if (form.dataset.confirmed === '1') return;
+			e.preventDefault();
+			showConfirm(
+				form.dataset.confirmTitle || 'Hapus pesanan?',
+				form.dataset.confirmMessage || 'Tindakan ini tidak bisa dibatalkan.',
+				function(){ form.dataset.confirmed = '1'; form.submit(); }
+			);
+		});
+	});
+
+	// Bulk delete
+	if (bulkDeleteBtn) {
+		bulkDeleteBtn.addEventListener('click', function(){
+			var n = rowChecks.filter(function(cb){ return cb.checked; }).length;
+			if (!n) return;
+			showConfirm(
+				'Hapus ' + n + ' pesanan terpilih?',
+				'Seluruh data pesanan beserta item di dalamnya akan dihapus permanen. Tindakan ini tidak bisa dibatalkan.',
+				function(){ document.getElementById('bulkDeleteForm').submit(); }
+			);
+		});
+	}
+})();
+</script>
+@endpush

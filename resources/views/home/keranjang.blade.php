@@ -163,48 +163,6 @@
 									</button>
 								</div>
 
-							{{-- <div class="flex-w flex-t bor12 p-t-15 p-b-30">
-								<div class="size-208 w-full-ssm">
-									<span class="stext-110 cl2">Ongkos Kirim:</span>
-								</div>
-
-								<div class="size-209 p-r-18 p-r-0-sm w-full-ssm">
-									<p class="stext-111 cl6 p-t-2" id="cart-shipping-note">
-										Pilih produk untuk melihat ongkos kirim.
-									</p>
-
-									<div class="p-t-15">
-										<span class="stext-112 cl8">Hitung Ongkos Kirim</span>
-
-										<div class="rs1-select2 rs2-select2 bor8 bg0 m-b-12 m-t-9">
-											<select class="js-select2" name="province">
-												<option>Pilih provinsi...</option>
-												<option>DI Yogyakarta</option>
-												<option>Jawa Tengah</option>
-												<option>Jawa Barat</option>
-												<option>DKI Jakarta</option>
-												<option>Jawa Timur</option>
-											</select>
-											<div class="dropDownSelect2"></div>
-										</div>
-
-										<div class="bor8 bg0 m-b-12">
-											<input class="stext-111 cl8 plh3 size-111 p-lr-15" type="text" name="city" placeholder="Kota / Kabupaten">
-										</div>
-
-										<div class="bor8 bg0 m-b-22">
-											<input class="stext-111 cl8 plh3 size-111 p-lr-15" type="text" name="postcode" placeholder="Kode Pos">
-										</div>
-
-										<div class="flex-w">
-											<button type="button" class="flex-c-m stext-101 cl2 size-115 bg8 bor13 hov-btn3 p-lr-15 trans-04 pointer">
-												Perbarui Total
-											</button>
-										</div>
-									</div>
-								</div>
-							</div> --}}
-
 							<div class="flex-w flex-t p-t-27 p-b-33">
 								<div class="size-208">
 									<span class="mtext-101 cl2">Total:</span>
@@ -242,11 +200,9 @@
 		const subtotalEl   = document.getElementById('cart-subtotal');
 		const totalEl      = document.getElementById('cart-total');
 		const countEl      = document.getElementById('cart-selected-count');
-		const shippingEl   = document.getElementById('cart-shipping-note');
 		const checkoutBtn  = document.getElementById('checkout-btn');
 		if (!rows.length) return;
 
-		const FREE_SHIPPING_MIN = 500000;
 		const fmt = n => 'Rp' + Math.round(n).toLocaleString('id-ID');
 
 		function recalcRow(row) {
@@ -272,16 +228,6 @@
 			subtotalEl.textContent = fmt(subtotal);
 			totalEl.textContent    = fmt(subtotal);
 			countEl.textContent    = count;
-
-			if (shippingEl) {
-				if (count === 0) {
-					shippingEl.textContent = 'Pilih produk untuk melihat ongkos kirim.';
-				} else if (subtotal >= FREE_SHIPPING_MIN) {
-					shippingEl.textContent = 'Gratis ongkir reguler untuk pesanan ini.';
-				} else {
-					shippingEl.textContent = 'Tambahkan ' + fmt(FREE_SHIPPING_MIN - subtotal) + ' lagi untuk mendapatkan gratis ongkir.';
-				}
-			}
 
 			checkoutBtn.disabled = count === 0;
 

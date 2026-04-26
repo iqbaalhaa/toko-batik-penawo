@@ -40,7 +40,7 @@
 							<span class="mtext-110 cl2">Alamat</span>
 
 							<p class="stext-115 cl6 size-213 p-t-18">
-								Batik Penawo, Jl. Malioboro No. 123, Yogyakarta 55213, Indonesia
+								{{ $setting('store_name', 'Batik Penawo') }}, {{ $setting('contact_address', 'Jl. Malioboro No. 123, Kerinci 55213, Indonesia') }}
 							</p>
 						</div>
 					</div>
@@ -54,8 +54,11 @@
 							<span class="mtext-110 cl2">Telepon / WhatsApp</span>
 
 							<p class="stext-115 cl1 size-213 p-t-18">
-								(+62) 812-3456-7890
+								{{ $setting('contact_phone', '(+62) 812-3456-7890') }}
 							</p>
+							@if($setting('contact_hours'))
+								<p class="stext-115 cl6 size-213 p-t-6" style="font-size:12.5px;">{{ $setting('contact_hours') }}</p>
+							@endif
 						</div>
 					</div>
 
@@ -68,7 +71,7 @@
 							<span class="mtext-110 cl2">Dukungan Pelanggan</span>
 
 							<p class="stext-115 cl1 size-213 p-t-18">
-								halo@batikpenawo.id
+								{{ $setting('contact_email', 'halo@batikpenawo.id') }}
 							</p>
 						</div>
 					</div>

@@ -291,7 +291,7 @@
 
 						<div style="margin-bottom:4px;">
 							<label class="form-label-admin">Keterangan</label>
-							<textarea name="note" rows="2" class="form-control-admin" placeholder="Contoh: restok dari pengrajin Jogja, koreksi stok opname, dll."></textarea>
+							<textarea name="note" rows="2" class="form-control-admin" placeholder="Contoh: restok dari pengrajin Kerinci, koreksi stok opname, dll."></textarea>
 						</div>
 					</div>
 					<div class="modal-footer" style="border-top:1px solid #ece8de;">

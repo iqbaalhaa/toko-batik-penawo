@@ -4,7 +4,7 @@
 	<title>@yield('title', 'Batik Penawo')</title>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<link rel="icon" type="image/png" href="{{ asset('frontend/images/icons/favicon.png') }}"/>
+	<link rel="icon" type="image/x-icon" href="{{ asset('image/favicon.ico') }}"/>
 	<link rel="stylesheet" type="text/css" href="{{ asset('frontend/vendor/bootstrap/css/bootstrap.min.css') }}">
 	<link rel="stylesheet" type="text/css" href="{{ asset('frontend/fonts/font-awesome-4.7.0/css/font-awesome.min.css') }}">
 	<link rel="stylesheet" type="text/css" href="{{ asset('frontend/vendor/animate/animate.css') }}">
@@ -166,7 +166,9 @@
 			<div class="container">
 				<div class="topbar-inner">
 					<div class="topbar-left">
-
+						@if($setting('footer_topbar_promo'))
+							<i class="fa fa-bullhorn" style="margin-right:6px;"></i>{{ $setting('footer_topbar_promo') }}
+						@endif
 					</div>
 
 					<div class="topbar-right">
@@ -200,7 +202,7 @@
 			<div class="wrap-menu-desktop">
 				<nav class="limiter-menu-desktop container">
 					<a href="{{ url('/') }}" class="logo">
-						<img src="{{ asset('frontend/images/icons/logo-01.png') }}" alt="BATIK PENAWO">
+						<img src="{{ asset('image/logox.png') }}" alt="BATIK PENAWO">
 					</a>
 
 					<div class="menu-desktop">
@@ -298,7 +300,7 @@
 		<!-- Header Mobile -->
 		<div class="wrap-header-mobile">
 			<div class="logo-mobile">
-				<a href="{{ url('/') }}"><img src="{{ asset('frontend/images/icons/logo-01.png') }}" alt="BATIK PENAWO"></a>
+				<a href="{{ url('/') }}"><img src="{{ asset('image/logox.png') }}" alt="BATIK PENAWO"></a>
 			</div>
 
 			<div class="wrap-icon-header flex-w flex-r-m m-r-15">
@@ -425,18 +427,30 @@
 				<div class="col-sm-6 col-lg-3 p-b-50">
 					<h4 class="stext-301 cl0 p-b-30">HUBUNGI KAMI</h4>
 					<p class="stext-107 cl7 size-201">
-						Ada pertanyaan? Kunjungi toko kami di Jl. Malioboro No. 123, Yogyakarta atau hubungi kami di (+62) 812-3456-7890
+						Ada pertanyaan? Kunjungi toko kami di {{ $setting('contact_address', 'Jl. Malioboro No. 123, Kerinci') }} atau hubungi kami di {{ $setting('contact_phone', '+62 812-3456-7890') }}
 					</p>
 
 					<div class="p-t-27">
-						<a href="#" class="fs-18 cl7 hov-cl1 trans-04 m-r-16"><i class="fa fa-facebook"></i></a>
-						<a href="#" class="fs-18 cl7 hov-cl1 trans-04 m-r-16"><i class="fa fa-instagram"></i></a>
-						<a href="#" class="fs-18 cl7 hov-cl1 trans-04 m-r-16"><i class="fa fa-pinterest-p"></i></a>
+						@if($setting('social_facebook'))
+							<a href="{{ $setting('social_facebook') }}" target="_blank" class="fs-18 cl7 hov-cl1 trans-04 m-r-16"><i class="fa fa-facebook"></i></a>
+						@endif
+						@if($setting('social_instagram'))
+							<a href="{{ $setting('social_instagram') }}" target="_blank" class="fs-18 cl7 hov-cl1 trans-04 m-r-16"><i class="fa fa-instagram"></i></a>
+						@endif
+						@if($setting('social_pinterest'))
+							<a href="{{ $setting('social_pinterest') }}" target="_blank" class="fs-18 cl7 hov-cl1 trans-04 m-r-16"><i class="fa fa-pinterest-p"></i></a>
+						@endif
+						@if($setting('social_youtube'))
+							<a href="{{ $setting('social_youtube') }}" target="_blank" class="fs-18 cl7 hov-cl1 trans-04 m-r-16"><i class="fa fa-youtube-play"></i></a>
+						@endif
 					</div>
 				</div>
 
 				<div class="col-sm-6 col-lg-3 p-b-50">
 					<h4 class="stext-301 cl0 p-b-30">Buletin</h4>
+					<p class="stext-107 cl7 size-201" style="margin-bottom:14px;">
+						{{ $setting('footer_newsletter_text', 'Berlangganan newsletter untuk penawaran spesial') }}
+					</p>
 					<form>
 						<div class="wrap-input1 w-full p-b-4">
 							<input class="input1 bg-none plh1 stext-107 cl7" type="text" name="email" placeholder="email@contoh.com">
@@ -460,9 +474,7 @@
 				</div>
 
 				<p class="stext-107 cl6 txt-center">
-					<!-- Link back to Colorlib can't be removed. Template is licensed under CC BY 3.0. -->
-Hak Cipta &copy;<script>document.write(new Date().getFullYear());</script> Batik Penawo. Semua hak dilindungi | Template oleh <a href="https://colorlib.com" target="_blank">Colorlib</a> &amp; didistribusikan oleh <a href="https://themewagon.com" target="_blank">ThemeWagon</a>
-<!-- Link back to Colorlib can't be removed. Template is licensed under CC BY 3.0. -->
+					{{ $setting('footer_copyright', 'Hak Cipta © ' . date('Y') . ' Batik Penawo. Semua hak dilindungi.') }}
 				</p>
 			</div>
 		</div>

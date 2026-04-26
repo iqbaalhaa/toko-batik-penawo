@@ -222,13 +222,6 @@
 						</div>
 					</div>
 				@endif
-				@if($order->payment_method === 'COD')
-					<div class="payment-instructions">
-						<strong>Pembayaran COD:</strong><br>
-						Siapkan uang tunai sebesar <strong>{{ $rupiah($order->total) }}</strong> saat kurir tiba. Pesanan Anda akan segera kami kemas.
-					</div>
-				@endif
-
 				<div class="success-actions">
 					<a href="{{ route('produk') }}" class="btn-primary-custom">
 						<i class="fa fa-shopping-basket m-r-6"></i> Lanjut Belanja

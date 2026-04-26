@@ -13,7 +13,7 @@ class ProductSeeder extends Seeder
     {
         $data = [
             'batik-wanita' => [
-                ['name' => 'Batik Tulis Parang Klasik',       'price' => 250000, 'stock' => 24, 'img' => 'product-01.jpg', 'desc' => 'Batik tulis motif Parang, simbol keteguhan hati khas keraton Yogyakarta. Dibuat dengan teknik canting oleh pengrajin senior.', 'material' => 'Katun Primisima', 'weight' => '0,3 kg', 'colors' => ['Cokelat Sogan', 'Hitam'], 'sizes' => ['S','M','L','XL']],
+                ['name' => 'Batik Tulis Parang Klasik',       'price' => 250000, 'stock' => 24, 'img' => 'product-01.jpg', 'desc' => 'Batik tulis motif Parang, simbol keteguhan hati khas Kerinci. Dibuat dengan teknik canting oleh pengrajin senior.', 'material' => 'Katun Primisima', 'weight' => '0,3 kg', 'colors' => ['Cokelat Sogan', 'Hitam'], 'sizes' => ['S','M','L','XL']],
                 ['name' => 'Batik Cap Kawung Premium',        'price' => 350000, 'stock' => 15, 'img' => 'product-02.jpg', 'desc' => 'Batik cap motif Kawung dengan warna pekalongan cerah. Cocok untuk acara semi-formal maupun harian.', 'material' => 'Katun Dobby', 'weight' => '0,35 kg', 'colors' => ['Biru', 'Hijau'], 'sizes' => ['S','M','L','XL']],
                 ['name' => 'Outer Batik Wanita Elegan',       'price' => 450000, 'stock' => 8,  'img' => 'product-04.jpg', 'desc' => 'Outer longgar dengan panel batik tulis di depan dan lengan. Dipadu dengan dress polos atau celana kerja.', 'material' => 'Katun Rayon', 'weight' => '0,5 kg', 'colors' => ['Hitam','Cokelat'], 'sizes' => ['S','M','L','XL']],
                 ['name' => 'Blouse Batik Sogan',              'price' => 320000, 'stock' => 41, 'img' => 'product-05.jpg', 'desc' => 'Blouse motif Sogan klasik dengan pewarna alami tegeran dan soga. Nuansa hangat dan berkelas.', 'material' => 'Katun Primisima', 'weight' => '0,3 kg', 'colors' => ['Cokelat Sogan'], 'sizes' => ['S','M','L','XL']],
@@ -27,7 +27,7 @@ class ProductSeeder extends Seeder
 
             'batik-pria' => [
                 ['name' => 'Kemeja Batik Mega Mendung',       'price' => 275000, 'stock' => 32, 'img' => 'product-03.jpg', 'desc' => 'Kemeja pria motif Mega Mendung khas Cirebon dengan gradasi warna awan yang elegan. Regular fit.', 'material' => 'Katun Halus', 'weight' => '0,4 kg', 'colors' => ['Biru','Merah'], 'sizes' => ['M','L','XL','XXL']],
-                ['name' => 'Kemeja Batik Sogan Jogja',        'price' => 395000, 'stock' => 30, 'img' => 'product-11.jpg', 'desc' => 'Kemeja pria motif Sogan klasik gaya Jogja. Slim fit, cocok untuk acara formal.', 'material' => 'Katun Primisima', 'weight' => '0,4 kg', 'colors' => ['Cokelat Sogan'], 'sizes' => ['M','L','XL','XXL']],
+                ['name' => 'Kemeja Batik Sogan Kerinci',      'price' => 395000, 'stock' => 30, 'img' => 'product-11.jpg', 'desc' => 'Kemeja pria motif Sogan klasik gaya Kerinci. Slim fit, cocok untuk acara formal.', 'material' => 'Katun Primisima', 'weight' => '0,4 kg', 'colors' => ['Cokelat Sogan'], 'sizes' => ['M','L','XL','XXL']],
                 ['name' => 'Kemeja Batik Truntum',            'price' => 385000, 'stock' => 28, 'img' => 'product-12.jpg', 'desc' => 'Motif Truntum melambangkan cinta yang tumbuh kembali. Pilihan untuk pernikahan dan lamaran.', 'material' => 'Katun Primisima', 'weight' => '0,4 kg', 'colors' => ['Hitam','Cokelat'], 'sizes' => ['M','L','XL','XXL']],
                 ['name' => 'Kemeja Batik Sekar Jagad',        'price' => 420000, 'stock' => 18, 'img' => 'product-03.jpg', 'desc' => 'Motif Sekar Jagad mewakili keragaman. Lengan panjang dengan kerah klasik.', 'material' => 'Katun Primisima', 'weight' => '0,42 kg', 'colors' => ['Navy','Maroon'], 'sizes' => ['M','L','XL','XXL']],
                 ['name' => 'Kemeja Batik Sidomukti',          'price' => 410000, 'stock' => 21, 'img' => 'product-11.jpg', 'desc' => 'Motif Sidomukti melambangkan kemakmuran. Bahan adem, cocok untuk iklim tropis.', 'material' => 'Katun Primisima', 'weight' => '0,4 kg', 'colors' => ['Cokelat Sogan','Hitam'], 'sizes' => ['M','L','XL']],
@@ -67,10 +67,9 @@ class ProductSeeder extends Seeder
                     $slug .= '-' . strtolower($skuCode);
                 }
 
-                Product::updateOrCreate(
+                $product = Product::updateOrCreate(
                     ['sku' => $skuCode],
                     [
-                        'category_id' => $category->id,
                         'name'        => $p['name'],
                         'slug'        => $slug,
                         'description' => $p['desc'],
@@ -85,6 +84,7 @@ class ProductSeeder extends Seeder
                         'status'      => $p['stock'] <= 0 ? 'habis' : 'aktif',
                     ]
                 );
+                $product->categories()->syncWithoutDetaching([$category->id]);
                 $sku++;
             }
         }

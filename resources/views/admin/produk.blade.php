@@ -83,7 +83,13 @@
 							</div>
 						</td>
 						<td><code style="background:#f5f2ea; padding:2px 6px; border-radius:3px; font-size:12px;">{{ $p->sku }}</code></td>
-						<td>{{ $p->category?->name ?? '—' }}</td>
+						<td>
+							@forelse($p->categories as $cat)
+								<span class="badge-pill badge-brand" style="margin:1px 2px 1px 0; display:inline-block;">{{ $cat->name }}</span>
+							@empty
+								<span style="color:#9a9288;">—</span>
+							@endforelse
+						</td>
 						<td><strong>{{ $rupiah($p->price) }}</strong></td>
 						<td>
 							<span style="{{ $p->isLowStock() ? 'color:#a5432f;font-weight:600;' : '' }}">{{ $p->stock }}</span>
@@ -108,7 +114,7 @@
 								data-id="{{ $p->id }}"
 								data-name="{{ $p->name }}"
 								data-sku="{{ $p->sku }}"
-								data-category="{{ $p->category_id }}"
+								data-category-ids='@json($p->categories->pluck("id"))'
 								data-price="{{ $p->price }}"
 								data-stock="{{ $p->stock }}"
 								data-stock-min="{{ $p->stock_min }}"
@@ -206,14 +212,20 @@
 											<input type="text" class="form-control-admin" name="sku" id="f_sku" value="{{ old('sku', $nextSku) }}" required>
 										</div>
 									</div>
-									<div class="col-md-6">
+									<div class="col-md-12">
 										<div style="margin-bottom:14px;">
-											<label class="form-label-admin">Kategori <span style="color:#a5432f;">*</span></label>
-											<select class="form-control-admin" name="category_id" id="f_category" required>
-												@foreach($categories as $cat)
-													<option value="{{ $cat->id }}" {{ old('category_id') == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
-												@endforeach
-											</select>
+											<label class="form-label-admin">Kategori <span style="color:#a5432f;">*</span> <small style="color:#9a9288; font-weight:400;">(boleh dipilih lebih dari satu)</small></label>
+											@php $oldCats = (array) old('category_ids', []); @endphp
+											<div class="category-checks" id="f_categories">
+												@forelse($categories as $cat)
+													<label class="cat-check {{ in_array($cat->id, $oldCats) ? 'active' : '' }}">
+														<input type="checkbox" name="category_ids[]" value="{{ $cat->id }}" @checked(in_array($cat->id, $oldCats))>
+														<span>{{ $cat->name }}</span>
+													</label>
+												@empty
+													<div style="color:#9a9288; font-size:12.5px; padding:6px;">Belum ada kategori. <a href="{{ route('admin.cms', ['#tab-kategori']) }}">Tambah dulu di CMS &rsaquo; Kategori</a>.</div>
+												@endforelse
+											</div>
 										</div>
 									</div>
 									<div class="col-md-6">
@@ -400,6 +412,27 @@
 	}
 	.size-preset:hover { border-color: #c29e5c; color: #c29e5c; }
 	.size-preset.active { background: #c29e5c; border-color: #c29e5c; color: #fff; font-weight: 500; }
+
+	/* Multi-kategori checkbox */
+	.category-checks {
+		border: 1px solid #e0dbcf; border-radius: 4px;
+		padding: 8px; background: #fff;
+		max-height: 140px; overflow-y: auto;
+		display: flex; flex-wrap: wrap; gap: 6px;
+	}
+	.category-checks:empty { display: none; }
+	.cat-check {
+		display: inline-flex; align-items: center;
+		padding: 5px 14px; margin: 0;
+		background: #fff; color: #6c665e;
+		border: 1px solid #e0dbcf; border-radius: 999px;
+		font-size: 12.5px; font-weight: 500;
+		cursor: pointer; user-select: none;
+		transition: background .12s, color .12s, border-color .12s;
+	}
+	.cat-check input { display: none; }
+	.cat-check:hover { border-color: #c29e5c; color: #c29e5c; }
+	.cat-check.active { background: #c29e5c; border-color: #c29e5c; color: #fff; }
 </style>
 @endpush
 
@@ -577,6 +610,19 @@ $(function() {
 		}
 	});
 
+	// Toggle styling kategori sesuai status checked
+	$(document).on('change', '#f_categories input[type=checkbox]', function() {
+		$(this).closest('.cat-check').toggleClass('active', this.checked);
+	});
+	function setCategoryIds(ids) {
+		var idSet = (ids || []).map(function(x){ return String(x); });
+		$('#f_categories input[type=checkbox]').each(function() {
+			var checked = idSet.indexOf(String(this.value)) !== -1;
+			this.checked = checked;
+			$(this).closest('.cat-check').toggleClass('active', checked);
+		});
+	}
+
 	function resetForm() {
 		var $f = $('#produkForm');
 		$f[0].reset();
@@ -587,6 +633,7 @@ $(function() {
 		$('#f_stock').val(0);
 		$('#f_stock_min').val(10);
 		$('#f_status').val('aktif');
+		setCategoryIds([]);
 		existingImages = [];
 		newFiles = [];
 		syncInputFiles();
@@ -605,7 +652,7 @@ $(function() {
 		$('#produkModalTitle').text('Edit Produk — ' + d.name);
 		$('#f_name').val(d.name);
 		$('#f_sku').val(d.sku);
-		$('#f_category').val(d.category);
+		setCategoryIds(Array.isArray(d.categoryIds) ? d.categoryIds : []);
 		$('#f_price').val(formatRupiah(d.price));
 		$('#f_stock').val(d.stock);
 		$('#f_stock_min').val(d.stockMin);

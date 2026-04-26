@@ -4,7 +4,7 @@
 	<title>@yield('title', 'Admin') &mdash; Batik Penawo</title>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<link rel="icon" type="image/png" href="{{ asset('frontend/images/icons/favicon.png') }}"/>
+	<link rel="icon" type="image/x-icon" href="{{ asset('image/favicon.ico') }}"/>
 
 	<!-- Inter (modern dashboard font) -->
 	<link rel="preconnect" href="https://fonts.googleapis.com">
@@ -66,7 +66,7 @@
 			align-items: center;
 			gap: 10px;
 		}
-		.admin-sidebar-brand img { width: 32px; height: 32px; object-fit: contain; background: #fff; padding: 3px; border-radius: 4px; }
+		.admin-sidebar-brand img { width: 32px; height: 32px; object-fit: contain; }
 		.admin-sidebar-brand-text { color: #fff; font-weight: 600; font-size: 15px; letter-spacing: .5px; }
 		.admin-sidebar-brand-sub { color: var(--brand); font-size: 11px; letter-spacing: 2px; text-transform: uppercase; }
 
@@ -125,7 +125,46 @@
 			position: absolute; top: 8px; right: 9px;
 			width: 8px; height: 8px; border-radius: 50%; background: #e0533e; border: 2px solid #fff;
 		}
-		.admin-user { display: flex; align-items: center; gap: 10px; }
+		.admin-user { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 4px 8px 4px 4px; border-radius: 999px; transition: background .15s; }
+		.admin-user:hover { background: #faf6ed; }
+		.admin-user-caret { color: #9a9288; font-size: 11px; margin-left: 2px; transition: transform .2s; }
+		.admin-user-wrap { position: relative; }
+		.admin-user-wrap.open .admin-user-caret { transform: rotate(180deg); }
+		.admin-user-dropdown {
+			position: absolute; top: calc(100% + 6px); right: 0;
+			width: 240px; background: #fff;
+			border: 1px solid #ece8de; border-radius: 8px;
+			box-shadow: 0 10px 30px rgba(0,0,0,.10);
+			padding: 6px 0; z-index: 1100;
+			opacity: 0; visibility: hidden; transform: translateY(-6px);
+			transition: opacity .15s, transform .15s, visibility 0s linear .15s;
+		}
+		.admin-user-wrap.open .admin-user-dropdown {
+			opacity: 1; visibility: visible; transform: translateY(0);
+			transition: opacity .15s, transform .15s;
+		}
+		.admin-user-dropdown:before {
+			content: ''; position: absolute; top: -7px; right: 14px;
+			width: 12px; height: 12px; background: #fff;
+			border-top: 1px solid #ece8de; border-left: 1px solid #ece8de;
+			transform: rotate(45deg);
+		}
+		.admin-user-dropdown-head { padding: 12px 16px; border-bottom: 1px solid #f2efe7; }
+		.admin-user-dropdown-name { font-size: 13.5px; font-weight: 600; color: #2d2a26; }
+		.admin-user-dropdown-email { font-size: 12px; color: #9a9288; padding-top: 2px; word-break: break-all; }
+		.admin-user-dropdown-link {
+			display: flex; align-items: center; gap: 10px;
+			padding: 10px 16px; font-size: 13.5px; color: #4d4640;
+			text-decoration: none; cursor: pointer;
+			background: none; border: 0; width: 100%; text-align: left;
+			font-family: inherit;
+			transition: background .12s, color .12s;
+		}
+		.admin-user-dropdown-link:hover { background: #faf6ed; color: var(--brand); text-decoration: none; }
+		.admin-user-dropdown-link i { width: 16px; text-align: center; font-size: 14px; }
+		.admin-user-dropdown-link.danger { color: #a5432f; }
+		.admin-user-dropdown-link.danger:hover { background: #fbe4df; color: #a5432f; }
+		.admin-user-dropdown-divider { height: 1px; background: #f2efe7; margin: 4px 0; }
 		.admin-user-avatar {
 			width: 38px; height: 38px; border-radius: 50%;
 			background: var(--brand); color: #fff;
@@ -289,7 +328,7 @@
 	<!-- Sidebar -->
 	<aside class="admin-sidebar">
 		<div class="admin-sidebar-brand">
-			<img src="{{ asset('frontend/images/icons/logo-01.png') }}" alt="Batik Penawo">
+			<img src="{{ asset('image/logo.png') }}" alt="Batik Penawo">
 			<div>
 				<div class="admin-sidebar-brand-text">Batik Penawo</div>
 				<div class="admin-sidebar-brand-sub">Admin</div>
@@ -303,6 +342,9 @@
 			</li>
 			<li class="{{ request()->routeIs('admin.produk*') ? 'active' : '' }}">
 				<a href="{{ route('admin.produk') }}"><i class="fa fa-shopping-basket"></i><span>Kelola Produk</span></a>
+			</li>
+			<li>
+				<a href="{{ route('admin.cms') }}#tab-kategori"><i class="fa fa-tags"></i><span>Kategori</span></a>
 			</li>
 			<li class="{{ request()->routeIs('admin.pesanan*') ? 'active' : '' }}">
 				<a href="{{ route('admin.pesanan') }}"><i class="fa fa-file-text-o"></i><span>Pesanan</span></a>
@@ -344,18 +386,42 @@
 					<i class="fa fa-envelope-o"></i>
 				</a>
 
-				<div class="admin-user">
-					<div class="admin-user-avatar">{{ strtoupper(substr($authUser['name'] ?? 'AD', 0, 2)) }}</div>
-					<div class="admin-user-meta">
-						<div class="admin-user-name">{{ $authUser['name'] ?? 'Admin Penawo' }}</div>
-						<div class="admin-user-role">Administrator</div>
+				<div class="admin-user-wrap" id="adminUserWrap">
+					<div class="admin-user" id="adminUserTrigger">
+						<div class="admin-user-avatar">{{ strtoupper(substr($authUser['name'] ?? 'AD', 0, 2)) }}</div>
+						<div class="admin-user-meta">
+							<div class="admin-user-name">{{ $authUser['name'] ?? 'Admin Penawo' }}</div>
+							<div class="admin-user-role">Administrator</div>
+						</div>
+						<i class="fa fa-chevron-down admin-user-caret"></i>
+					</div>
+
+					<div class="admin-user-dropdown">
+						<div class="admin-user-dropdown-head">
+							<div class="admin-user-dropdown-name">{{ $authUser['name'] ?? 'Admin Penawo' }}</div>
+							<div class="admin-user-dropdown-email">{{ $authUser['email'] ?? '' }}</div>
+						</div>
+
+						<a href="{{ route('home') }}" target="_blank" class="admin-user-dropdown-link">
+							<i class="fa fa-external-link"></i> Lihat Toko
+						</a>
+						<a href="{{ route('admin.user') }}" class="admin-user-dropdown-link">
+							<i class="fa fa-users"></i> Kelola User
+						</a>
+						<a href="{{ route('admin.cms') }}" class="admin-user-dropdown-link">
+							<i class="fa fa-cog"></i> Pengaturan Situs
+						</a>
+
+						<div class="admin-user-dropdown-divider"></div>
+
+						<form action="{{ route('logout') }}" method="POST" style="margin:0;">
+							@csrf
+							<button type="submit" class="admin-user-dropdown-link danger">
+								<i class="fa fa-sign-out"></i> Keluar
+							</button>
+						</form>
 					</div>
 				</div>
-
-				<form action="{{ route('logout') }}" method="POST" style="margin:0;">
-					@csrf
-					<button type="submit" class="admin-logout-btn" title="Keluar"><i class="fa fa-power-off"></i></button>
-				</form>
 			</div>
 		</header>
 
@@ -370,6 +436,24 @@
 </div>
 
 <script src="{{ asset('frontend/vendor/jquery/jquery-3.2.1.min.js') }}"></script>
+<script>
+	(function(){
+		var wrap    = document.getElementById('adminUserWrap');
+		var trigger = document.getElementById('adminUserTrigger');
+		if (!wrap || !trigger) return;
+
+		trigger.addEventListener('click', function(e){
+			e.stopPropagation();
+			wrap.classList.toggle('open');
+		});
+		document.addEventListener('click', function(e){
+			if (!wrap.contains(e.target)) wrap.classList.remove('open');
+		});
+		document.addEventListener('keydown', function(e){
+			if (e.key === 'Escape') wrap.classList.remove('open');
+		});
+	})();
+</script>
 @stack('scripts')
 </body>
 </html>
