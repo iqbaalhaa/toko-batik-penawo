@@ -370,8 +370,16 @@
 
 									<a href="{{ route('akun.profil') }}" class="profile-dropdown-link"><i class="fa fa-user"></i>Profil Saya</a>
 									<a href="{{ route('akun.pesanan') }}" class="profile-dropdown-link"><i class="fa fa-file-text-o"></i>Pesanan Saya</a>
-									<a href="#" class="profile-dropdown-link" style="opacity:.55; cursor:not-allowed;" onclick="return false;"><i class="fa fa-heart-o"></i>Wishlist <small style="color:#bdb7ab; margin-left:auto; font-size:10px;">(segera)</small></a>
-									<a href="#" class="profile-dropdown-link" style="opacity:.55; cursor:not-allowed;" onclick="return false;"><i class="fa fa-cog"></i>Pengaturan <small style="color:#bdb7ab; margin-left:auto; font-size:10px;">(segera)</small></a>
+									@php
+										$_wlCount = session('auth_user.id')
+											? \App\Models\Wishlist::where('user_id', session('auth_user.id'))->count()
+											: 0;
+									@endphp
+									<a href="{{ route('akun.wishlist') }}" class="profile-dropdown-link">
+										<i class="fa fa-heart-o"></i>Wishlist
+										@if($_wlCount > 0)<span class="profile-dropdown-badge" style="background:#c29e5c; color:#fff;">{{ $_wlCount }}</span>@endif
+									</a>
+									<a href="{{ route('akun.pengaturan') }}" class="profile-dropdown-link"><i class="fa fa-cog"></i>Pengaturan</a>
 
 									<div class="profile-dropdown-divider"></div>
 

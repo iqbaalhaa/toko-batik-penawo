@@ -10,18 +10,17 @@ return new class extends Migration
     {
         Schema::table('orders', function (Blueprint $table) {
             // Snapshot perhitungan saat checkout — disimpan agar invoice/laporan tidak
-            // berubah meski tarif/voucher di masa depan diubah.
+            // berubah meski tarif di masa depan diubah.
             $table->unsignedBigInteger('subtotal_products')->default(0)->after('total');
             $table->unsignedBigInteger('shipping_total')->default(0)->after('subtotal_products');
-            $table->unsignedBigInteger('voucher_discount')->default(0)->after('shipping_total');
-            $table->json('shipping_breakdown')->nullable()->after('voucher_discount');
+            $table->json('shipping_breakdown')->nullable()->after('shipping_total');
         });
     }
 
     public function down(): void
     {
         Schema::table('orders', function (Blueprint $table) {
-            $table->dropColumn(['subtotal_products', 'shipping_total', 'voucher_discount', 'shipping_breakdown']);
+            $table->dropColumn(['subtotal_products', 'shipping_total', 'shipping_breakdown']);
         });
     }
 };

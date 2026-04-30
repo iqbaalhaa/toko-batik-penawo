@@ -11,7 +11,7 @@ use App\Models\SiteSetting;
  * - Mengelompokkan baris keranjang berdasarkan `store_id` produk.
  * - Menghitung total berat per toko (qty × weight_kg).
  * - Memanggil ShippingCalculator untuk tiap toko.
- * - Mengagregasi subtotal, total ongkir, voucher, dan grand total.
+ * - Mengagregasi subtotal, total ongkir, dan grand total.
  *
  * Saat ini sistem masih single-tenant (Batik Penawo) sehingga semua produk
  * dikelompokkan di bawah toko default yang dikonfigurasi via SiteSetting
@@ -23,9 +23,8 @@ class CheckoutShippingService
     /**
      * @param  array<int,array{product:Product,qty:int,unit_price:int,name?:string,size?:?string,color?:?string,image_url?:?string,cart_key?:string}>  $lines
      * @param  array|null  $buyerAddress  Hasil User::shippingAddress(); null jika belum dipilih.
-     * @param  int  $voucherDiscount  Diskon dalam rupiah (sudah final, sebelum dikurangi).
      */
-    public function summary(array $lines, ?array $buyerAddress, int $voucherDiscount = 0): array
+    public function summary(array $lines, ?array $buyerAddress): array
     {
         $errors = [];
 
@@ -105,15 +104,12 @@ class CheckoutShippingService
             ]);
         }
 
-        // Voucher tidak boleh melebihi (subtotal + ongkir).
-        $voucherDiscount = max(0, min($voucherDiscount, $subtotalProducts + $shippingTotal));
-        $grandTotal      = max(0, $subtotalProducts + $shippingTotal - $voucherDiscount);
+        $grandTotal = $subtotalProducts + $shippingTotal;
 
         return [
             'stores'             => $storesOut,
             'subtotal_products'  => $subtotalProducts,
             'shipping_total'     => $shippingTotal,
-            'voucher_discount'   => $voucherDiscount,
             'grand_total'        => $grandTotal,
             'all_available'      => $allAvailable,
             'errors'             => $errors,

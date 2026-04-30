@@ -12,14 +12,13 @@ class Order extends Model
         'status', 'shipping_address', 'note',
         'snap_token', 'midtrans_transaction_id', 'midtrans_payment_type',
         'midtrans_transaction_status',
-        'subtotal_products', 'shipping_total', 'voucher_discount', 'shipping_breakdown',
+        'subtotal_products', 'shipping_total', 'shipping_breakdown',
     ];
 
     protected $casts = [
         'total' => 'integer',
         'subtotal_products' => 'integer',
         'shipping_total' => 'integer',
-        'voucher_discount' => 'integer',
         'shipping_breakdown' => 'array',
         'paid_at' => 'datetime',
     ];

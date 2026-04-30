@@ -168,7 +168,11 @@
       "Bash(awk 'NR>=195 && NR<=212' f:/Project/toko-batik-penawo/resources/views/home/akun/profil.blade.php)",
       "Bash(php -l app/Models/Address.php)",
       "Bash(php -l resources/views/admin/profil.blade.php)",
-      "Bash(awk 'NR==299,NR==306' f:/Project/toko-batik-penawo/resources/views/home/checkout.blade.php)"
+      "Bash(awk 'NR==299,NR==306' f:/Project/toko-batik-penawo/resources/views/home/checkout.blade.php)",
+      "Bash(php -l app/Models/Wishlist.php)",
+      "Bash(awk 'NR==149' f:/Project/toko-batik-penawo/resources/views/home/akun/pengaturan.blade.php)",
+      "Bash(awk 'NR>=159,NR<=170' f:/Project/toko-batik-penawo/resources/views/home/akun/pengaturan.blade.php)",
+      "Bash(awk 'NR>=149,NR<=170' f:/Project/toko-batik-penawo/resources/views/home/akun/pengaturan.blade.php)"
     ]
   }
 }

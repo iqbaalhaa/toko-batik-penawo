@@ -180,12 +180,10 @@ Route::get('/checkout', function () {
         ?? $user->defaultAddress()
         ?? $addresses->first();
 
-    $voucherDiscount = (int) (session('voucher_discount') ?? 0);
     $shippingSvc     = new \App\Services\CheckoutShippingService();
     $summary         = $shippingSvc->summary(
         $lines,
         $selectedAddress->toShippingPayload(),
-        $voucherDiscount,
     );
 
     return view('home.checkout', [
@@ -258,9 +256,8 @@ Route::post('/checkout/confirm', function (Request $request) {
     }
 
     $user            = User::find($authUser['id'] ?? null);
-    $voucherDiscount = (int) (session('voucher_discount') ?? 0);
     $shippingSvc     = new \App\Services\CheckoutShippingService();
-    $summary         = $shippingSvc->summary($lines, $address->toShippingPayload(), $voucherDiscount);
+    $summary         = $shippingSvc->summary($lines, $address->toShippingPayload());
 
     // Blok checkout jika ada toko outside zone / produk tanpa berat.
     if (! $summary['all_available']) {
@@ -288,7 +285,6 @@ Route::post('/checkout/confirm', function (Request $request) {
         'total'             => $total,
         'subtotal_products' => $summary['subtotal_products'],
         'shipping_total'    => $summary['shipping_total'],
-        'voucher_discount'  => $summary['voucher_discount'],
         // Snapshot per-toko: zona, ongkir, berat — sumber kebenaran untuk laporan.
         'shipping_breakdown' => array_map(function ($s) {
             return [
@@ -349,16 +345,6 @@ Route::post('/checkout/confirm', function (Request $request) {
                 'name'     => \Illuminate\Support\Str::limit('Ongkir ' . $s['store_name'] . ' (' . $s['shipping']['zone_label'] . ')', 50, ''),
             ];
         }
-        // Voucher dimasukkan sebagai line negatif jika ada.
-        if (($summary['voucher_discount'] ?? 0) > 0) {
-            $itemDetails[] = [
-                'id'       => 'VOUCHER',
-                'price'    => -1 * (int) $summary['voucher_discount'],
-                'quantity' => 1,
-                'name'     => 'Diskon Voucher',
-            ];
-        }
-
         [$firstName, $lastName] = array_pad(explode(' ', trim($data['recipient_name']), 2), 2, '');
 
         $payload = [
@@ -736,16 +722,14 @@ Route::prefix('akun')->name('akun.')->group(function () {
         }
         $user = User::findOrFail($authUser['id']);
 
-        // Alamat pengiriman dipindah ke tabel `addresses` — di sini kita hanya
-        // mengelola data pribadi & opsi password.
+        // Alamat pengiriman dipindah ke tabel `addresses` dan ubah password
+        // dipindah ke halaman Pengaturan — profil hanya mengelola data pribadi.
         $data = $request->validate([
-            'name'             => 'required|string|min:2|max:60',
-            'email'            => 'required|email|unique:users,email,' . $user->id,
-            'phone'            => 'nullable|string|max:25',
-            'birth_date'       => 'nullable|date|before:today',
-            'gender'           => 'nullable|in:pria,wanita',
-            'current_password' => 'nullable|string',
-            'new_password'     => 'nullable|string|min:6|confirmed',
+            'name'        => 'required|string|min:2|max:60',
+            'email'       => 'required|email|unique:users,email,' . $user->id,
+            'phone'       => 'nullable|string|max:25',
+            'birth_date'  => 'nullable|date|before:today',
+            'gender'      => 'nullable|in:pria,wanita',
         ]);
 
         $user->name        = $data['name'];
@@ -895,22 +879,206 @@ Route::prefix('akun')->name('akun.')->group(function () {
 
         return redirect()->route('akun.profil')->with('status', 'Alamat utama diperbarui.');
     })->name('alamat.default');
+
+    // ---- Wishlist ----
+    Route::get('/wishlist', function () {
+        $authUser = session('auth_user');
+        if (! $authUser) {
+            return redirect()->route('login')->withErrors(['email' => 'Silakan masuk untuk melihat wishlist.']);
+        }
+        $items = \App\Models\Wishlist::with('product')
+            ->where('user_id', $authUser['id'])
+            ->latest()
+            ->get()
+            ->filter(fn ($w) => $w->product !== null && $w->product->status !== 'arsip');
+
+        return view('home.akun.wishlist', compact('items'));
+    })->name('wishlist');
+
+    // Toggle: kalau sudah ada → hapus, kalau belum → tambah. Diakses dari halaman produk.
+    Route::post('/wishlist/toggle', function (Request $request) {
+        $authUser = session('auth_user');
+        if (! $authUser) {
+            return redirect()->route('login')->withErrors(['email' => 'Silakan masuk untuk menyimpan ke wishlist.']);
+        }
+        $data = $request->validate([
+            'slug' => 'required|string|exists:products,slug',
+        ]);
+        $product = \App\Models\Product::where('slug', $data['slug'])->firstOrFail();
+
+        $existing = \App\Models\Wishlist::where('user_id', $authUser['id'])
+            ->where('product_id', $product->id)->first();
+
+        if ($existing) {
+            $existing->delete();
+            $msg = 'Produk dihapus dari wishlist.';
+        } else {
+            \App\Models\Wishlist::create([
+                'user_id'    => $authUser['id'],
+                'product_id' => $product->id,
+            ]);
+            $msg = 'Produk ditambahkan ke wishlist.';
+        }
+
+        return redirect()->back()->with('status', $msg);
+    })->name('wishlist.toggle');
+
+    Route::delete('/wishlist/{wishlist}', function (\App\Models\Wishlist $wishlist) {
+        $authUser = session('auth_user');
+        if (! $authUser || $wishlist->user_id !== $authUser['id']) abort(403);
+        $wishlist->delete();
+        return redirect()->route('akun.wishlist')->with('status', 'Produk dihapus dari wishlist.');
+    })->name('wishlist.destroy');
+
+    // ---- Pengaturan ----
+    Route::get('/pengaturan', function () {
+        $authUser = session('auth_user');
+        if (! $authUser) {
+            return redirect()->route('login')->withErrors(['email' => 'Silakan masuk untuk mengakses pengaturan.']);
+        }
+        $user = User::findOrFail($authUser['id']);
+        return view('home.akun.pengaturan', compact('user'));
+    })->name('pengaturan');
+
+    Route::post('/pengaturan', function (Request $request) {
+        $authUser = session('auth_user');
+        if (! $authUser) return redirect()->route('login');
+        $user = User::findOrFail($authUser['id']);
+
+        // Checkbox: tidak terkirim saat unchecked → cast manual.
+        $user->notify_order_updates = $request->boolean('notify_order_updates');
+        $user->notify_promo         = $request->boolean('notify_promo');
+        $user->save();
+
+        return redirect()->route('akun.pengaturan')->with('status', 'Preferensi berhasil disimpan.');
+    })->name('pengaturan.update');
+
+    // Ubah password — terpisah dari pengaturan utama, validasi password lama wajib.
+    Route::post('/pengaturan/password', function (Request $request) {
+        $authUser = session('auth_user');
+        if (! $authUser) return redirect()->route('login');
+        $user = User::findOrFail($authUser['id']);
+
+        $data = $request->validate([
+            'current_password'          => 'required|string',
+            'new_password'              => 'required|string|min:6|confirmed',
+        ]);
+
+        if (! Hash::check($data['current_password'], $user->password)) {
+            return back()->withErrors(['current_password' => 'Password saat ini salah.']);
+        }
+
+        $user->password = Hash::make($data['new_password']);
+        $user->save();
+
+        return redirect()->route('akun.pengaturan')
+            ->with('status', 'Password berhasil diperbarui. Gunakan password baru di login berikutnya.');
+    })->name('pengaturan.password');
+
+    // Hapus akun — wajib konfirmasi password + checkbox understanding.
+    Route::delete('/pengaturan/hapus-akun', function (Request $request) {
+        $authUser = session('auth_user');
+        if (! $authUser) return redirect()->route('login');
+        $user = User::findOrFail($authUser['id']);
+
+        $data = $request->validate([
+            'password'      => 'required|string',
+            'confirm_phrase' => 'required|in:HAPUS AKUN SAYA',
+        ], [
+            'confirm_phrase.in' => 'Frasa konfirmasi tidak sesuai. Ketik persis "HAPUS AKUN SAYA".',
+        ]);
+
+        if (! Hash::check($data['password'], $user->password)) {
+            return back()->withErrors(['password' => 'Password salah. Akun tidak dihapus.']);
+        }
+
+        // Blokir admin menghapus akun lewat sini supaya tidak ada yang sengaja
+        // ngosongin sistem; admin harus dikelola via panel admin.
+        if ($user->role === 'admin') {
+            return back()->withErrors(['password' => 'Akun admin tidak dapat dihapus dari sini.']);
+        }
+
+        // Hapus dependent records secara eksplisit supaya tidak bergantung
+        // pada FK cascade di DB (engine bisa beda — InnoDB vs MyISAM).
+        \Illuminate\Support\Facades\DB::transaction(function () use ($user) {
+            \App\Models\Address::where('user_id', $user->id)->delete();
+            \App\Models\Wishlist::where('user_id', $user->id)->delete();
+            // Pesanan tetap ada untuk catatan toko, hanya user_id-nya di-null-kan
+            // (customer_name & customer_email sudah ter-snapshot di Order saat dibuat).
+            \App\Models\Order::where('user_id', $user->id)->update(['user_id' => null]);
+            $user->delete();
+        });
+
+        // Logout total.
+        session()->forget('auth_user');
+        session()->invalidate();
+        session()->regenerateToken();
+
+        return redirect()->route('home')
+            ->with('status', 'Akun Anda telah dihapus permanen. Terima kasih sudah berbelanja di Batik Penawo.');
+    })->name('pengaturan.hapus-akun');
 });
 
 // Admin dashboard — admin only (guarded by EnsureAdmin middleware)
 Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
     Route::get('/', function () {
+        // Range periode untuk perbandingan bulan ini vs bulan lalu.
+        $startThisMonth = now()->startOfMonth();
+        $startLastMonth = now()->copy()->subMonth()->startOfMonth();
+        $endLastMonth   = now()->copy()->startOfMonth()->subSecond();
+
+        // Pendapatan & jumlah pesanan per periode (status realisasi: dikirim + selesai).
+        $revenueThisMonth = Order::whereIn('status', ['dikirim', 'selesai'])
+            ->where('created_at', '>=', $startThisMonth)->sum('total');
+        $revenueLastMonth = Order::whereIn('status', ['dikirim', 'selesai'])
+            ->whereBetween('created_at', [$startLastMonth, $endLastMonth])->sum('total');
+        $ordersThisMonth = Order::where('created_at', '>=', $startThisMonth)->count();
+        $ordersLastMonth = Order::whereBetween('created_at', [$startLastMonth, $endLastMonth])->count();
+
+        // Antrian aksi: pesanan yang masih perlu dikelola admin.
+        $pendingActionCount = Order::whereIn('status', ['menunggu_bayar', 'diproses'])->count();
+
+        // Alert "perlu perhatian": item yang stuck atau kritis.
+        $stuckPaymentCount = Order::where('status', 'menunggu_bayar')
+            ->where('created_at', '<', now()->subHours(24))->count();
+        $shipmentDueCount = Order::where('status', 'diproses')
+            ->where(function ($q) {
+                $q->where('paid_at', '<', now()->subDays(2))
+                  ->orWhere('updated_at', '<', now()->subDays(2));
+            })->count();
+
+        // Stok rendah: produk dengan stok < stok_min.
+        $lowStockCount = Product::whereColumn('stock', '<', 'stock_min')->count();
+        $lowStock      = Product::whereColumn('stock', '<', 'stock_min')
+            ->orderBy('stock')->take(5)->get();
+
         return view('admin.dashboard', [
-            'totalProducts'  => Product::count(),
-            'totalOrders'    => Order::count(),
-            'totalRevenue'   => Order::whereIn('status', ['dikirim', 'selesai'])->sum('total'),
-            'totalCustomers' => User::where('role', 'pelanggan')->where('status', 'aktif')->count(),
-            'recentOrders'   => Order::latest()->take(5)->get(),
-            'topProducts'    => Product::orderBy('stock', 'desc')->take(5)->get(),
-            'stockIn7Day'    => StockMovement::where('type', 'masuk')->where('occurred_at', '>=', now()->subDays(7))->sum('qty'),
-            'stockOut7Day'   => StockMovement::where('type', 'keluar')->where('occurred_at', '>=', now()->subDays(7))->sum('qty'),
-            'trxIn7Day'      => StockMovement::where('type', 'masuk')->where('occurred_at', '>=', now()->subDays(7))->count(),
-            'trxOut7Day'     => StockMovement::where('type', 'keluar')->where('occurred_at', '>=', now()->subDays(7))->count(),
+            // KPI cards (top)
+            'revenueThisMonth'   => $revenueThisMonth,
+            'revenueLastMonth'   => $revenueLastMonth,
+            'ordersThisMonth'    => $ordersThisMonth,
+            'ordersLastMonth'    => $ordersLastMonth,
+            'pendingActionCount' => $pendingActionCount,
+            'lowStockCount'      => $lowStockCount,
+
+            // Alerts (perlu perhatian)
+            'stuckPaymentCount'  => $stuckPaymentCount,
+            'shipmentDueCount'   => $shipmentDueCount,
+
+            // Total dasar (untuk konteks)
+            'totalProducts'      => Product::count(),
+            'totalOrders'        => Order::count(),
+            'totalCustomers'     => User::where('role', 'pelanggan')->where('status', 'aktif')->count(),
+
+            // Tabel & list
+            'recentOrders'       => Order::latest()->take(6)->get(),
+            'lowStock'           => $lowStock,
+
+            // Ringkasan stok 7 hari (existing)
+            'stockIn7Day'        => StockMovement::where('type', 'masuk')->where('occurred_at', '>=', now()->subDays(7))->sum('qty'),
+            'stockOut7Day'       => StockMovement::where('type', 'keluar')->where('occurred_at', '>=', now()->subDays(7))->sum('qty'),
+            'trxIn7Day'          => StockMovement::where('type', 'masuk')->where('occurred_at', '>=', now()->subDays(7))->count(),
+            'trxOut7Day'         => StockMovement::where('type', 'keluar')->where('occurred_at', '>=', now()->subDays(7))->count(),
         ]);
     })->name('dashboard');
 
@@ -1273,6 +1441,48 @@ Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
             'totalIn', 'totalOut', 'trxIn', 'trxOut'
         ));
     })->name('laporan');
+
+    // Halaman cetak laporan stok — view khusus print (A4 landscape, tanpa sidebar/filter UI).
+    Route::get('/laporan/cetak', function (Request $request) {
+        // Filter sama persis dengan halaman daftar supaya hasil cetak konsisten.
+        $baseQuery = StockMovement::query();
+        if ($request->filled('q')) {
+            $q = $request->q;
+            $baseQuery->whereHas('product', function ($w) use ($q) {
+                $w->where('name', 'like', "%{$q}%")->orWhere('sku', 'like', "%{$q}%");
+            });
+        }
+        if ($request->filled('type') && in_array($request->type, ['masuk', 'keluar'])) {
+            $baseQuery->where('type', $request->type);
+        }
+        if ($request->filled('from')) {
+            $baseQuery->whereDate('occurred_at', '>=', $request->from);
+        }
+        if ($request->filled('to')) {
+            $baseQuery->whereDate('occurred_at', '<=', $request->to);
+        }
+
+        $movements = (clone $baseQuery)->with(['product', 'user'])
+            ->orderBy('occurred_at', 'desc')
+            ->get();
+
+        $totalIn  = (clone $baseQuery)->where('type', 'masuk')->sum('qty');
+        $totalOut = (clone $baseQuery)->where('type', 'keluar')->sum('qty');
+        $trxIn    = (clone $baseQuery)->where('type', 'masuk')->count();
+        $trxOut   = (clone $baseQuery)->where('type', 'keluar')->count();
+
+        // Ringkasan filter aktif untuk dicetak di header laporan.
+        $filters = [
+            'q'    => $request->input('q'),
+            'type' => $request->input('type'),
+            'from' => $request->input('from'),
+            'to'   => $request->input('to'),
+        ];
+
+        return view('admin.laporan-cetak', compact(
+            'movements', 'totalIn', 'totalOut', 'trxIn', 'trxOut', 'filters'
+        ));
+    })->name('laporan.cetak');
 
     // Tambah mutasi stok manual (masuk / keluar)
     Route::post('/laporan/mutasi', function (Request $request) {

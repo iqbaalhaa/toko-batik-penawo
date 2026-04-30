@@ -39,7 +39,11 @@ class User extends Authenticatable
         'district_id',
         'district_name',
         'full_address',
+        // Preferensi notifikasi (halaman Pengaturan)
+        'notify_order_updates',
+        'notify_promo',
     ];
+
 
     /**
      * Alamat pengiriman terstruktur untuk kalkulator ongkir.
@@ -108,9 +112,24 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
-            'password'          => 'hashed',
-            'birth_date'        => 'date',
+            'email_verified_at'    => 'datetime',
+            'password'             => 'hashed',
+            'birth_date'           => 'date',
+            'notify_order_updates' => 'boolean',
+            'notify_promo'         => 'boolean',
         ];
+    }
+
+    public function wishlists()
+    {
+        return $this->hasMany(Wishlist::class)->latest();
+    }
+
+    /**
+     * Cek apakah produk sudah ada di wishlist user ini.
+     */
+    public function hasWishlisted(int $productId): bool
+    {
+        return $this->wishlists()->where('product_id', $productId)->exists();
     }
 }

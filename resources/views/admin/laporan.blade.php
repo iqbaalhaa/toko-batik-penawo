@@ -89,7 +89,8 @@
 				<div class="admin-card-sub">Riwayat barang masuk dan keluar</div>
 			</div>
 			<div>
-				<button type="button" class="btn-admin btn-admin-outline" onclick="window.print()"><i class="fa fa-print"></i> Cetak</button>
+				{{-- Cetak: buka tab baru ke halaman cetak khusus dengan filter yang sama. --}}
+				<a href="{{ route('admin.laporan.cetak', request()->query()) }}" target="_blank" class="btn-admin btn-admin-outline"><i class="fa fa-print"></i> Cetak</a>
 				<button type="button" class="btn-admin js-mutasi-btn" data-toggle="modal" data-target="#modalMutasi"><i class="fa fa-plus"></i> Tambah Mutasi</button>
 			</div>
 		</div>

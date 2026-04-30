@@ -176,28 +176,11 @@
 							</div>
 						</div>
 
-						<div class="akun-card">
-							<h3 class="akun-card-title">Ubah Password</h3>
-							<p class="akun-card-sub">Kosongkan bila tidak ingin mengubah password.</p>
-
-							<div class="row">
-								<div class="col-md-12" style="margin-bottom:14px;">
-									<label class="akun-label">Password Saat Ini</label>
-									<input type="password" name="current_password" class="akun-input" autocomplete="current-password">
-								</div>
-								<div class="col-md-6" style="margin-bottom:14px;">
-									<label class="akun-label">Password Baru</label>
-									<input type="password" name="new_password" class="akun-input" minlength="6" autocomplete="new-password">
-								</div>
-								<div class="col-md-6" style="margin-bottom:14px;">
-									<label class="akun-label">Konfirmasi Password Baru</label>
-									<input type="password" name="new_password_confirmation" class="akun-input" minlength="6" autocomplete="new-password">
-								</div>
-							</div>
-
-							<div style="padding-top:12px; border-top:1px solid #f2efe7; margin-top:6px;">
-								<button type="submit" class="akun-btn"><i class="fa fa-floppy-o m-r-6"></i> Simpan Perubahan</button>
-							</div>
+						<div style="padding-top:8px;">
+							<button type="submit" class="akun-btn"><i class="fa fa-floppy-o m-r-6"></i> Simpan Perubahan</button>
+							<a href="{{ route('akun.pengaturan') }}" style="margin-left:12px; font-size:12.5px; color:#9a9288; text-decoration:none;">
+								<i class="fa fa-key"></i> Ubah password di Pengaturan
+							</a>
 						</div>
 					</form>
 

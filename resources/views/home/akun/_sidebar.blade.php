@@ -8,6 +8,11 @@
 		</div>
 	</div>
 
+	@php
+		$wishlistCount = isset($authUser['id'])
+			? \App\Models\Wishlist::where('user_id', $authUser['id'])->count()
+			: 0;
+	@endphp
 	<ul class="akun-sidebar-menu">
 		<li class="{{ $currentRoute === 'akun.profil' ? 'active' : '' }}">
 			<a href="{{ route('akun.profil') }}"><i class="fa fa-user"></i> Profil Saya</a>
@@ -15,11 +20,14 @@
 		<li class="{{ $currentRoute === 'akun.pesanan' ? 'active' : '' }}">
 			<a href="{{ route('akun.pesanan') }}"><i class="fa fa-file-text-o"></i> Pesanan Saya</a>
 		</li>
-		<li class="disabled" title="Segera hadir">
-			<a href="#" onclick="return false;"><i class="fa fa-heart-o"></i> Wishlist <small>(segera)</small></a>
+		<li class="{{ $currentRoute === 'akun.wishlist' ? 'active' : '' }}">
+			<a href="{{ route('akun.wishlist') }}">
+				<i class="fa fa-heart-o"></i> Wishlist
+				@if($wishlistCount > 0)<small style="background:#c29e5c; color:#fff; padding:2px 8px; border-radius:999px; font-size:10px; letter-spacing:0;">{{ $wishlistCount }}</small>@endif
+			</a>
 		</li>
-		<li class="disabled" title="Segera hadir">
-			<a href="#" onclick="return false;"><i class="fa fa-cog"></i> Pengaturan <small>(segera)</small></a>
+		<li class="{{ $currentRoute === 'akun.pengaturan' ? 'active' : '' }}">
+			<a href="{{ route('akun.pengaturan') }}"><i class="fa fa-cog"></i> Pengaturan</a>
 		</li>
 	</ul>
 

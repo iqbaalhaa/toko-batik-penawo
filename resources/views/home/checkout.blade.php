@@ -270,12 +270,6 @@
 									<span>Total Ongkir</span>
 									<span>{{ $rupiah($summary['shipping_total']) }}</span>
 								</div>
-								@if($summary['voucher_discount'] > 0)
-								<div class="summary-row">
-									<span>Diskon Voucher</span>
-									<span style="color:#2f7a4c;">- {{ $rupiah($summary['voucher_discount']) }}</span>
-								</div>
-								@endif
 								<div class="summary-row total">
 									<span>Total Bayar</span>
 									<span>{{ $rupiah($summary['grand_total']) }}</span>

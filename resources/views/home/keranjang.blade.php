@@ -176,14 +176,6 @@
 								</div>
 							</div>
 
-							<div class="flex-w flex-m m-r-20 m-tb-5">
-									<input class="stext-104 cl2 plh4 size-117 bor13 p-lr-20 m-r-10 m-tb-5" type="text" name="coupon" placeholder="Kode Voucher">
-
-									<button type="button" class="flex-c-m stext-101 cl2 size-118 bg8 bor13 hov-btn3 p-lr-15 trans-04 pointer m-tb-5">
-										Terapkan Voucher
-									</button>
-								</div>
-
 							<div class="flex-w flex-t p-t-27 p-b-33">
 								<div class="size-208">
 									<span class="mtext-101 cl2">Total:</span>
