@@ -31,7 +31,7 @@ class ShippingCalculatorTest extends TestCase
 
         $this->assertTrue($r['available']);
         $this->assertSame('same_district', $r['zone']);
-        $this->assertSame('Satu Kecamatan', $r['zone_label']);
+        $this->assertSame('Antar Desa (dalam 1 kecamatan)', $r['zone_label']);
         $this->assertSame(10000, $r['base_fee']);
         $this->assertSame(2000, $r['extra_fee_per_kg']);
         $this->assertSame(3, $r['total_weight_kg']);
@@ -60,7 +60,7 @@ class ShippingCalculatorTest extends TestCase
         );
         $this->assertTrue($r['available']);
         $this->assertSame('same_city', $r['zone']);
-        $this->assertSame('Satu Kota/Kabupaten', $r['zone_label']);
+        $this->assertSame('Antar Kecamatan (dalam 1 kab/kota)', $r['zone_label']);
         $this->assertSame(26000, $r['shipping_cost']);
     }
 
@@ -74,7 +74,7 @@ class ShippingCalculatorTest extends TestCase
         );
         $this->assertTrue($r['available']);
         $this->assertSame('same_province', $r['zone']);
-        $this->assertSame('Satu Provinsi', $r['zone_label']);
+        $this->assertSame('Antar Kabupaten/Kota (dalam 1 provinsi)', $r['zone_label']);
         $this->assertSame(34000, $r['shipping_cost']);
     }
 
@@ -88,7 +88,7 @@ class ShippingCalculatorTest extends TestCase
         );
         $this->assertTrue($r['available']);
         $this->assertSame('outside_province', $r['zone']);
-        $this->assertSame('Luar Provinsi', $r['zone_label']);
+        $this->assertSame('Antar Provinsi', $r['zone_label']);
         $this->assertSame(55000, $r['shipping_cost']);
     }
 

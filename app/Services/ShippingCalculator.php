@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Models\SiteSetting;
+
 /**
  * Kalkulator simulasi ongkos kirim berbasis wilayah administratif & berat.
  *
@@ -10,73 +12,108 @@ namespace App\Services;
  * lokal yang membutuhkan tarif deterministik dan dapat dijelaskan.
  *
  * Aturan zona (kunci hierarkis: provinsi → kota/kab → kecamatan):
- *  - same_district    : kec sama          → 10.000 + max(0, kg-5) × 2.000
- *  - same_city        : kab sama, kec ≠   → 20.000 + max(0, kg-5) × 3.000
- *  - same_province    : prov sama, kab ≠  → 30.000 + max(0, kg-5) × 4.000
- *  - outside_province : prov ≠            → 40.000 + max(0, kg-5) × 5.000
+ *  - same_district    : kec sama          → base + max(0, kg-base_kg) × extra
+ *  - same_city        : kab sama, kec ≠
+ *  - same_province    : prov sama, kab ≠
+ *  - outside_province : prov ≠
  *
- * Berat dasar (base_weight_kg) selalu 5 kg. Berat di atas itu dikenakan
- * tarif tambahan per kilogram (sudah dibulatkan ke atas / ceil).
+ * Tarif default ada pada konstanta `DEFAULT_ZONES`/`DEFAULT_BASE_WEIGHT_KG`,
+ * namun nilai aktif yang dipakai checkout dapat di-override oleh admin via
+ * tabel `site_settings` (key `shipping_*`). Lihat `zones()` dan `baseWeightKg()`.
  */
 final class ShippingCalculator
 {
-    public const BASE_WEIGHT_KG = 5;
+    public const DEFAULT_BASE_WEIGHT_KG = 5;
 
     /**
-     * Definisi tarif per zona. Dipisah supaya mudah dites dan disesuaikan
-     * tanpa menyentuh logika alir. Untuk membuat zona menjadi "tidak melayani",
-     * set kedua tarif = 0 dan ubah `available` di calculate() — atau cukup
-     * naikkan tarif sangat tinggi.
+     * Tarif default — dipakai ketika site_settings belum diisi atau saat
+     * akses DB tidak tersedia (mis. unit test tanpa migrasi).
      */
-    public const ZONES = [
+    public const DEFAULT_ZONES = [
         'same_district' => [
-            'label'            => 'Satu Kecamatan',
+            'label'            => 'Antar Desa (dalam 1 kecamatan)',
             'base_fee'         => 10000,
             'extra_fee_per_kg' => 2000,
         ],
         'same_city' => [
-            'label'            => 'Satu Kota/Kabupaten',
+            'label'            => 'Antar Kecamatan (dalam 1 kab/kota)',
             'base_fee'         => 20000,
             'extra_fee_per_kg' => 3000,
         ],
         'same_province' => [
-            'label'            => 'Satu Provinsi',
+            'label'            => 'Antar Kabupaten/Kota (dalam 1 provinsi)',
             'base_fee'         => 30000,
             'extra_fee_per_kg' => 4000,
         ],
         'outside_province' => [
-            'label'            => 'Luar Provinsi',
+            'label'            => 'Antar Provinsi',
             'base_fee'         => 40000,
             'extra_fee_per_kg' => 5000,
         ],
     ];
 
     /**
+     * Konfigurasi tarif aktif. Membaca DEFAULT_ZONES lalu meng-override
+     * `base_fee` & `extra_fee_per_kg` per zona dari site_settings bila ada.
+     */
+    public static function zones(): array
+    {
+        $zones = self::DEFAULT_ZONES;
+        try {
+            foreach ($zones as $key => &$cfg) {
+                $base  = SiteSetting::get('shipping_' . $key . '_base_fee');
+                $extra = SiteSetting::get('shipping_' . $key . '_extra_fee');
+                if ($base  !== null && is_numeric($base))  $cfg['base_fee']         = (int) $base;
+                if ($extra !== null && is_numeric($extra)) $cfg['extra_fee_per_kg'] = (int) $extra;
+            }
+        } catch (\Throwable $e) {
+            // DB / tabel site_settings tidak tersedia → fallback DEFAULT_ZONES.
+        }
+        return $zones;
+    }
+
+    /**
+     * Berat dasar (kg) yang masih dikenai tarif `base_fee` saja.
+     */
+    public static function baseWeightKg(): int
+    {
+        try {
+            $val = SiteSetting::get('shipping_base_weight_kg');
+            if ($val !== null && is_numeric($val) && (int) $val > 0) {
+                return (int) $val;
+            }
+        } catch (\Throwable $e) {
+            // Fallback ke default.
+        }
+        return self::DEFAULT_BASE_WEIGHT_KG;
+    }
+
+    /**
      * Hitung ongkir untuk sebuah pengiriman dari satu toko ke satu pembeli.
      *
-     * @param  array  $storeAddress  Wilayah toko: minimal city_id & district_id.
-     * @param  array  $buyerAddress  Wilayah pembeli: minimal city_id & district_id.
+     * @param  array  $storeAddress  Wilayah toko: minimal province_id, city_id, district_id.
+     * @param  array  $buyerAddress  Wilayah pembeli: minimal province_id, city_id, district_id.
      * @param  float  $totalWeightKg Total berat barang dalam kg (boleh desimal — akan dibulatkan ke atas).
-     * @return array  Lihat docblock kelas untuk format. Field `available=false`
-     *                berarti pengiriman tidak bisa diproses (alamat tidak lengkap
-     *                atau zona outside_city).
      */
     public static function calculate(array $storeAddress, array $buyerAddress, float $totalWeightKg): array
     {
+        $baseKg = self::baseWeightKg();
+        $zones  = self::zones();
+
         // 1) Validasi alamat — kedua sisi wajib punya province_id, city_id, district_id.
         if (! self::hasRegion($storeAddress)) {
-            return self::failure('outside_province', 0,
+            return self::failure('outside_province', 0, $baseKg, $zones,
                 'Alamat toko belum lengkap (butuh province_id, city_id, district_id).');
         }
         if (! self::hasRegion($buyerAddress)) {
-            return self::failure('outside_province', 0,
+            return self::failure('outside_province', 0, $baseKg, $zones,
                 'Alamat pengiriman belum dipilih atau belum lengkap.');
         }
 
         // 2) Bulatkan berat ke atas — tarif dihitung per kg utuh.
         $weightKg = (int) ceil(max(0.0, $totalWeightKg));
         if ($weightKg <= 0) {
-            return self::failure('outside_province', 0,
+            return self::failure('outside_province', 0, $baseKg, $zones,
                 'Total berat barang harus lebih dari 0 kg.');
         }
 
@@ -84,8 +121,8 @@ final class ShippingCalculator
         $zone = self::resolveZone($storeAddress, $buyerAddress);
 
         // 4) Hitung tarif: base_fee + kelebihan kg × extra_fee_per_kg.
-        $tariff       = self::ZONES[$zone];
-        $extraKg      = max(0, $weightKg - self::BASE_WEIGHT_KG);
+        $tariff       = $zones[$zone];
+        $extraKg      = max(0, $weightKg - $baseKg);
         $shippingCost = $tariff['base_fee'] + $extraKg * $tariff['extra_fee_per_kg'];
 
         return [
@@ -93,7 +130,7 @@ final class ShippingCalculator
             'zone'             => $zone,
             'zone_label'       => $tariff['label'],
             'base_fee'         => $tariff['base_fee'],
-            'base_weight_kg'   => self::BASE_WEIGHT_KG,
+            'base_weight_kg'   => $baseKg,
             'extra_fee_per_kg' => $tariff['extra_fee_per_kg'],
             'total_weight_kg'  => $weightKg,
             'shipping_cost'    => $shippingCost,
@@ -131,15 +168,15 @@ final class ShippingCalculator
         return 'same_district';
     }
 
-    private static function failure(string $zone, int $weightKg, string $message): array
+    private static function failure(string $zone, int $weightKg, int $baseKg, array $zones, string $message): array
     {
-        $tariff = self::ZONES[$zone];
+        $tariff = $zones[$zone];
         return [
             'available'        => false,
             'zone'             => $zone,
             'zone_label'       => $tariff['label'],
             'base_fee'         => $tariff['base_fee'],
-            'base_weight_kg'   => self::BASE_WEIGHT_KG,
+            'base_weight_kg'   => $baseKg,
             'extra_fee_per_kg' => $tariff['extra_fee_per_kg'],
             'total_weight_kg'  => $weightKg,
             'shipping_cost'    => 0,

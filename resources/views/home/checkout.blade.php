@@ -149,7 +149,17 @@
 								</div>
 							</div>
 							<div style="margin-bottom:14px;">
-								<label class="checkout-label">Pilih Alamat Tersimpan <span style="color:#a5432f;">*</span></label>
+								<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:6px;">
+									<label class="checkout-label" style="margin:0;">Pilih Alamat Tersimpan <span style="color:#a5432f;">*</span></label>
+									{{-- Tombol type=button supaya tidak submit form checkout. --}}
+									<button type="button"
+										onclick="openAlamatModal()"
+										@disabled($addresses->count() >= \App\Models\Address::MAX_PER_USER)
+										title="{{ $addresses->count() >= \App\Models\Address::MAX_PER_USER ? 'Sudah mencapai batas '.\App\Models\Address::MAX_PER_USER.' alamat — hapus salah satu di profil dulu' : 'Tambah alamat baru' }}"
+										style="background:#fff; color:#c29e5c; border:1px solid #c29e5c; padding:6px 12px; border-radius:4px; font-size:12.5px; font-weight:500; cursor:pointer; white-space:nowrap;">
+										<i class="fa fa-plus"></i> Tambah Alamat
+									</button>
+								</div>
 								<select name="address_id" id="checkoutAddressSelect" class="checkout-input" required
 									onchange="window.location = '{{ route('checkout.show') }}?address_id=' + encodeURIComponent(this.value);">
 									@foreach($addresses as $addr)
@@ -164,7 +174,7 @@
 									<span style="color:#9a9288;">Kec. {{ $selectedAddress->district_name }}, {{ $selectedAddress->city_name }}, {{ $selectedAddress->province_name }}</span>
 								</div>
 								<div style="font-size:11.5px; color:#9a9288; margin-top:6px;">
-									<i class="fa fa-info-circle"></i> Kelola alamat tersimpan (maks {{ \App\Models\Address::MAX_PER_USER }}) di <a href="{{ route('akun.profil') }}" style="color:#c29e5c;">profil Anda</a>.
+									<i class="fa fa-info-circle"></i> {{ $addresses->count() }}/{{ \App\Models\Address::MAX_PER_USER }} alamat tersimpan. Kelola di <a href="{{ route('akun.profil') }}" style="color:#c29e5c;">profil</a>.
 								</div>
 							</div>
 							<div>
@@ -273,7 +283,6 @@
 							</div>
 
 							<button type="submit" class="checkout-btn-pay" id="btnBayar" @disabled(! $summary['all_available'])>
-								<i class="fa fa-lock m-r-6"></i>
 								{{ $summary['all_available'] ? 'Bayar Sekarang' : 'Tidak Dapat Dikirim' }}
 							</button>
 
@@ -288,6 +297,15 @@
 					</div>
 				</div>
 			</form>
+
+			{{-- Modal tambah alamat — diletakkan di luar form checkout supaya tidak nested. --}}
+			@include('partials._alamat_modal', [
+				'redirectTo' => 'checkout.show',
+				'inputClass' => 'checkout-input',
+				'btnClass'   => 'checkout-btn-pay',
+			])
+			{{-- JS cascading dropdown wilayah dipakai oleh modal di atas. --}}
+			@include('partials._wilayah_cascade')
 		</div>
 	</section>
 

@@ -22,6 +22,7 @@
 				<li><a href="#tab-banner" class="cms-tab active" data-tab="banner"><i class="fa fa-picture-o"></i> Banner Beranda</a></li>
 				<li><a href="#tab-tentang" class="cms-tab" data-tab="tentang"><i class="fa fa-info-circle"></i> Tentang Kami</a></li>
 				<li><a href="#tab-kontak" class="cms-tab" data-tab="kontak"><i class="fa fa-envelope-o"></i> Info Kontak</a></li>
+				<li><a href="#tab-pengiriman" class="cms-tab" data-tab="pengiriman"><i class="fa fa-truck"></i> Pengiriman</a></li>
 				<li><a href="#tab-kategori" class="cms-tab" data-tab="kategori"><i class="fa fa-folder-open-o"></i> Kategori</a></li>
 				<li><a href="#tab-footer" class="cms-tab" data-tab="footer"><i class="fa fa-align-justify"></i> Footer</a></li>
 			</ul>
@@ -169,7 +170,47 @@
 			<div class="admin-card">
 				<div class="admin-card-header">
 					<div>
-						<h3 class="admin-card-title">Alamat Toko (Pengiriman)</h3>
+						<h3 class="admin-card-title">Media Sosial</h3>
+						<div class="admin-card-sub">Link yang tampil di footer dan halaman kontak</div>
+					</div>
+				</div>
+				<div class="row">
+					<div class="col-md-6">
+						<div style="margin-bottom:14px;">
+							<label class="form-label-admin"><i class="fa fa-facebook" style="color:#3b5998;"></i> Facebook</label>
+							<input type="text" name="social_facebook" class="form-control-admin" value="{{ $setting('social_facebook', '') }}">
+						</div>
+						<div style="margin-bottom:14px;">
+							<label class="form-label-admin"><i class="fa fa-instagram" style="color:#c32aa3;"></i> Instagram</label>
+							<input type="text" name="social_instagram" class="form-control-admin" value="{{ $setting('social_instagram', '') }}">
+						</div>
+					</div>
+					<div class="col-md-6">
+						<div style="margin-bottom:14px;">
+							<label class="form-label-admin"><i class="fa fa-pinterest-p" style="color:#bd081c;"></i> Pinterest</label>
+							<input type="text" name="social_pinterest" class="form-control-admin" value="{{ $setting('social_pinterest', '') }}">
+						</div>
+						<div style="margin-bottom:14px;">
+							<label class="form-label-admin"><i class="fa fa-youtube-play" style="color:#ff0000;"></i> YouTube</label>
+							<input type="text" name="social_youtube" class="form-control-admin" value="{{ $setting('social_youtube', '') }}" placeholder="https://youtube.com/@batikpenawo">
+						</div>
+					</div>
+				</div>
+				<div style="padding-top:14px; border-top:1px solid #f2efe7; margin-top:8px;">
+					<button type="submit" class="btn-admin"><i class="fa fa-floppy-o"></i> Simpan Perubahan</button>
+				</div>
+			</div>
+		</form>
+	</div>
+
+	<!-- ====================== Tab: Pengiriman (Alamat Toko untuk ongkir) ====================== -->
+	<div class="cms-panel" id="tab-pengiriman" style="display:none;">
+		<form action="{{ route('admin.cms.settings.save', 'pengiriman') }}" method="POST">
+			@csrf
+			<div class="admin-card">
+				<div class="admin-card-header">
+					<div>
+						<h3 class="admin-card-title"><i class="fa fa-map-marker" style="color:#c29e5c;"></i> Alamat Toko</h3>
 						<div class="admin-card-sub">Pilih wilayah berurutan: provinsi → kota/kabupaten → kecamatan. Dipakai kalkulator ongkir untuk menentukan zona pengiriman.</div>
 					</div>
 				</div>
@@ -207,42 +248,71 @@
 					<input type="hidden" name="store_district_name" data-role="district_name" value="{{ $setting('store_district_name', '') }}">
 				</div>
 
-				<div style="font-size:12px; color:#9a9288; padding:8px 12px; background:#faf7ef; border-radius:4px;">
-					<i class="fa fa-info-circle"></i> Toko harus berada dalam zona yang sama dengan pembeli agar checkout lolos — zona ditentukan dari kesamaan provinsi/kabupaten/kecamatan.
+				<div style="font-size:12px; color:#9a9288; padding:10px 12px; background:#faf7ef; border-radius:4px;">
+					<i class="fa fa-info-circle"></i> Wilayah toko harus terisi lengkap supaya ongkir bisa dihitung. Zona pembeli ditentukan dari kesamaan provinsi/kabupaten/kecamatan dengan alamat toko ini.
 				</div>
 			</div>
 
 			<div class="admin-card">
 				<div class="admin-card-header">
 					<div>
-						<h3 class="admin-card-title">Media Sosial</h3>
-						<div class="admin-card-sub">Link yang tampil di footer dan halaman kontak</div>
+						<h3 class="admin-card-title">Tarif Ongkos Kirim per Zona</h3>
+						<div class="admin-card-sub">Ubah tarif di sini — perubahan langsung dipakai saat checkout berikutnya. Zona ditentukan otomatis dari perbandingan provinsi/kabupaten/kecamatan.</div>
 					</div>
 				</div>
-				<div class="row">
-					<div class="col-md-6">
-						<div style="margin-bottom:14px;">
-							<label class="form-label-admin"><i class="fa fa-facebook" style="color:#3b5998;"></i> Facebook</label>
-							<input type="text" name="social_facebook" class="form-control-admin" value="{{ $setting('social_facebook', '') }}">
-						</div>
-						<div style="margin-bottom:14px;">
-							<label class="form-label-admin"><i class="fa fa-instagram" style="color:#c32aa3;"></i> Instagram</label>
-							<input type="text" name="social_instagram" class="form-control-admin" value="{{ $setting('social_instagram', '') }}">
-						</div>
-					</div>
-					<div class="col-md-6">
-						<div style="margin-bottom:14px;">
-							<label class="form-label-admin"><i class="fa fa-pinterest-p" style="color:#bd081c;"></i> Pinterest</label>
-							<input type="text" name="social_pinterest" class="form-control-admin" value="{{ $setting('social_pinterest', '') }}">
-						</div>
-						<div style="margin-bottom:14px;">
-							<label class="form-label-admin"><i class="fa fa-youtube-play" style="color:#ff0000;"></i> YouTube</label>
-							<input type="text" name="social_youtube" class="form-control-admin" value="{{ $setting('social_youtube', '') }}" placeholder="https://youtube.com/@batikpenawo">
-						</div>
+
+				@php
+					$zoneCfg     = \App\Services\ShippingCalculator::zones();
+					$baseWeight  = \App\Services\ShippingCalculator::baseWeightKg();
+					$defaultZone = \App\Services\ShippingCalculator::DEFAULT_ZONES;
+				@endphp
+
+				<div style="margin-bottom:18px;">
+					<label class="form-label-admin">Berat Dasar (kg) <span style="color:#a5432f;">*</span></label>
+					<input type="number" name="shipping_base_weight_kg" class="form-control-admin" min="1" max="50" required
+						value="{{ $setting('shipping_base_weight_kg', $baseWeight) }}" style="max-width:200px;">
+					<div style="font-size:11.5px; color:#9a9288; margin-top:4px;">
+						Berat di bawah / sama dengan ini hanya dikenai tarif dasar. Lebih dari ini, kelebihannya dikalikan tarif tambahan.
 					</div>
 				</div>
-				<div style="padding-top:14px; border-top:1px solid #f2efe7; margin-top:8px;">
-					<button type="submit" class="btn-admin"><i class="fa fa-floppy-o"></i> Simpan Perubahan</button>
+
+				<table class="admin-table" style="margin-top:0;">
+					<thead>
+						<tr>
+							<th style="width:30%;">Zona</th>
+							<th>Tarif Dasar (Rp)</th>
+							<th>Tarif Tambahan / kg (Rp)</th>
+						</tr>
+					</thead>
+					<tbody>
+						@foreach($zoneCfg as $zoneKey => $cfg)
+						<tr>
+							<td><strong>{{ $cfg['label'] }}</strong></td>
+							<td>
+								<input type="number" name="shipping_{{ $zoneKey }}_base_fee" class="form-control-admin"
+									min="0" step="500" required
+									value="{{ $setting('shipping_'.$zoneKey.'_base_fee', $cfg['base_fee']) }}"
+									style="max-width:180px;">
+								<div style="font-size:10.5px; color:#9a9288; margin-top:2px;">default: {{ $rupiah($defaultZone[$zoneKey]['base_fee']) }}</div>
+							</td>
+							<td>
+								<input type="number" name="shipping_{{ $zoneKey }}_extra_fee" class="form-control-admin"
+									min="0" step="500" required
+									value="{{ $setting('shipping_'.$zoneKey.'_extra_fee', $cfg['extra_fee_per_kg']) }}"
+									style="max-width:180px;">
+								<div style="font-size:10.5px; color:#9a9288; margin-top:2px;">default: {{ $rupiah($defaultZone[$zoneKey]['extra_fee_per_kg']) }}</div>
+							</td>
+						</tr>
+						@endforeach
+					</tbody>
+				</table>
+
+				<div style="font-size:12px; color:#9a9288; padding:10px 12px; background:#faf7ef; border-radius:4px; margin-top:14px;">
+					<i class="fa fa-info-circle"></i> Rumus: <code>shipping_cost = base_fee + max(0, total_weight_kg - base_weight) × extra_fee</code>. Total berat dibulatkan ke atas (ceil) sebelum dihitung.
+				</div>
+
+				<div style="padding-top:14px; border-top:1px solid #f2efe7; margin-top:14px;">
+					<button type="submit" class="btn-admin"><i class="fa fa-floppy-o"></i> Simpan Pengaturan Pengiriman</button>
 				</div>
 			</div>
 		</form>

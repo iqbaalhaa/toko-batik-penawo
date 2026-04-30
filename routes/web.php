@@ -818,10 +818,14 @@ Route::prefix('akun')->name('akun.')->group(function () {
             return redirect()->route('login')->withErrors(['email' => 'Silakan masuk untuk menambah alamat.']);
         }
 
+        // Whitelist tujuan redirect (menerima form dari profil maupun checkout).
+        $redirectTo = in_array($request->input('redirect_to'), ['checkout.show'], true)
+            ? 'checkout.show' : 'akun.profil';
+
         // Cap 3 alamat per pelanggan.
         $count = \App\Models\Address::where('user_id', $authUser['id'])->count();
         if ($count >= \App\Models\Address::MAX_PER_USER) {
-            return redirect()->route('akun.profil')
+            return redirect()->route($redirectTo)
                 ->withErrors(['alamat' => 'Maksimal ' . \App\Models\Address::MAX_PER_USER . ' alamat tersimpan. Hapus salah satu untuk menambah.']);
         }
 
@@ -834,14 +838,17 @@ Route::prefix('akun')->name('akun.')->group(function () {
             $data['is_default'] = true;
         }
 
-        \Illuminate\Support\Facades\DB::transaction(function () use (&$data, $authUser) {
+        $created = null;
+        \Illuminate\Support\Facades\DB::transaction(function () use (&$data, $authUser, &$created) {
             if ($data['is_default']) {
                 \App\Models\Address::where('user_id', $authUser['id'])->update(['is_default' => false]);
             }
-            \App\Models\Address::create($data);
+            $created = \App\Models\Address::create($data);
         });
 
-        return redirect()->route('akun.profil')->with('status', 'Alamat baru berhasil ditambahkan.');
+        // Saat dipanggil dari checkout, langsung pre-select alamat yang baru dibuat.
+        $params = $redirectTo === 'checkout.show' ? ['address_id' => $created->id] : [];
+        return redirect()->route($redirectTo, $params)->with('status', 'Alamat baru berhasil ditambahkan.');
     })->name('alamat.store');
 
     Route::put('/alamat/{address}', function (Request $request, int $address) use ($addressRules, $loadAuthAddress) {
@@ -906,6 +913,48 @@ Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
             'trxOut7Day'     => StockMovement::where('type', 'keluar')->where('occurred_at', '>=', now()->subDays(7))->count(),
         ]);
     })->name('dashboard');
+
+    // Profil admin: kelola data akun sendiri (nama, email, telepon, password).
+    Route::get('/profil', function () {
+        $authUser = session('auth_user');
+        $user = User::findOrFail($authUser['id']);
+        return view('admin.profil', compact('user'));
+    })->name('profil');
+
+    Route::post('/profil', function (Request $request) {
+        $authUser = session('auth_user');
+        $user = User::findOrFail($authUser['id']);
+
+        $data = $request->validate([
+            'name'             => 'required|string|min:2|max:60',
+            'email'            => 'required|email|unique:users,email,' . $user->id,
+            'phone'            => 'nullable|string|max:25',
+            'current_password' => 'nullable|string',
+            'new_password'     => 'nullable|string|min:6|confirmed',
+        ]);
+
+        $user->name  = $data['name'];
+        $user->email = $data['email'];
+        $user->phone = $data['phone'] ?? null;
+
+        if (! empty($data['new_password'])) {
+            if (empty($data['current_password']) || ! Hash::check($data['current_password'], $user->password)) {
+                return back()->withErrors(['current_password' => 'Password saat ini salah.'])->withInput();
+            }
+            $user->password = Hash::make($data['new_password']);
+        }
+        $user->save();
+
+        // Sinkronisasi session supaya nama/email yang baru langsung muncul di header.
+        session(['auth_user' => [
+            'id'    => $user->id,
+            'name'  => $user->name,
+            'email' => $user->email,
+            'role'  => $user->role,
+        ]]);
+
+        return redirect()->route('admin.profil')->with('status', 'Profil berhasil diperbarui.');
+    })->name('profil.update');
 
     Route::get('/produk', function (Request $request) {
         $query = Product::with('categories');
@@ -1294,11 +1343,22 @@ Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
                 'store_name', 'contact_email', 'contact_phone', 'contact_address',
                 'contact_hours', 'contact_maps_embed',
                 'social_facebook', 'social_instagram', 'social_pinterest', 'social_youtube',
-                // Alamat toko terstruktur — dipakai oleh kalkulator ongkir.
+            ],
+            // Alamat toko terstruktur + tarif ongkir per zona — dipakai oleh
+            // kalkulator ongkir. Disimpan di group sendiri agar dapat diakses
+            // dari halaman/admin terpisah.
+            'pengiriman' => [
+                // Alamat toko
                 'store_province_id', 'store_province_name',
                 'store_city_id', 'store_city_name',
                 'store_district_id', 'store_district_name',
                 'store_full_address',
+                // Tarif ongkir (override default ShippingCalculator)
+                'shipping_base_weight_kg',
+                'shipping_same_district_base_fee',    'shipping_same_district_extra_fee',
+                'shipping_same_city_base_fee',        'shipping_same_city_extra_fee',
+                'shipping_same_province_base_fee',    'shipping_same_province_extra_fee',
+                'shipping_outside_province_base_fee', 'shipping_outside_province_extra_fee',
             ],
             'footer'  => [
                 'footer_copyright', 'footer_newsletter_text', 'footer_topbar_promo',

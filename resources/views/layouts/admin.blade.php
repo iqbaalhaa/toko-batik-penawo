@@ -547,6 +547,12 @@
 							<div class="admin-user-dropdown-email">{{ $authUser['email'] ?? '' }}</div>
 						</div>
 
+						<a href="{{ route('admin.profil') }}" class="admin-user-dropdown-link">
+							<i class="fa fa-user-circle-o"></i> Profil Saya
+						</a>
+						<a href="{{ route('admin.cms', ['#tab-pengiriman']) }}" class="admin-user-dropdown-link">
+							<i class="fa fa-truck"></i> Alamat Toko (Ongkir)
+						</a>
 						<a href="{{ route('home') }}" target="_blank" class="admin-user-dropdown-link">
 							<i class="fa fa-external-link"></i> Lihat Toko
 						</a>
