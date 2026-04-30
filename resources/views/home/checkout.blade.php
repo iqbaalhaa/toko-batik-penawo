@@ -12,6 +12,29 @@
 	}
 	.checkout-card + .checkout-card { margin-top: 18px; }
 	.checkout-card-title { font-size: 16px; font-weight: 600; color: #2d2a26; margin: 0 0 16px; }
+
+	.store-block { padding: 14px 0; border-bottom: 1px dashed #ece8de; }
+	.store-block:last-child { border-bottom: 0; padding-bottom: 0; }
+	.store-block:first-child { padding-top: 0; }
+	.store-name { font-size: 13.5px; font-weight: 600; color: #2d2a26; display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+	.zone-tag {
+		display: inline-block; padding: 2px 8px; border-radius: 999px;
+		font-size: 11px; font-weight: 500; letter-spacing: .3px;
+	}
+	.zone-tag.same_district     { background:#edf7ef; color:#2f7a4c; } /* hijau — paling murah */
+	.zone-tag.same_city         { background:#fff4d6; color:#8a6b2b; } /* kuning */
+	.zone-tag.same_province     { background:#fde8d4; color:#a3621a; } /* oranye */
+	.zone-tag.outside_province  { background:#fbe4df; color:#a5432f; } /* merah — paling jauh */
+	.store-meta { font-size: 12px; color:#9a9288; margin-bottom: 8px; }
+	.store-shipping-row {
+		display:flex; justify-content:space-between; align-items:center;
+		font-size: 13px; padding: 4px 0; color:#4d4640;
+	}
+	.store-shipping-row strong { color:#2d2a26; }
+	.store-error {
+		background:#fbe4df; border:1px solid #f2c6be; color:#a5432f;
+		padding:8px 10px; border-radius:4px; font-size:12.5px; margin-top:6px;
+	}
 	.checkout-label { display: block; font-size: 13px; font-weight: 500; color: #4d4640; margin-bottom: 6px; }
 	.checkout-input, .checkout-textarea {
 		width: 100%;
@@ -115,14 +138,6 @@
 						<div class="checkout-card">
 							<h3 class="checkout-card-title"><i class="fa fa-map-marker m-r-6" style="color:#c29e5c;"></i> Alamat Pengiriman</h3>
 
-							@php
-								$prefillAddress = trim(implode(', ', array_filter([
-									$user?->address,
-									$user?->city,
-									$user?->province,
-									$user?->postal_code,
-								])));
-							@endphp
 							<div class="row">
 								<div class="col-md-6" style="margin-bottom:14px;">
 									<label class="checkout-label">Nama Penerima <span style="color:#a5432f;">*</span></label>
@@ -134,13 +149,23 @@
 								</div>
 							</div>
 							<div style="margin-bottom:14px;">
-								<label class="checkout-label">Alamat Lengkap <span style="color:#a5432f;">*</span></label>
-								<textarea name="shipping_address" class="checkout-textarea" placeholder="Jalan, nomor rumah, RT/RW, kelurahan, kecamatan, kota, provinsi, kode pos" required>{{ old('shipping_address', $prefillAddress) }}</textarea>
-								@if(! $prefillAddress)
-									<div style="font-size:11.5px; color:#9a9288; margin-top:4px;">
-										<i class="fa fa-info-circle"></i> Lengkapi alamat di <a href="{{ route('akun.profil') }}" style="color:#c29e5c;">profil Anda</a> agar otomatis terisi di checkout berikutnya.
-									</div>
-								@endif
+								<label class="checkout-label">Pilih Alamat Tersimpan <span style="color:#a5432f;">*</span></label>
+								<select name="address_id" id="checkoutAddressSelect" class="checkout-input" required
+									onchange="window.location = '{{ route('checkout.show') }}?address_id=' + encodeURIComponent(this.value);">
+									@foreach($addresses as $addr)
+										<option value="{{ $addr->id }}" @selected($selectedAddress->id === $addr->id)>
+											{{ $addr->label }}{{ $addr->is_default ? ' (Utama)' : '' }} — Kec. {{ $addr->district_name }}, {{ $addr->city_name }}
+										</option>
+									@endforeach
+								</select>
+								<div style="margin-top:10px; padding:12px 14px; background:#faf7ef; border:1px solid #ece8de; border-radius:4px; font-size:13px; color:#4d4640; line-height:1.6;">
+									<strong>{{ $selectedAddress->label }}</strong>{!! $selectedAddress->is_default ? ' <span style="background:#c29e5c;color:#fff;font-size:10px;padding:1px 7px;border-radius:999px;letter-spacing:.5px;">UTAMA</span>' : '' !!}<br>
+									{{ $selectedAddress->full_address }}<br>
+									<span style="color:#9a9288;">Kec. {{ $selectedAddress->district_name }}, {{ $selectedAddress->city_name }}, {{ $selectedAddress->province_name }}</span>
+								</div>
+								<div style="font-size:11.5px; color:#9a9288; margin-top:6px;">
+									<i class="fa fa-info-circle"></i> Kelola alamat tersimpan (maks {{ \App\Models\Address::MAX_PER_USER }}) di <a href="{{ route('akun.profil') }}" style="color:#c29e5c;">profil Anda</a>.
+								</div>
 							</div>
 							<div>
 								<label class="checkout-label">Catatan untuk Penjual <small style="color:#9a9288;">(opsional)</small></label>
@@ -164,41 +189,92 @@
 						</div>
 					</div>
 
-					<!-- Right: Ringkasan -->
+					<!-- Right: Ringkasan per toko + grand total -->
 					<div class="col-lg-5 p-b-30">
 						<div class="checkout-card" style="position:sticky; top:20px;">
 							<h3 class="checkout-card-title">Ringkasan Pesanan</h3>
 
-							<ul class="checkout-items">
-								@foreach($items as $item)
-								<li>
-									<img src="{{ $item['image_url'] }}" alt="{{ $item['name'] }}">
-									<div>
-										<div class="checkout-item-name">{{ $item['name'] }}</div>
-										@php $variantParts = array_filter([$item['size'] ?? null, $item['color'] ?? null]); @endphp
-										@if($variantParts)
-											<div style="font-size:11.5px; color:#9a9288; margin-top:1px;">{{ implode(' · ', $variantParts) }}</div>
-										@endif
-										<div class="checkout-item-qty">{{ $item['qty'] }} × {{ $rupiah($item['price']) }}</div>
-									</div>
-									<div class="checkout-item-sub">{{ $rupiah($item['subtotal']) }}</div>
-								</li>
-								@endforeach
-							</ul>
-
-							<div style="margin-top:14px;">
-								<div class="summary-row">
-									<span>Subtotal ({{ count($items) }} produk)</span>
-									<span>{{ $rupiah($subtotal) }}</span>
+							@if(! $summary['all_available'])
+								<div class="checkout-errors">
+									<strong>Pengiriman bermasalah:</strong>
+									<ul style="margin:6px 0 0 18px; padding:0;">
+										@foreach($summary['errors'] as $err)<li>{{ $err }}</li>@endforeach
+									</ul>
 								</div>
+							@endif
+
+							@foreach($summary['stores'] as $store)
+								@php $sh = $store['shipping']; @endphp
+								<div class="store-block">
+									<div class="store-name">
+										<i class="fa fa-shopping-bag" style="color:#c29e5c;"></i>
+										{{ $store['store_name'] }}
+										<span class="zone-tag {{ $sh['zone'] }}">{{ $sh['zone_label'] }}</span>
+									</div>
+									<div class="store-meta">
+										{{ count($store['items']) }} produk · Total berat {{ $sh['total_weight_kg'] }} kg
+									</div>
+
+									<ul class="checkout-items">
+										@foreach($store['items'] as $item)
+										<li>
+											@if(! empty($item['image_url']))<img src="{{ $item['image_url'] }}" alt="{{ $item['name'] }}">@endif
+											<div>
+												<div class="checkout-item-name">{{ $item['name'] }}</div>
+												@php $variantParts = array_filter([$item['size'] ?? null, $item['color'] ?? null]); @endphp
+												@if($variantParts)
+													<div style="font-size:11.5px; color:#9a9288; margin-top:1px;">{{ implode(' · ', $variantParts) }}</div>
+												@endif
+												<div class="checkout-item-qty">{{ $item['qty'] }} × {{ $rupiah($item['unit_price']) }} · {{ $item['weight_kg'] }} kg/pcs</div>
+											</div>
+											<div class="checkout-item-sub">{{ $rupiah($item['subtotal']) }}</div>
+										</li>
+										@endforeach
+									</ul>
+
+									<div class="store-shipping-row">
+										<span>Subtotal toko</span>
+										<strong>{{ $rupiah($store['subtotal']) }}</strong>
+									</div>
+									<div class="store-shipping-row">
+										<span>
+											Ongkir
+											@if($sh['available'])
+												<small style="color:#9a9288;">({{ $rupiah($sh['base_fee']) }} dasar {{ $sh['base_weight_kg'] }} kg + {{ $rupiah($sh['extra_fee_per_kg']) }}/kg)</small>
+											@endif
+										</span>
+										<strong>{{ $sh['available'] ? $rupiah($sh['shipping_cost']) : '—' }}</strong>
+									</div>
+									@if(! $sh['available'])
+										<div class="store-error"><i class="fa fa-exclamation-circle"></i> {{ $sh['message'] }}</div>
+									@endif
+								</div>
+							@endforeach
+
+							<div style="margin-top:14px; padding-top:12px; border-top:1px solid #ece8de;">
+								<div class="summary-row">
+									<span>Subtotal Produk</span>
+									<span>{{ $rupiah($summary['subtotal_products']) }}</span>
+								</div>
+								<div class="summary-row">
+									<span>Total Ongkir</span>
+									<span>{{ $rupiah($summary['shipping_total']) }}</span>
+								</div>
+								@if($summary['voucher_discount'] > 0)
+								<div class="summary-row">
+									<span>Diskon Voucher</span>
+									<span style="color:#2f7a4c;">- {{ $rupiah($summary['voucher_discount']) }}</span>
+								</div>
+								@endif
 								<div class="summary-row total">
 									<span>Total Bayar</span>
-									<span>{{ $rupiah($total) }}</span>
+									<span>{{ $rupiah($summary['grand_total']) }}</span>
 								</div>
 							</div>
 
-							<button type="submit" class="checkout-btn-pay" id="btnBayar">
-								<i class="fa fa-lock m-r-6"></i> Bayar Sekarang
+							<button type="submit" class="checkout-btn-pay" id="btnBayar" @disabled(! $summary['all_available'])>
+								<i class="fa fa-lock m-r-6"></i>
+								{{ $summary['all_available'] ? 'Bayar Sekarang' : 'Tidak Dapat Dikirim' }}
 							</button>
 
 							<div id="checkoutError" class="checkout-errors" style="display:none; margin-top:12px;"></div>

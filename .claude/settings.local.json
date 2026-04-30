@@ -153,7 +153,20 @@
       "Bash(php -l resources/views/admin/pesanan.blade.php)",
       "Bash(php -l resources/views/admin/_struk.blade.php)",
       "Bash(php -l resources/views/admin/pesanan-cetak-massal.blade.php)",
-      "Bash(php -l resources/views/partials/confirm-modal.blade.php)"
+      "Bash(php -l resources/views/partials/confirm-modal.blade.php)",
+      "Bash(awk 'NR==256,NR==267' f:/Project/toko-batik-penawo/resources/views/admin/produk.blade.php)",
+      "Bash(awk 'NR==257' f:/Project/toko-batik-penawo/resources/views/admin/produk.blade.php)",
+      "Bash(xxd)",
+      "Bash(php -l app/Services/ShippingCalculator.php)",
+      "Bash(php -l app/Services/CheckoutShippingService.php)",
+      "Bash(php -l app/Models/Product.php)",
+      "Bash(php -l app/Models/Order.php)",
+      "Bash(php _gen_wilayah_seeders.php)",
+      "Bash(php -l database/seeders/ProvinceSeeder.php)",
+      "Bash(php -l database/seeders/RegencySeeder.php)",
+      "Bash(php -l database/seeders/DistrictSeeder.php)",
+      "Bash(awk 'NR>=195 && NR<=212' f:/Project/toko-batik-penawo/resources/views/home/akun/profil.blade.php)",
+      "Bash(php -l app/Models/Address.php)"
     ]
   }
 }

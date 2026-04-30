@@ -157,30 +157,6 @@
 						</div>
 
 						<div class="akun-card">
-							<h3 class="akun-card-title">Alamat Pengiriman</h3>
-							<p class="akun-card-sub">Alamat ini akan otomatis terisi saat checkout.</p>
-
-							<div class="row">
-								<div class="col-md-12" style="margin-bottom:14px;">
-									<label class="akun-label">Alamat Lengkap</label>
-									<textarea name="address" class="akun-input" rows="3" placeholder="Jalan, nomor rumah, RT/RW, kelurahan, kecamatan">{{ old('address', $user->address) }}</textarea>
-								</div>
-								<div class="col-md-6" style="margin-bottom:14px;">
-									<label class="akun-label">Kota / Kabupaten</label>
-									<input type="text" name="city" class="akun-input" placeholder="Mis. Kerinci" value="{{ old('city', $user->city) }}">
-								</div>
-								<div class="col-md-4" style="margin-bottom:14px;">
-									<label class="akun-label">Provinsi</label>
-									<input type="text" name="province" class="akun-input" placeholder="Mis. Jambi" value="{{ old('province', $user->province) }}">
-								</div>
-								<div class="col-md-2" style="margin-bottom:14px;">
-									<label class="akun-label">Kode Pos</label>
-									<input type="text" name="postal_code" class="akun-input" placeholder="37173" maxlength="10" value="{{ old('postal_code', $user->postal_code) }}">
-								</div>
-							</div>
-						</div>
-
-						<div class="akun-card">
 							<h3 class="akun-card-title">Detail Tambahan</h3>
 							<p class="akun-card-sub">Opsional — bantu kami menyajikan rekomendasi yang lebih sesuai.</p>
 
@@ -224,8 +200,177 @@
 							</div>
 						</div>
 					</form>
+
+					{{-- ======================== Daftar Alamat (max 3) ======================== --}}
+					<div class="akun-card" style="margin-top:18px;">
+						<div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+							<div>
+								<h3 class="akun-card-title">Alamat Pengiriman</h3>
+								<p class="akun-card-sub" style="margin-bottom:0;">
+									Maksimal {{ \App\Models\Address::MAX_PER_USER }} alamat. Alamat utama dipakai sebagai pilihan default saat checkout.
+									<span style="color:#c29e5c; font-weight:500;">{{ $addresses->count() }}/{{ \App\Models\Address::MAX_PER_USER }} tersimpan.</span>
+								</p>
+							</div>
+							<button type="button" class="akun-btn"
+								@if($addresses->count() >= \App\Models\Address::MAX_PER_USER) disabled title="Sudah mencapai batas maksimal" @endif
+								onclick="openAlamatModal()">
+								<i class="fa fa-plus m-r-6"></i> Tambah Alamat
+							</button>
+						</div>
+
+						@if($addresses->isEmpty())
+							<div style="padding:24px; text-align:center; background:#faf7ef; border-radius:6px; margin-top:14px; color:#9a9288; font-size:13px;">
+								<i class="fa fa-map-marker" style="font-size:24px; color:#d8d1bf; display:block; margin-bottom:8px;"></i>
+								Belum ada alamat tersimpan. Tambahkan minimal satu alamat agar dapat checkout.
+							</div>
+						@else
+							<div style="margin-top:14px; display:grid; gap:12px;">
+								@foreach($addresses as $addr)
+								<div style="border:1px solid {{ $addr->is_default ? '#c29e5c' : '#ece8de' }}; border-radius:6px; padding:14px 16px; {{ $addr->is_default ? 'background:#faf6ed;' : '' }}">
+									<div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+										<div style="flex:1; min-width:0;">
+											<div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+												<strong style="font-size:14px; color:#2d2a26;">{{ $addr->label }}</strong>
+												@if($addr->is_default)
+													<span style="background:#c29e5c; color:#fff; font-size:10.5px; padding:2px 8px; border-radius:999px; letter-spacing:.5px; font-weight:500;">UTAMA</span>
+												@endif
+											</div>
+											<div style="font-size:13px; color:#4d4640; line-height:1.6;">
+												{{ $addr->full_address }}<br>
+												<span style="color:#9a9288;">Kec. {{ $addr->district_name }}, {{ $addr->city_name }}, {{ $addr->province_name }}</span>
+											</div>
+										</div>
+										<div style="display:flex; gap:6px; flex-shrink:0;">
+											@if(! $addr->is_default)
+												<form method="POST" action="{{ route('akun.alamat.default', $addr->id) }}" style="display:inline;">
+													@csrf @method('PATCH')
+													<button type="submit" class="akun-btn" style="background:#fff; color:#c29e5c; border:1px solid #c29e5c; padding:6px 12px; font-size:12px;" title="Jadikan alamat utama"><i class="fa fa-star-o"></i></button>
+												</form>
+											@endif
+											<button type="button" class="akun-btn" style="background:#fff; color:#4d4640; border:1px solid #e0dbcf; padding:6px 12px; font-size:12px;"
+												onclick='openAlamatModal(@json($addr))' title="Edit"><i class="fa fa-pencil"></i></button>
+											<form method="POST" action="{{ route('akun.alamat.destroy', $addr->id) }}" style="display:inline;"
+												data-confirm-title="Hapus alamat?"
+												data-confirm-message='Alamat "{{ $addr->label }}" akan dihapus.'
+												data-confirm-ok="Hapus">
+												@csrf @method('DELETE')
+												<button type="submit" class="akun-btn" style="background:#fff; color:#a5432f; border:1px solid #f2c6be; padding:6px 12px; font-size:12px;" title="Hapus"><i class="fa fa-trash-o"></i></button>
+											</form>
+										</div>
+									</div>
+								</div>
+								@endforeach
+							</div>
+						@endif
+					</div>
+
+					{{-- Modal tambah/edit alamat: outer = fullscreen scroll container, --}}
+					{{-- middle wrapper = flex (min-height:100%) menjamin card scrollable saat tinggi > viewport. --}}
+					<div id="alamatModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:1050; overflow-y:auto; -webkit-overflow-scrolling:touch;" onclick="if(event.target===this) closeAlamatModal();">
+						{{-- min-height:100% + flex-column + margin:auto pada card → center vertikal saat muat, --}}
+						{{-- otomatis menempel ke top saat lebih tinggi dari viewport (sehingga scroll tetap bekerja). --}}
+						<div style="min-height:100%; display:flex; flex-direction:column; padding:40px 16px; box-sizing:border-box;">
+							<div style="margin:auto; background:#fff; border-radius:6px; max-width:640px; width:100%; padding:24px 26px; box-shadow:0 8px 30px rgba(0,0,0,.2);" onclick="event.stopPropagation();">
+							<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;">
+								<h3 id="alamatModalTitle" class="akun-card-title" style="margin:0;">Tambah Alamat</h3>
+								<button type="button" onclick="closeAlamatModal()" style="background:none; border:0; font-size:18px; color:#9a9288; cursor:pointer;">&times;</button>
+							</div>
+							<form id="alamatForm" method="POST" action="">
+								@csrf
+								<input type="hidden" name="_method" id="alamatMethod" value="POST">
+
+								<div class="row" data-wilayah-form id="alamatWilayah" data-init-province="" data-init-city="" data-init-district="">
+									<div class="col-md-6" style="margin-bottom:14px;">
+										<label class="akun-label">Label Alamat <span style="color:#a5432f;">*</span></label>
+										<input type="text" name="label" id="al_label" class="akun-input" placeholder="Mis. Rumah, Kantor" maxlength="30" required>
+									</div>
+									<div class="col-md-6" style="margin-bottom:14px; display:flex; align-items:flex-end;">
+										<label style="display:flex; align-items:center; gap:8px; font-size:13px; color:#4d4640; cursor:pointer;">
+											<input type="checkbox" name="is_default" id="al_is_default" value="1">
+											Jadikan alamat utama
+										</label>
+									</div>
+									<div class="col-md-4" style="margin-bottom:14px;">
+										<label class="akun-label">Provinsi <span style="color:#a5432f;">*</span></label>
+										<select name="province_id" class="akun-input" data-role="province" required>
+											<option value="">— Pilih provinsi —</option>
+										</select>
+									</div>
+									<div class="col-md-4" style="margin-bottom:14px;">
+										<label class="akun-label">Kota / Kabupaten <span style="color:#a5432f;">*</span></label>
+										<select name="city_id" class="akun-input" data-role="regency" required disabled>
+											<option value="">— Pilih kota/kabupaten —</option>
+										</select>
+									</div>
+									<div class="col-md-4" style="margin-bottom:14px;">
+										<label class="akun-label">Kecamatan <span style="color:#a5432f;">*</span></label>
+										<select name="district_id" class="akun-input" data-role="district" required disabled>
+											<option value="">— Pilih kecamatan —</option>
+										</select>
+									</div>
+									<div class="col-md-12" style="margin-bottom:14px;">
+										<label class="akun-label">Alamat Lengkap (jalan, no rumah, RT/RW, kelurahan) <span style="color:#a5432f;">*</span></label>
+										<textarea name="full_address" id="al_full_address" class="akun-input" rows="3" required></textarea>
+									</div>
+									<input type="hidden" name="province_name" data-role="province_name">
+									<input type="hidden" name="city_name"     data-role="city_name">
+									<input type="hidden" name="district_name" data-role="district_name">
+								</div>
+
+								<div style="display:flex; justify-content:flex-end; gap:8px; padding-top:12px; border-top:1px solid #f2efe7;">
+									<button type="button" onclick="closeAlamatModal()" class="akun-btn" style="background:#fff; color:#4d4640; border:1px solid #e0dbcf;">Batal</button>
+									<button type="submit" class="akun-btn"><i class="fa fa-floppy-o m-r-6"></i> Simpan</button>
+								</div>
+							</form>
+							</div>
+						</div>
+					</div>
+
+					<script>
+					(function () {
+						window.openAlamatModal = function (addr) {
+							var modal = document.getElementById('alamatModal');
+							var form  = document.getElementById('alamatForm');
+							var wil   = document.getElementById('alamatWilayah');
+							var isEdit = !!(addr && addr.id);
+
+							document.getElementById('alamatModalTitle').textContent = isEdit ? 'Edit Alamat' : 'Tambah Alamat';
+							document.getElementById('alamatMethod').value = isEdit ? 'PUT' : 'POST';
+							form.action = isEdit
+								? '{{ url('/akun/alamat') }}/' + addr.id
+								: '{{ route('akun.alamat.store') }}';
+
+							document.getElementById('al_label').value         = isEdit ? (addr.label || '') : '';
+							document.getElementById('al_full_address').value  = isEdit ? (addr.full_address || '') : '';
+							document.getElementById('al_is_default').checked  = isEdit ? !!addr.is_default : false;
+
+							wil.dataset.initProvince = isEdit ? (addr.province_id || '') : '';
+							wil.dataset.initCity     = isEdit ? (addr.city_id || '')     : '';
+							wil.dataset.initDistrict = isEdit ? (addr.district_id || '') : '';
+							document.dispatchEvent(new CustomEvent('wilayah:reinit'));
+
+							modal.style.display = 'block';
+							modal.scrollTop = 0;
+							// Tidak mengunci body overflow — outer modal sendiri yang scrollable.
+							// Backdrop fixed inset:0 sudah menutupi page secara visual.
+						};
+						window.closeAlamatModal = function () {
+							document.getElementById('alamatModal').style.display = 'none';
+						};
+						// ESC to close
+						document.addEventListener('keydown', function (e) {
+							if (e.key === 'Escape' && document.getElementById('alamatModal').style.display === 'block') {
+								closeAlamatModal();
+							}
+						});
+					})();
+					</script>
 				</main>
 			</div>
 		</div>
 	</section>
+
+	@push('scripts')
+		@include('partials._wilayah_cascade')
+	@endpush
 @endsection

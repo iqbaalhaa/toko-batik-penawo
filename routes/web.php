@@ -146,31 +146,54 @@ Route::get('/checkout', function () {
 
     $slugs = collect($keys)->map(fn ($k) => $cart[$k]['slug'] ?? null)->filter()->unique()->values()->all();
     $products = Product::whereIn('slug', $slugs)->get()->keyBy('slug');
-    $items = [];
-    $subtotal = 0;
+
+    // Bangun "lines" yang akan dikonsumsi CheckoutShippingService.
+    $lines = [];
     foreach ($keys as $k) {
         $row = $cart[$k] ?? null;
         $p = $row ? ($products[$row['slug']] ?? null) : null;
         if (! $p) continue;
-        $qty = (int) $row['qty'];
-        $items[] = [
-            'cart_key'  => $k,
-            'slug'      => $p->slug,
-            'name'      => $p->name,
-            'qty'       => $qty,
-            'price'     => (int) $p->price,
-            'size'      => $row['size'] ?? null,
-            'color'     => $row['color'] ?? null,
-            'image_url' => $p->image_url,
-            'subtotal'  => $p->price * $qty,
+        $lines[] = [
+            'cart_key'   => $k,
+            'product'    => $p,
+            'qty'        => (int) $row['qty'],
+            'unit_price' => (int) $p->price,
+            'name'       => $p->name,
+            'size'       => $row['size']  ?? null,
+            'color'      => $row['color'] ?? null,
+            'image_url'  => $p->image_url,
         ];
-        $subtotal += $p->price * $qty;
     }
 
-    $total = $subtotal;
-    $user  = User::find($authUser['id'] ?? null);
+    $user            = User::find($authUser['id'] ?? null);
+    $addresses       = $user ? $user->addresses : collect();
 
-    return view('home.checkout', compact('items', 'subtotal', 'total', 'user'));
+    // Pelanggan wajib punya minimal 1 alamat tersimpan untuk checkout.
+    if ($addresses->isEmpty()) {
+        return redirect()->route('akun.profil')
+            ->withErrors(['alamat' => 'Tambahkan dulu alamat pengiriman di profil sebelum checkout.']);
+    }
+
+    // Pilih alamat: dari ?address_id (kembalian POST gagal) → atau default → atau yg pertama.
+    $selectedAddressId = (int) request()->query('address_id', 0);
+    $selectedAddress   = $addresses->firstWhere('id', $selectedAddressId)
+        ?? $user->defaultAddress()
+        ?? $addresses->first();
+
+    $voucherDiscount = (int) (session('voucher_discount') ?? 0);
+    $shippingSvc     = new \App\Services\CheckoutShippingService();
+    $summary         = $shippingSvc->summary(
+        $lines,
+        $selectedAddress->toShippingPayload(),
+        $voucherDiscount,
+    );
+
+    return view('home.checkout', [
+        'summary'           => $summary,
+        'user'              => $user,
+        'addresses'         => $addresses,
+        'selectedAddress'   => $selectedAddress,
+    ]);
 })->name('checkout.show');
 
 // Step 3: konfirmasi — buat Order + OrderItems, bersihkan cart/pending, redirect ke halaman sukses
@@ -181,11 +204,20 @@ Route::post('/checkout/confirm', function (Request $request) {
     }
 
     $data = $request->validate([
-        'recipient_name'   => 'required|string|max:100',
-        'recipient_phone'  => 'required|string|max:25',
-        'shipping_address' => 'required|string|max:500',
-        'note'             => 'nullable|string|max:300',
+        'recipient_name'  => 'required|string|max:100',
+        'recipient_phone' => 'required|string|max:25',
+        // Pelanggan harus memilih salah satu alamat tersimpan miliknya sendiri.
+        'address_id'      => 'required|integer|exists:addresses,id',
+        'note'            => 'nullable|string|max:300',
     ]);
+
+    $address = \App\Models\Address::where('id', $data['address_id'])
+        ->where('user_id', $authUser['id'])
+        ->first();
+    if (! $address) {
+        return redirect()->route('checkout.show')
+            ->withErrors(['address_id' => 'Alamat yang dipilih tidak ditemukan.']);
+    }
 
     $pending = session('checkout_pending', []);
     $cart = session('cart', []);
@@ -196,13 +228,25 @@ Route::post('/checkout/confirm', function (Request $request) {
 
     $slugs = collect($keys)->map(fn ($k) => $cart[$k]['slug'] ?? null)->filter()->unique()->values()->all();
     $products = Product::whereIn('slug', $slugs)->get()->keyBy('slug');
+
+    // Susun lines + items pesanan sekaligus.
+    $lines = [];
     $items = [];
-    $subtotal = 0;
     foreach ($keys as $k) {
         $row = $cart[$k] ?? null;
         $p = $row ? ($products[$row['slug']] ?? null) : null;
         if (! $p) continue;
         $qty = (int) $row['qty'];
+        $lines[] = [
+            'cart_key'   => $k,
+            'product'    => $p,
+            'qty'        => $qty,
+            'unit_price' => (int) $p->price,
+            'name'       => $p->name,
+            'size'       => $row['size']  ?? null,
+            'color'      => $row['color'] ?? null,
+            'image_url'  => $p->image_url,
+        ];
         $items[] = [
             'product_id'   => $p->id,
             'product_name' => $p->name,
@@ -211,12 +255,24 @@ Route::post('/checkout/confirm', function (Request $request) {
             'qty'          => $qty,
             'price'        => (int) $p->price,
         ];
-        $subtotal += $p->price * $qty;
     }
 
-    $total = $subtotal;
+    $user            = User::find($authUser['id'] ?? null);
+    $voucherDiscount = (int) (session('voucher_discount') ?? 0);
+    $shippingSvc     = new \App\Services\CheckoutShippingService();
+    $summary         = $shippingSvc->summary($lines, $address->toShippingPayload(), $voucherDiscount);
 
-    $user = User::find($authUser['id'] ?? null);
+    // Blok checkout jika ada toko outside zone / produk tanpa berat.
+    if (! $summary['all_available']) {
+        $message = 'Checkout tidak dapat dilanjutkan: ' . implode(' | ', $summary['errors']);
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json(['error' => $message], 422);
+        }
+        return redirect()->route('checkout.show', ['address_id' => $address->id])->withErrors(['shipping' => $message]);
+    }
+
+    $subtotal = $summary['subtotal_products'];
+    $total    = $summary['grand_total'];
     $invoice = 'INV-' . now()->format('Ymd') . '-' . str_pad((string) (\App\Models\Order::count() + 1), 4, '0', STR_PAD_LEFT);
 
     $noteParts = array_filter([
@@ -225,14 +281,28 @@ Route::post('/checkout/confirm', function (Request $request) {
     ]);
 
     $order = \App\Models\Order::create([
-        'invoice_number'   => $invoice,
-        'user_id'          => $user?->id,
-        'customer_name'    => $authUser['name'],
-        'customer_email'   => $authUser['email'],
-        'total'            => $total,
+        'invoice_number'    => $invoice,
+        'user_id'           => $user?->id,
+        'customer_name'     => $authUser['name'],
+        'customer_email'    => $authUser['email'],
+        'total'             => $total,
+        'subtotal_products' => $summary['subtotal_products'],
+        'shipping_total'    => $summary['shipping_total'],
+        'voucher_discount'  => $summary['voucher_discount'],
+        // Snapshot per-toko: zona, ongkir, berat — sumber kebenaran untuk laporan.
+        'shipping_breakdown' => array_map(function ($s) {
+            return [
+                'store_id'        => $s['store_id'],
+                'store_name'      => $s['store_name'],
+                'total_weight_kg' => $s['shipping']['total_weight_kg'],
+                'zone'            => $s['shipping']['zone'],
+                'zone_label'      => $s['shipping']['zone_label'],
+                'shipping_cost'   => $s['shipping']['shipping_cost'],
+            ];
+        }, $summary['stores']),
         'payment_method'   => 'Midtrans',
         'status'           => 'menunggu_bayar',
-        'shipping_address' => $data['shipping_address'],
+        'shipping_address' => $address->toFormattedText(),
         'note'             => implode(' · ', $noteParts),
     ]);
 
@@ -269,6 +339,25 @@ Route::post('/checkout/confirm', function (Request $request) {
                 'name'     => \Illuminate\Support\Str::limit($it['product_name'] . $variantSuffix, 50, ''),
             ];
         }
+        // Tambahkan baris ongkir per toko supaya gross_amount cocok dengan item_details.
+        foreach ($summary['stores'] as $s) {
+            if (($s['shipping']['shipping_cost'] ?? 0) <= 0) continue;
+            $itemDetails[] = [
+                'id'       => 'SHIP-' . $s['store_id'],
+                'price'    => (int) $s['shipping']['shipping_cost'],
+                'quantity' => 1,
+                'name'     => \Illuminate\Support\Str::limit('Ongkir ' . $s['store_name'] . ' (' . $s['shipping']['zone_label'] . ')', 50, ''),
+            ];
+        }
+        // Voucher dimasukkan sebagai line negatif jika ada.
+        if (($summary['voucher_discount'] ?? 0) > 0) {
+            $itemDetails[] = [
+                'id'       => 'VOUCHER',
+                'price'    => -1 * (int) $summary['voucher_discount'],
+                'quantity' => 1,
+                'name'     => 'Diskon Voucher',
+            ];
+        }
 
         [$firstName, $lastName] = array_pad(explode(' ', trim($data['recipient_name']), 2), 2, '');
 
@@ -287,7 +376,7 @@ Route::post('/checkout/confirm', function (Request $request) {
                     'first_name' => $firstName ?: $authUser['name'],
                     'last_name'  => $lastName,
                     'phone'      => $data['recipient_phone'],
-                    'address'    => \Illuminate\Support\Str::limit($data['shipping_address'], 200, ''),
+                    'address'    => \Illuminate\Support\Str::limit($address->toFormattedText(), 200, ''),
                 ],
             ],
             'callbacks' => [
@@ -522,6 +611,40 @@ Route::get('/pesanan/{invoice}', function (string $invoice) {
 Route::get('/tentang', fn () => view('home.tentang'))->name('tentang');
 Route::get('/kontak', fn () => view('home.kontak'))->name('kontak');
 
+// Endpoint wilayah untuk dropdown cascading di form alamat (publik, read-only).
+// Mengembalikan {id, code, name} sehingga JS dapat menyetel hidden field nama
+// dari `data-name` atau langsung dari label option.
+Route::prefix('api/wilayah')->name('api.wilayah.')->group(function () {
+    Route::get('/provinces', fn () => response()->json(
+        \Illuminate\Support\Facades\DB::table('provinces')
+            ->select('id', 'code', 'name')->orderBy('name')->get()
+    ))->name('provinces');
+
+    Route::get('/regencies', function (Request $request) {
+        $provinceId = (string) $request->query('province_id', '');
+        if ($provinceId === '') {
+            return response()->json([]);
+        }
+        return response()->json(
+            \Illuminate\Support\Facades\DB::table('regencies')
+                ->where('province_id', $provinceId)
+                ->select('id', 'code', 'name')->orderBy('name')->get()
+        );
+    })->name('regencies');
+
+    Route::get('/districts', function (Request $request) {
+        $regencyId = (string) $request->query('regency_id', '');
+        if ($regencyId === '') {
+            return response()->json([]);
+        }
+        return response()->json(
+            \Illuminate\Support\Facades\DB::table('districts')
+                ->where('regency_id', $regencyId)
+                ->select('id', 'code', 'name')->orderBy('name')->get()
+        );
+    })->name('districts');
+});
+
 // Auth — session-based against users table
 Route::get('/login', function () {
     $authUser = session('auth_user');
@@ -601,8 +724,9 @@ Route::prefix('akun')->name('akun.')->group(function () {
         if (! $authUser) {
             return redirect()->route('login')->withErrors(['email' => 'Silakan masuk untuk mengakses profil.']);
         }
-        $user = User::findOrFail($authUser['id']);
-        return view('home.akun.profil', compact('user'));
+        $user      = User::findOrFail($authUser['id']);
+        $addresses = $user->addresses;
+        return view('home.akun.profil', compact('user', 'addresses'));
     })->name('profil');
 
     Route::post('/profil', function (Request $request) {
@@ -612,14 +736,12 @@ Route::prefix('akun')->name('akun.')->group(function () {
         }
         $user = User::findOrFail($authUser['id']);
 
+        // Alamat pengiriman dipindah ke tabel `addresses` — di sini kita hanya
+        // mengelola data pribadi & opsi password.
         $data = $request->validate([
             'name'             => 'required|string|min:2|max:60',
             'email'            => 'required|email|unique:users,email,' . $user->id,
             'phone'            => 'nullable|string|max:25',
-            'address'          => 'nullable|string|max:500',
-            'city'             => 'nullable|string|max:80',
-            'province'         => 'nullable|string|max:80',
-            'postal_code'      => 'nullable|string|max:10',
             'birth_date'       => 'nullable|date|before:today',
             'gender'           => 'nullable|in:pria,wanita',
             'current_password' => 'nullable|string',
@@ -629,10 +751,6 @@ Route::prefix('akun')->name('akun.')->group(function () {
         $user->name        = $data['name'];
         $user->email       = $data['email'];
         $user->phone       = $data['phone']       ?? null;
-        $user->address     = $data['address']     ?? null;
-        $user->city        = $data['city']        ?? null;
-        $user->province    = $data['province']    ?? null;
-        $user->postal_code = $data['postal_code'] ?? null;
         $user->birth_date  = $data['birth_date']  ?? null;
         $user->gender      = $data['gender']      ?? null;
 
@@ -669,6 +787,107 @@ Route::prefix('akun')->name('akun.')->group(function () {
             ->paginate(10);
         return view('home.akun.pesanan', compact('orders'));
     })->name('pesanan');
+
+    // ---- Alamat pengiriman: maks 3 per pelanggan ----
+    $addressRules = function (): array {
+        return [
+            'label'         => 'required|string|max:30',
+            'province_id'   => 'required|string|max:30|exists:provinces,id',
+            'province_name' => 'required|string|max:80',
+            'city_id'       => 'required|string|max:30|exists:regencies,id',
+            'city_name'     => 'required|string|max:80',
+            'district_id'   => 'required|string|max:30|exists:districts,id',
+            'district_name' => 'required|string|max:80',
+            'full_address'  => 'required|string|max:500',
+            'is_default'    => 'nullable|boolean',
+        ];
+    };
+
+    // Helper: pastikan alamat target memang milik user yang sedang login.
+    $loadAuthAddress = function (int $id) {
+        $authUser = session('auth_user');
+        if (! $authUser) abort(403);
+        $address = \App\Models\Address::where('id', $id)->where('user_id', $authUser['id'])->first();
+        if (! $address) abort(404);
+        return $address;
+    };
+
+    Route::post('/alamat', function (Request $request) use ($addressRules) {
+        $authUser = session('auth_user');
+        if (! $authUser) {
+            return redirect()->route('login')->withErrors(['email' => 'Silakan masuk untuk menambah alamat.']);
+        }
+
+        // Cap 3 alamat per pelanggan.
+        $count = \App\Models\Address::where('user_id', $authUser['id'])->count();
+        if ($count >= \App\Models\Address::MAX_PER_USER) {
+            return redirect()->route('akun.profil')
+                ->withErrors(['alamat' => 'Maksimal ' . \App\Models\Address::MAX_PER_USER . ' alamat tersimpan. Hapus salah satu untuk menambah.']);
+        }
+
+        $data = $request->validate($addressRules());
+        $data['user_id']    = $authUser['id'];
+        $data['is_default'] = (bool) ($data['is_default'] ?? false);
+
+        // Pertama kali tambah → otomatis jadi default.
+        if ($count === 0) {
+            $data['is_default'] = true;
+        }
+
+        \Illuminate\Support\Facades\DB::transaction(function () use (&$data, $authUser) {
+            if ($data['is_default']) {
+                \App\Models\Address::where('user_id', $authUser['id'])->update(['is_default' => false]);
+            }
+            \App\Models\Address::create($data);
+        });
+
+        return redirect()->route('akun.profil')->with('status', 'Alamat baru berhasil ditambahkan.');
+    })->name('alamat.store');
+
+    Route::put('/alamat/{address}', function (Request $request, int $address) use ($addressRules, $loadAuthAddress) {
+        $model   = $loadAuthAddress($address);
+        $data    = $request->validate($addressRules());
+        $data['is_default'] = (bool) ($data['is_default'] ?? false);
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($model, $data) {
+            if ($data['is_default']) {
+                \App\Models\Address::where('user_id', $model->user_id)
+                    ->where('id', '!=', $model->id)
+                    ->update(['is_default' => false]);
+            }
+            $model->update($data);
+        });
+
+        return redirect()->route('akun.profil')->with('status', 'Alamat berhasil diperbarui.');
+    })->name('alamat.update');
+
+    Route::delete('/alamat/{address}', function (int $address) use ($loadAuthAddress) {
+        $model    = $loadAuthAddress($address);
+        $wasDefault = $model->is_default;
+        $userId   = $model->user_id;
+        $model->delete();
+
+        // Jika yang dihapus adalah default, promosikan alamat lain (yang paling lama) jadi default.
+        if ($wasDefault) {
+            $next = \App\Models\Address::where('user_id', $userId)->oldest()->first();
+            if ($next) {
+                $next->update(['is_default' => true]);
+            }
+        }
+
+        return redirect()->route('akun.profil')->with('status', 'Alamat dihapus.');
+    })->name('alamat.destroy');
+
+    Route::patch('/alamat/{address}/default', function (int $address) use ($loadAuthAddress) {
+        $model = $loadAuthAddress($address);
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($model) {
+            \App\Models\Address::where('user_id', $model->user_id)->update(['is_default' => false]);
+            $model->update(['is_default' => true]);
+        });
+
+        return redirect()->route('akun.profil')->with('status', 'Alamat utama diperbarui.');
+    })->name('alamat.default');
 });
 
 // Admin dashboard — admin only (guarded by EnsureAdmin middleware)
@@ -739,6 +958,8 @@ Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
             'stock_min'   => 'nullable|integer|min:0',
             'description' => 'required|string',
             'weight'      => 'nullable|string|max:50',
+            // Berat numerik (kg) wajib > 0 — dipakai kalkulator ongkir.
+            'weight_kg'   => 'required|numeric|min:0.01|max:9999.99',
             'material'    => 'nullable|string|max:100',
             'colors'      => 'nullable|string',
             'sizes'       => 'nullable|string',
@@ -1073,6 +1294,11 @@ Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
                 'store_name', 'contact_email', 'contact_phone', 'contact_address',
                 'contact_hours', 'contact_maps_embed',
                 'social_facebook', 'social_instagram', 'social_pinterest', 'social_youtube',
+                // Alamat toko terstruktur — dipakai oleh kalkulator ongkir.
+                'store_province_id', 'store_province_name',
+                'store_city_id', 'store_city_name',
+                'store_district_id', 'store_district_name',
+                'store_full_address',
             ],
             'footer'  => [
                 'footer_copyright', 'footer_newsletter_text', 'footer_topbar_promo',

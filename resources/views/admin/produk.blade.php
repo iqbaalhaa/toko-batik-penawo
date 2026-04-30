@@ -120,6 +120,7 @@
 								data-stock-min="{{ $p->stock_min }}"
 								data-description="{{ $p->description }}"
 								data-weight="{{ $p->weight }}"
+								data-weight-kg="{{ $p->weight_kg }}"
 								data-material="{{ $p->material }}"
 								data-colors="{{ implode(', ', $p->colors ?? []) }}"
 								data-sizes="{{ implode(', ', $p->sizes ?? []) }}"
@@ -254,8 +255,14 @@
 									</div>
 									<div class="col-md-6">
 										<div style="margin-bottom:14px;">
-											<label class="form-label-admin">Berat</label>
+											<label class="form-label-admin">Berat (display)</label>
 											<input type="text" class="form-control-admin" name="weight" id="f_weight" placeholder="0,3 kg" value="{{ old('weight') }}">
+										</div>
+									</div>
+									<div class="col-md-6">
+										<div style="margin-bottom:14px;">
+											<label class="form-label-admin">Berat Pengiriman (kg) <span style="color:#a5432f;">*</span> <small style="color:#9a9288;">untuk ongkir</small></label>
+											<input type="number" step="0.01" min="0.01" class="form-control-admin" name="weight_kg" id="f_weight_kg" placeholder="0.30" value="{{ old('weight_kg') }}">
 										</div>
 									</div>
 									<div class="col-md-6">
@@ -661,6 +668,7 @@ $(function() {
 		$('#f_stock_min').val(d.stockMin);
 		$('#f_description').val(d.description);
 		$('#f_weight').val(d.weight);
+		$('#f_weight_kg').val(d.weightKg);
 		$('#f_material').val(d.material);
 		$('#f_colors').val(d.colors);
 		resetSizes(d.sizes);

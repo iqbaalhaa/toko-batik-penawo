@@ -31,11 +31,58 @@ class User extends Authenticatable
         'postal_code',
         'birth_date',
         'gender',
+        // Wilayah administratif (untuk perhitungan ongkir)
+        'province_id',
+        'province_name',
+        'city_id',
+        'city_name',
+        'district_id',
+        'district_name',
+        'full_address',
     ];
+
+    /**
+     * Alamat pengiriman terstruktur untuk kalkulator ongkir.
+     *
+     * Sekarang membaca dari tabel `addresses` (multi-alamat). Jika user belum
+     * punya alamat tersimpan, fallback ke kolom embedded lama supaya akun lama
+     * yang belum dimigrasi tetap bisa checkout sekali.
+     */
+    public function shippingAddress(): ?array
+    {
+        $default = $this->defaultAddress();
+        if ($default) {
+            return $default->toShippingPayload();
+        }
+        if (! $this->city_id || ! $this->district_id) {
+            return null;
+        }
+        return [
+            'province_id'   => $this->province_id,
+            'province_name' => $this->province_name,
+            'city_id'       => $this->city_id,
+            'city_name'     => $this->city_name,
+            'district_id'   => $this->district_id,
+            'district_name' => $this->district_name,
+            'full_address'  => $this->full_address,
+        ];
+    }
 
     public function orders()
     {
         return $this->hasMany(Order::class);
+    }
+
+    public function addresses()
+    {
+        return $this->hasMany(Address::class)->orderByDesc('is_default')->orderBy('id');
+    }
+
+    public function defaultAddress(): ?Address
+    {
+        // Prefer flag is_default=true; jika tidak ada, ambil yang paling lama dibuat.
+        return $this->addresses()->where('is_default', true)->first()
+            ?? $this->addresses()->oldest()->first();
     }
 
     public function isAdmin(): bool

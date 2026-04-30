@@ -8,7 +8,7 @@ class Product extends Model
 {
     protected $fillable = [
         'sku', 'name', 'slug', 'description',
-        'price', 'stock', 'stock_min', 'image', 'images', 'weight',
+        'price', 'stock', 'stock_min', 'image', 'images', 'weight', 'weight_kg',
         'material', 'colors', 'sizes', 'status',
     ];
 
@@ -19,6 +19,7 @@ class Product extends Model
         'price' => 'integer',
         'stock' => 'integer',
         'stock_min' => 'integer',
+        'weight_kg' => 'decimal:2',
     ];
 
     public function categories()

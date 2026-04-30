@@ -169,6 +169,52 @@
 			<div class="admin-card">
 				<div class="admin-card-header">
 					<div>
+						<h3 class="admin-card-title">Alamat Toko (Pengiriman)</h3>
+						<div class="admin-card-sub">Pilih wilayah berurutan: provinsi → kota/kabupaten → kecamatan. Dipakai kalkulator ongkir untuk menentukan zona pengiriman.</div>
+					</div>
+				</div>
+
+				<div class="row" data-wilayah-form
+					data-init-province="{{ $setting('store_province_id', '') }}"
+					data-init-city="{{ $setting('store_city_id', '') }}"
+					data-init-district="{{ $setting('store_district_id', '') }}">
+					<div class="col-md-4" style="margin-bottom:14px;">
+						<label class="form-label-admin">Provinsi <span style="color:#a5432f;">*</span></label>
+						<select name="store_province_id" class="form-control-admin" data-role="province" required>
+							<option value="">— Pilih provinsi —</option>
+						</select>
+					</div>
+					<div class="col-md-4" style="margin-bottom:14px;">
+						<label class="form-label-admin">Kota / Kabupaten <span style="color:#a5432f;">*</span></label>
+						<select name="store_city_id" class="form-control-admin" data-role="regency" required disabled>
+							<option value="">— Pilih kota/kabupaten —</option>
+						</select>
+					</div>
+					<div class="col-md-4" style="margin-bottom:14px;">
+						<label class="form-label-admin">Kecamatan <span style="color:#a5432f;">*</span></label>
+						<select name="store_district_id" class="form-control-admin" data-role="district" required disabled>
+							<option value="">— Pilih kecamatan —</option>
+						</select>
+					</div>
+					<div class="col-md-12" style="margin-bottom:14px;">
+						<label class="form-label-admin">Alamat Lengkap Toko</label>
+						<textarea name="store_full_address" rows="3" class="form-control-admin" placeholder="Jalan, RT/RW, kelurahan...">{{ $setting('store_full_address', '') }}</textarea>
+					</div>
+
+					{{-- Hidden: nama wilayah disimpan supaya tidak perlu join saat invoice --}}
+					<input type="hidden" name="store_province_name" data-role="province_name" value="{{ $setting('store_province_name', '') }}">
+					<input type="hidden" name="store_city_name"     data-role="city_name"     value="{{ $setting('store_city_name', '') }}">
+					<input type="hidden" name="store_district_name" data-role="district_name" value="{{ $setting('store_district_name', '') }}">
+				</div>
+
+				<div style="font-size:12px; color:#9a9288; padding:8px 12px; background:#faf7ef; border-radius:4px;">
+					<i class="fa fa-info-circle"></i> Toko harus berada dalam zona yang sama dengan pembeli agar checkout lolos — zona ditentukan dari kesamaan provinsi/kabupaten/kecamatan.
+				</div>
+			</div>
+
+			<div class="admin-card">
+				<div class="admin-card-header">
+					<div>
 						<h3 class="admin-card-title">Media Sosial</h3>
 						<div class="admin-card-sub">Link yang tampil di footer dan halaman kontak</div>
 					</div>
@@ -418,6 +464,7 @@
 @endpush
 
 @push('scripts')
+@include('partials._wilayah_cascade')
 <script>
 	$(function() {
 		// Tabs (with hash support)
