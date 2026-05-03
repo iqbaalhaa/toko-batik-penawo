@@ -658,17 +658,6 @@
 									</div>
 								</div>
 
-								<div class="flex-w flex-r-m p-b-10" id="qv-color-row">
-									<div class="size-203 flex-c-m respon6">Warna</div>
-									<div class="size-204 respon6-next">
-										<div class="rs1-select2 bor8 bg0">
-											<select name="color" id="qv-color-select" style="width:100%; padding:8px;">
-												<option>Pilih warna</option>
-											</select>
-										</div>
-									</div>
-								</div>
-
 								<div class="flex-w flex-r-m p-b-10">
 									<div class="size-204 flex-w flex-m respon6-next">
 										<div class="wrap-num-product flex-w m-r-20 m-tb-10">
@@ -799,7 +788,6 @@
 				$sel.closest('.flex-w.flex-r-m').toggle(items && items.length > 0);
 			}
 			fillSelect($('#qv-size-select'),  data.sizes,  'Pilih ukuran');
-			fillSelect($('#qv-color-select'), data.colors, 'Pilih warna');
 
 			$('#qv-form input[name="qty"]').val(1);
 		});

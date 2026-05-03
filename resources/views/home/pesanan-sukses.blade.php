@@ -248,17 +248,25 @@
 					</div>
 
 					@php
+						$isPickup    = $order->payment_method === 'COD';
 						$isCancelled = $order->status === 'dibatalkan';
 						$paid        = $order->paid_at !== null || in_array($order->status, ['diproses', 'dikirim', 'selesai']);
 						$shipped     = in_array($order->status, ['dikirim', 'selesai']);
 						$completed   = $order->status === 'selesai';
 
-						$steps = [
-							['label' => 'Dipesan',  'icon' => 'fa-shopping-bag', 'time' => $order->created_at,           'done' => true],
-							['label' => 'Dibayar',  'icon' => 'fa-credit-card',  'time' => $paid ? $order->paid_at : null, 'done' => $paid],
-							['label' => 'Dikirim',  'icon' => 'fa-truck',        'time' => null,                          'done' => $shipped],
-							['label' => 'Selesai',  'icon' => 'fa-check-circle', 'time' => null,                          'done' => $completed],
-						];
+						$steps = $isPickup
+							? [
+								['label' => 'Dipesan',       'icon' => 'fa-shopping-cart', 'time' => $order->created_at, 'done' => true],
+								['label' => 'Disiapkan',     'icon' => 'fa-cog',           'time' => null,               'done' => in_array($order->status, ['diproses', 'dikirim', 'selesai'])],
+								['label' => 'Siap Dijemput', 'icon' => 'fa-shopping-bag',  'time' => null,               'done' => $shipped],
+								['label' => 'Diterima',      'icon' => 'fa-check-circle',  'time' => null,               'done' => $completed],
+							]
+							: [
+								['label' => 'Dipesan',  'icon' => 'fa-shopping-cart', 'time' => $order->created_at,             'done' => true],
+								['label' => 'Dibayar',  'icon' => 'fa-credit-card',   'time' => $paid ? $order->paid_at : null, 'done' => $paid],
+								['label' => 'Dikirim',  'icon' => 'fa-truck',         'time' => null,                            'done' => $shipped],
+								['label' => 'Selesai',  'icon' => 'fa-check-circle',  'time' => null,                            'done' => $completed],
+							];
 
 						// Tandai step pertama yang belum selesai sebagai "current"
 						$currentIdx = null;
@@ -301,16 +309,23 @@
 							<div class="confirm-receipt-box">
 								<div class="confirm-receipt-text">
 									<i class="fa fa-info-circle"></i>
-									Pesanan Anda sudah <strong>dikirim</strong>. Klik tombol di bawah jika paket sudah Anda terima.
+									@if($isPickup)
+										Pesanan Anda sudah <strong>siap dijemput</strong> di toko. Klik tombol di bawah setelah Anda mengambil pesanan.
+									@else
+										Pesanan Anda sudah <strong>dikirim</strong>. Klik tombol di bawah jika paket sudah Anda terima.
+									@endif
 								</div>
 								<form action="{{ route('pesanan.selesai', $order->invoice_number) }}" method="POST"
-									data-confirm-title="Konfirmasi Penerimaan"
-									data-confirm-message='Pastikan paket pesanan {{ $order->invoice_number }} sudah Anda terima dengan baik dan dalam kondisi sesuai. Tindakan ini tidak dapat dibatalkan.'
-									data-confirm-ok="Ya, Sudah Diterima"
+									data-confirm-title="{{ $isPickup ? 'Konfirmasi Pengambilan' : 'Konfirmasi Penerimaan' }}"
+									data-confirm-message="{{ $isPickup
+										? 'Pastikan Anda sudah mengambil pesanan ' . $order->invoice_number . ' di toko Batik Penawo dan sudah membayar. Tindakan ini tidak dapat dibatalkan.'
+										: 'Pastikan paket pesanan ' . $order->invoice_number . ' sudah Anda terima dengan baik dan dalam kondisi sesuai. Tindakan ini tidak dapat dibatalkan.' }}"
+									data-confirm-ok="{{ $isPickup ? 'Ya, Sudah Dijemput' : 'Ya, Sudah Diterima' }}"
 									data-confirm-variant="success">
 									@csrf
 									<button type="submit" class="confirm-receipt-btn">
-										<i class="fa fa-check-circle m-r-6"></i> Pesanan Sudah Diterima
+										<i class="fa fa-check-circle m-r-6"></i>
+										{{ $isPickup ? 'Pesanan Sudah Saya Jemput' : 'Pesanan Sudah Diterima' }}
 									</button>
 								</form>
 							</div>
@@ -343,7 +358,7 @@
 						@php
 							$paymentLabel = match($order->payment_method) {
 								'Midtrans' => 'Bayar Online',
-								'COD'      => 'Bayar di Tempat',
+								'COD'      => 'Jemput di Toko (COD)',
 								default    => $order->payment_method ?? '—',
 							};
 						@endphp

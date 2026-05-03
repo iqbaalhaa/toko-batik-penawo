@@ -204,17 +204,23 @@ Route::post('/checkout/confirm', function (Request $request) {
     $data = $request->validate([
         'recipient_name'  => 'required|string|max:100',
         'recipient_phone' => 'required|string|max:25',
-        // Pelanggan harus memilih salah satu alamat tersimpan miliknya sendiri.
-        'address_id'      => 'required|integer|exists:addresses,id',
+        'payment_method'  => 'required|in:Midtrans,COD',
+        // Alamat hanya wajib untuk pengiriman (Midtrans). Untuk COD jemput, opsional.
+        'address_id'      => 'required_if:payment_method,Midtrans|nullable|integer|exists:addresses,id',
         'note'            => 'nullable|string|max:300',
     ]);
 
-    $address = \App\Models\Address::where('id', $data['address_id'])
-        ->where('user_id', $authUser['id'])
-        ->first();
-    if (! $address) {
-        return redirect()->route('checkout.show')
-            ->withErrors(['address_id' => 'Alamat yang dipilih tidak ditemukan.']);
+    $isPickup = $data['payment_method'] === 'COD';
+
+    $address = null;
+    if (! empty($data['address_id'])) {
+        $address = \App\Models\Address::where('id', $data['address_id'])
+            ->where('user_id', $authUser['id'])
+            ->first();
+        if (! $address && ! $isPickup) {
+            return redirect()->route('checkout.show')
+                ->withErrors(['address_id' => 'Alamat yang dipilih tidak ditemukan.']);
+        }
     }
 
     $pending = session('checkout_pending', []);
@@ -255,38 +261,32 @@ Route::post('/checkout/confirm', function (Request $request) {
         ];
     }
 
-    $user            = User::find($authUser['id'] ?? null);
-    $shippingSvc     = new \App\Services\CheckoutShippingService();
-    $summary         = $shippingSvc->summary($lines, $address->toShippingPayload());
+    $user = User::find($authUser['id'] ?? null);
 
-    // Blok checkout jika ada toko outside zone / produk tanpa berat.
-    if (! $summary['all_available']) {
-        $message = 'Checkout tidak dapat dilanjutkan: ' . implode(' | ', $summary['errors']);
-        if ($request->expectsJson() || $request->ajax()) {
-            return response()->json(['error' => $message], 422);
+    if ($isPickup) {
+        // COD jemput: tidak ada ongkir, tidak validasi zona.
+        $subtotalProducts = collect($lines)->sum(fn ($l) => $l['unit_price'] * $l['qty']);
+        $subtotal         = $subtotalProducts;
+        $total            = $subtotalProducts;
+        $shippingTotal    = 0;
+        $shippingBreakdown = [];
+        $shippingAddrText = 'JEMPUT DI TOKO BATIK PENAWO';
+    } else {
+        $shippingSvc = new \App\Services\CheckoutShippingService();
+        $summary     = $shippingSvc->summary($lines, $address->toShippingPayload());
+
+        if (! $summary['all_available']) {
+            $message = 'Checkout tidak dapat dilanjutkan: ' . implode(' | ', $summary['errors']);
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json(['error' => $message], 422);
+            }
+            return redirect()->route('checkout.show', ['address_id' => $address->id])->withErrors(['shipping' => $message]);
         }
-        return redirect()->route('checkout.show', ['address_id' => $address->id])->withErrors(['shipping' => $message]);
-    }
 
-    $subtotal = $summary['subtotal_products'];
-    $total    = $summary['grand_total'];
-    $invoice = 'INV-' . now()->format('Ymd') . '-' . str_pad((string) (\App\Models\Order::count() + 1), 4, '0', STR_PAD_LEFT);
-
-    $noteParts = array_filter([
-        'Penerima: ' . $data['recipient_name'] . ' (' . $data['recipient_phone'] . ')',
-        $data['note'] ? 'Catatan: ' . $data['note'] : null,
-    ]);
-
-    $order = \App\Models\Order::create([
-        'invoice_number'    => $invoice,
-        'user_id'           => $user?->id,
-        'customer_name'     => $authUser['name'],
-        'customer_email'    => $authUser['email'],
-        'total'             => $total,
-        'subtotal_products' => $summary['subtotal_products'],
-        'shipping_total'    => $summary['shipping_total'],
-        // Snapshot per-toko: zona, ongkir, berat — sumber kebenaran untuk laporan.
-        'shipping_breakdown' => array_map(function ($s) {
+        $subtotal      = $summary['subtotal_products'];
+        $total         = $summary['grand_total'];
+        $shippingTotal = $summary['shipping_total'];
+        $shippingBreakdown = array_map(function ($s) {
             return [
                 'store_id'        => $s['store_id'],
                 'store_name'      => $s['store_name'],
@@ -295,15 +295,53 @@ Route::post('/checkout/confirm', function (Request $request) {
                 'zone_label'      => $s['shipping']['zone_label'],
                 'shipping_cost'   => $s['shipping']['shipping_cost'],
             ];
-        }, $summary['stores']),
-        'payment_method'   => 'Midtrans',
-        'status'           => 'menunggu_bayar',
-        'shipping_address' => $address->toFormattedText(),
-        'note'             => implode(' · ', $noteParts),
+        }, $summary['stores']);
+        $shippingAddrText = $address->toFormattedText();
+    }
+
+    $invoice = 'INV-' . now()->format('Ymd') . '-' . str_pad((string) (\App\Models\Order::count() + 1), 4, '0', STR_PAD_LEFT);
+
+    $noteParts = array_filter([
+        'Penerima: ' . $data['recipient_name'] . ' (' . $data['recipient_phone'] . ')',
+        $isPickup ? 'Metode: Jemput sendiri di toko' : null,
+        $data['note'] ? 'Catatan: ' . $data['note'] : null,
+    ]);
+
+    $order = \App\Models\Order::create([
+        'invoice_number'     => $invoice,
+        'user_id'            => $user?->id,
+        'customer_name'      => $authUser['name'],
+        'customer_email'     => $authUser['email'],
+        'total'              => $total,
+        'subtotal_products'  => $subtotal,
+        'shipping_total'     => $shippingTotal,
+        'shipping_breakdown' => $shippingBreakdown,
+        'payment_method'     => $isPickup ? 'COD' : 'Midtrans',
+        'status'             => $isPickup ? 'diproses' : 'menunggu_bayar',
+        'shipping_address'   => $shippingAddrText,
+        'note'               => implode(' · ', $noteParts),
     ]);
 
     foreach ($items as $item) {
         $order->items()->create($item);
+    }
+
+    // COD jemput tidak butuh Snap token — langsung selesaikan flow.
+    if ($isPickup) {
+        foreach ($keys as $k) { unset($cart[$k]); }
+        session(['cart' => $cart]);
+        session()->forget('checkout_pending');
+
+        $redirectUrl = route('pesanan.sukses', $order->invoice_number);
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'invoice'      => $order->invoice_number,
+                'snap_token'   => null,
+                'is_pickup'    => true,
+                'redirect_url' => $redirectUrl,
+            ]);
+        }
+        return redirect($redirectUrl);
     }
 
     // Generate Midtrans Snap token

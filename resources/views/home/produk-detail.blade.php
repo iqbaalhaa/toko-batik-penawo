@@ -77,13 +77,14 @@
 							@csrf
 							<input type="hidden" name="slug" value="{{ $product->slug }}">
 
+							@if(! empty($product->sizes))
 							<div class="flex-w flex-r-m p-b-10">
 								<div class="size-203 flex-c-m respon6">Ukuran</div>
 								<div class="size-204 respon6-next">
 									<div class="rs1-select2 bor8 bg0">
 										<select class="js-select2" name="size">
 											<option>Pilih ukuran</option>
-											@foreach(($product->sizes ?? []) as $size)
+											@foreach($product->sizes as $size)
 												<option>{{ $size }}</option>
 											@endforeach
 										</select>
@@ -91,21 +92,7 @@
 									</div>
 								</div>
 							</div>
-
-							<div class="flex-w flex-r-m p-b-10">
-								<div class="size-203 flex-c-m respon6">Warna</div>
-								<div class="size-204 respon6-next">
-									<div class="rs1-select2 bor8 bg0">
-										<select class="js-select2" name="color">
-											<option>Pilih warna</option>
-											@foreach(($product->colors ?? []) as $color)
-												<option>{{ $color }}</option>
-											@endforeach
-										</select>
-										<div class="dropDownSelect2"></div>
-									</div>
-								</div>
-							</div>
+							@endif
 
 							<div class="flex-w flex-r-m p-b-10">
 								<div class="size-204 flex-w flex-m respon6-next">

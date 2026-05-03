@@ -5,17 +5,29 @@
 
 	$paymentLabel = match($order->payment_method) {
 		'Midtrans' => 'Bayar Online',
-		'COD'      => 'Bayar di Tempat',
+		'COD'      => 'Jemput di Toko (COD)',
 		default    => $order->payment_method ?? '—',
 	};
-	$paidLabel = match($order->status) {
-		'menunggu_bayar' => 'Belum Lunas',
-		'diproses'       => $order->paid_at ? 'LUNAS' : 'Diproses',
-		'dikirim'        => 'LUNAS / Dikirim',
-		'selesai'        => 'LUNAS / Selesai',
-		'dibatalkan'     => 'DIBATALKAN',
-		default          => strtoupper($order->status),
-	};
+	$isPickup = $order->payment_method === 'COD';
+	if ($isPickup) {
+		$paidLabel = match($order->status) {
+			'menunggu_bayar' => 'BELUM DIBAYAR',
+			'diproses'       => 'Disiapkan / Belum Dibayar',
+			'dikirim'        => 'SIAP DIJEMPUT',
+			'selesai'        => 'LUNAS / Diambil',
+			'dibatalkan'     => 'DIBATALKAN',
+			default          => strtoupper($order->status),
+		};
+	} else {
+		$paidLabel = match($order->status) {
+			'menunggu_bayar' => 'Belum Lunas',
+			'diproses'       => $order->paid_at ? 'LUNAS' : 'Diproses',
+			'dikirim'        => 'LUNAS / Dikirim',
+			'selesai'        => 'LUNAS / Selesai',
+			'dibatalkan'     => 'DIBATALKAN',
+			default          => strtoupper($order->status),
+		};
+	}
 
 	$subtotal = collect($order->items)->sum(fn ($it) => $it->price * $it->qty);
 @endphp

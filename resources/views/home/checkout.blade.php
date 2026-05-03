@@ -136,7 +136,11 @@
 					<!-- Left: Alamat + Metode Bayar -->
 					<div class="col-lg-7 p-b-30">
 						<div class="checkout-card">
-							<h3 class="checkout-card-title"><i class="fa fa-map-marker m-r-6" style="color:#c29e5c;"></i> Alamat Pengiriman</h3>
+							<h3 class="checkout-card-title" id="addressCardTitle"><i class="fa fa-map-marker m-r-6" style="color:#c29e5c;"></i> Alamat Pengiriman</h3>
+							<div id="codNotice" style="display:none; background:#faf6ed; border:1px solid #e4d5aa; border-left:3px solid #c29e5c; padding:10px 14px; border-radius:4px; font-size:12.5px; color:#6c665e; margin-bottom:14px;">
+								<i class="fa fa-info-circle" style="color:#c29e5c;"></i>
+								<strong style="color:#8a6b2b;">Pesanan Jemput Sendiri</strong> — pesanan akan dipersiapkan di toko. Tidak perlu alamat pengiriman; bawa nomor invoice saat datang.
+							</div>
 
 							<div class="row">
 								<div class="col-md-6" style="margin-bottom:14px;">
@@ -186,13 +190,24 @@
 						<div class="checkout-card">
 							<h3 class="checkout-card-title"><i class="fa fa-credit-card m-r-6" style="color:#c29e5c;"></i> Metode Pembayaran</h3>
 
-							<label class="payment-option" style="border-color:#c29e5c; background:#faf6ed;">
-								<input type="radio" name="payment_method" value="Midtrans" checked>
+							<label class="payment-option" id="optMidtrans">
+								<input type="radio" name="payment_method" value="Midtrans" {{ old('payment_method', 'Midtrans') === 'Midtrans' ? 'checked' : '' }}>
 								<span class="payment-option-body">
 									<i class="fa fa-credit-card m-r-6" style="color:#6c665e;"></i>
 									Bayar Online
 									<div style="font-size:11.5px; color:#9a9288; margin-top:3px;">
 										Kartu Kredit, Transfer Bank / VA, E-Wallet (GoPay, OVO, ShopeePay, Dana), QRIS, dan lainnya.
+									</div>
+								</span>
+							</label>
+
+							<label class="payment-option" id="optCOD">
+								<input type="radio" name="payment_method" value="COD" {{ old('payment_method') === 'COD' ? 'checked' : '' }}>
+								<span class="payment-option-body">
+									<i class="fa fa-shopping-bag m-r-6" style="color:#6c665e;"></i>
+									Bayar di Toko (Jemput Sendiri)
+									<div style="font-size:11.5px; color:#9a9288; margin-top:3px;">
+										Pesanan dipersiapkan, lalu Anda ambil & bayar tunai langsung di toko Batik Penawo.
 									</div>
 								</span>
 							</label>
@@ -312,6 +327,46 @@
 		var errBox = document.getElementById('checkoutError');
 		if (!form) return;
 
+		// Toggle UI antar metode pembayaran
+		var titleEl     = document.getElementById('addressCardTitle');
+		var notice      = document.getElementById('codNotice');
+		var addrSelect  = document.getElementById('checkoutAddressSelect');
+		var radios      = form.querySelectorAll('input[name="payment_method"]');
+		var shippingRow = null;
+		document.querySelectorAll('.summary-row').forEach(function(r){
+			if (r.textContent.trim().indexOf('Ongkir') === 0 || r.textContent.indexOf('Total Ongkir') > -1) shippingRow = r;
+		});
+
+		function applyPaymentUI() {
+			var pm = (form.querySelector('input[name="payment_method"]:checked') || {}).value;
+			var isCod = pm === 'COD';
+
+			if (titleEl) {
+				titleEl.innerHTML = isCod
+					? '<i class="fa fa-shopping-bag m-r-6" style="color:#c29e5c;"></i> Informasi Penerima'
+					: '<i class="fa fa-map-marker m-r-6" style="color:#c29e5c;"></i> Alamat Pengiriman';
+			}
+			if (notice) notice.style.display = isCod ? 'block' : 'none';
+
+			// Sembunyikan blok pemilih alamat saat COD (alamat tidak diperlukan).
+			if (addrSelect) {
+				var addrBlock = addrSelect.closest('div[style*="margin-bottom:14px"]');
+				if (addrBlock) addrBlock.style.display = isCod ? 'none' : '';
+				addrSelect.required = !isCod;
+			}
+
+			// Sembunyikan baris ongkir & sesuaikan total saat COD.
+			if (shippingRow) shippingRow.style.display = isCod ? 'none' : '';
+			if (btn) {
+				btn.disabled = false;
+				btn.innerHTML = isCod
+					? '<i class="fa fa-shopping-bag m-r-6"></i> Pesan & Jemput di Toko'
+					: '<i class="fa fa-lock m-r-6"></i> Bayar Sekarang';
+			}
+		}
+		radios.forEach(function(r){ r.addEventListener('change', applyPaymentUI); });
+		applyPaymentUI();
+
 		function showError(msg){
 			errBox.style.display = 'block';
 			errBox.innerHTML = '<strong>Gagal:</strong> ' + msg;
@@ -321,6 +376,10 @@
 		}
 
 		form.addEventListener('submit', function(e){
+			var pm = (form.querySelector('input[name="payment_method"]:checked') || {}).value;
+			// COD jemput: biarkan submit normal — server redirect ke halaman pesanan.
+			if (pm === 'COD') return;
+
 			e.preventDefault();
 			errBox.style.display = 'none';
 			btn.disabled = true;

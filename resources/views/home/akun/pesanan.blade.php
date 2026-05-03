@@ -119,7 +119,14 @@
 					</div>
 
 					@forelse($orders as $order)
-						@php $s = $statusMap[$order->status] ?? ['label' => $order->status, 'class' => 'st-menunggu']; @endphp
+						@php
+							$s = $statusMap[$order->status] ?? ['label' => $order->status, 'class' => 'st-menunggu'];
+							// Untuk COD jemput, ubah label kontekstual.
+							if ($order->payment_method === 'COD') {
+								if ($order->status === 'dikirim') $s = ['label' => 'Siap Dijemput', 'class' => 'st-dikirim'];
+								if ($order->status === 'selesai') $s = ['label' => 'Diterima',      'class' => 'st-selesai'];
+							}
+						@endphp
 						<div class="order-card">
 							<div class="order-head">
 								<div>
@@ -147,7 +154,7 @@
 									@php
 										$paymentLabel = match($order->payment_method) {
 											'Midtrans' => 'Bayar Online',
-											'COD'      => 'Bayar di Tempat',
+											'COD'      => 'Jemput di Toko',
 											default    => $order->payment_method ?? '—',
 										};
 									@endphp
