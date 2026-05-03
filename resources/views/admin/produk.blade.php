@@ -283,18 +283,6 @@
 										<input type="text" class="form-control-admin" id="f_sizes_text" placeholder="Ketik ukuran lalu Enter (mis. XL, All Size, 30x25x10 cm)" autocomplete="off">
 										<button type="button" class="btn-admin btn-admin-outline" id="f_sizes_add" tabindex="-1">Tambah</button>
 									</div>
-									<div class="size-presets">
-										<span class="size-presets-label">Pakaian:</span>
-										@foreach(['S','M','L','XL','XXL','XXXL','All Size'] as $s)
-											<button type="button" class="size-preset" data-size="{{ $s }}">{{ $s }}</button>
-										@endforeach
-									</div>
-									<div class="size-presets">
-										<span class="size-presets-label">Sepatu:</span>
-										@foreach(['38','39','40','41','42','43','44'] as $s)
-											<button type="button" class="size-preset" data-size="{{ $s }}">{{ $s }}</button>
-										@endforeach
-									</div>
 									<input type="hidden" name="sizes" id="f_sizes" value="{{ old('sizes') }}">
 								</div>
 								<div style="margin-bottom:14px;">
@@ -412,17 +400,6 @@
 	}
 	.chip-remove:hover { background: #a5432f; color: #fff; }
 
-	.size-presets { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-	.size-presets-label { font-size: 11.5px; color: #9a9288; text-transform: uppercase; letter-spacing: .5px; margin-right: 4px; }
-	.size-preset {
-		padding: 4px 12px; font-size: 12.5px;
-		background: #fff; color: #6c665e;
-		border: 1px solid #e0dbcf; border-radius: 999px;
-		cursor: pointer; transition: all .12s;
-	}
-	.size-preset:hover { border-color: #c29e5c; color: #c29e5c; }
-	.size-preset.active { background: #c29e5c; border-color: #c29e5c; color: #fff; font-weight: 500; }
-
 	/* Multi-kategori checkbox */
 	.category-checks {
 		border: 1px solid #e0dbcf; border-radius: 4px;
@@ -496,9 +473,6 @@ $(function() {
 			$box.append($chip);
 		});
 		$('#f_sizes').val(sizes.join(', '));
-		$('.size-preset').each(function() {
-			$(this).toggleClass('active', sizes.indexOf($(this).data('size').toString()) !== -1);
-		});
 	}
 	function addSize(raw) {
 		var v = (raw || '').trim();
@@ -532,10 +506,6 @@ $(function() {
 	$('#f_sizes_add').on('click', function() {
 		addSize($('#f_sizes_text').val());
 		$('#f_sizes_text').val('').focus();
-	});
-	$('.size-preset').on('click', function() {
-		var v = $(this).data('size').toString();
-		sizes.indexOf(v) === -1 ? addSize(v) : removeSize(v);
 	});
 	resetSizes('{{ old('sizes') }}');
 
