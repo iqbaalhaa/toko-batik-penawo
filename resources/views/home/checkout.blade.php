@@ -237,7 +237,12 @@
 										<span class="zone-tag {{ $sh['zone'] }}">{{ $sh['zone_label'] }}</span>
 									</div>
 									<div class="store-meta">
-										{{ count($store['items']) }} produk · Total berat {{ $sh['total_weight_kg'] }} kg
+										{{ count($store['items']) }} produk · Total berat
+										@if(isset($sh['weight_grams']))
+											{{ number_format($sh['weight_grams'], 0, ',', '.') }} g
+										@else
+											{{ $sh['total_weight_kg'] }} kg
+										@endif
 									</div>
 
 									<ul class="checkout-items">
@@ -265,7 +270,13 @@
 										<span>
 											Ongkir
 											@if($sh['available'])
-												<small style="color:#9a9288;">({{ $rupiah($sh['base_fee']) }} dasar {{ $sh['base_weight_kg'] }} kg + {{ $rupiah($sh['extra_fee_per_kg']) }}/kg)</small>
+												@if(($sh['source'] ?? 'local') === 'rajaongkir')
+													<small style="color:#9a9288;">
+														({{ $sh['courier_name'] ?: 'Kurir' }} · {{ $sh['service_name'] ?: '—' }}@if(! empty($sh['etd'])), estimasi {{ $sh['etd'] }}@endif)
+													</small>
+												@else
+													<small style="color:#9a9288;">({{ $rupiah($sh['base_fee']) }} dasar {{ $sh['base_weight_kg'] }} kg + {{ $rupiah($sh['extra_fee_per_kg']) }}/kg)</small>
+												@endif
 											@endif
 										</span>
 										<strong>{{ $sh['available'] ? $rupiah($sh['shipping_cost']) : '—' }}</strong>
@@ -403,13 +414,20 @@
 				}
 				if (!window.snap) { showError('Script pembayaran gagal dimuat.'); return; }
 				btn.innerHTML = '<i class="fa fa-lock m-r-6"></i> Buka Pembayaran...';
+				// Util: tambahkan param query ke URL apa pun (relatif atau absolut).
+				function withParam(url, key, value){
+					var sep = url.indexOf('?') >= 0 ? '&' : '?';
+					return url + sep + encodeURIComponent(key) + '=' + encodeURIComponent(value);
+				}
 				window.snap.pay(res.body.snap_token, {
 					onSuccess: function(){ window.location.href = res.body.redirect_url; },
 					onPending: function(){ window.location.href = res.body.redirect_url; },
 					onError:   function(){ showError('Pembayaran gagal. Silakan coba lagi.'); },
 					onClose:   function(){
-						// user menutup popup; arahkan ke halaman pesanan agar bisa retry
-						window.location.href = res.body.redirect_url;
+						// User menutup popup tanpa membayar — beri tahu backend
+						// supaya page sync TIDAK memanggil Midtrans API (mencegah
+						// status keliru jadi "Dibayar" karena resolusi sandbox).
+						window.location.href = withParam(res.body.redirect_url, 'cancelled', '1');
 					}
 				});
 			})

@@ -5,13 +5,15 @@ namespace App\Services;
 use App\Models\SiteSetting;
 
 /**
- * Kalkulator simulasi ongkos kirim berbasis wilayah administratif & berat.
+ * Kalkulator ongkos kirim berbasis wilayah administratif & berat.
  *
- * Tidak memanggil API kurir eksternal (RajaOngkir, JNE, J&T, dsb). Semua
- * perhitungan dilakukan lokal — cocok untuk simulasi marketplace hasil tani
- * lokal yang membutuhkan tarif deterministik dan dapat dijelaskan.
+ * Sumber tarif (urutan prioritas):
+ *   1. RajaOngkir (Komerce) bila API key dikonfigurasi (RAJAONGKIR_API_KEY)
+ *      — tarif berbasis jarak dari kurir riil, hasil termurah dipakai.
+ *   2. Fallback kalkulator zona lokal di bawah ini — tarif deterministik
+ *      yang dipakai untuk testing & saat API tidak tersedia.
  *
- * Aturan zona (kunci hierarkis: provinsi → kota/kab → kecamatan):
+ * Aturan zona lokal (kunci hierarkis: provinsi → kota/kab → kecamatan):
  *  - same_district    : kec sama          → base + max(0, kg-base_kg) × extra
  *  - same_city        : kab sama, kec ≠
  *  - same_province    : prov sama, kab ≠
@@ -91,8 +93,8 @@ final class ShippingCalculator
     /**
      * Hitung ongkir untuk sebuah pengiriman dari satu toko ke satu pembeli.
      *
-     * @param  array  $storeAddress  Wilayah toko: minimal province_id, city_id, district_id.
-     * @param  array  $buyerAddress  Wilayah pembeli: minimal province_id, city_id, district_id.
+     * @param  array  $storeAddress  Wilayah toko: minimal province_id, city_id, district_id (+ *_name untuk RajaOngkir).
+     * @param  array  $buyerAddress  Wilayah pembeli: minimal province_id, city_id, district_id (+ *_name untuk RajaOngkir).
      * @param  float  $totalWeightKg Total berat barang dalam kg (boleh desimal — akan dibulatkan ke atas).
      */
     public static function calculate(array $storeAddress, array $buyerAddress, float $totalWeightKg): array
@@ -110,23 +112,35 @@ final class ShippingCalculator
                 'Alamat pengiriman belum dipilih atau belum lengkap.');
         }
 
-        // 2) Bulatkan berat ke atas — tarif dihitung per kg utuh.
-        $weightKg = (int) ceil(max(0.0, $totalWeightKg));
-        if ($weightKg <= 0) {
+        // 2) Validasi berat. Untuk RajaOngkir kita kirim gram aktual supaya tier
+        //    pembulatan per-kurir (mis. JNT EZ: 0–999 g & 1000 g sama-sama dianggap 1 kg)
+        //    diputuskan oleh RajaOngkir/kurir, bukan diputuskan di sini. Kalkulator
+        //    zona lokal tetap pakai pembulatan ke kg utuh agar tarifnya dapat dijelaskan.
+        $weightKgRaw = max(0.0, $totalWeightKg);
+        if ($weightKgRaw <= 0) {
             return self::failure('outside_province', 0, $baseKg, $zones,
                 'Total berat barang harus lebih dari 0 kg.');
         }
+        $weightGrams = (int) ceil($weightKgRaw * 1000); // gram presisi untuk RajaOngkir
+        $weightKg    = (int) ceil($weightKgRaw);        // kg utuh untuk kalkulator lokal
 
-        // 3) Tentukan zona secara hierarkis: provinsi → kota/kab → kecamatan.
-        $zone = self::resolveZone($storeAddress, $buyerAddress);
+        // 3) Tentukan zona secara hierarkis (untuk label & fallback).
+        $zone   = self::resolveZone($storeAddress, $buyerAddress);
+        $tariff = $zones[$zone];
 
-        // 4) Hitung tarif: base_fee + kelebihan kg × extra_fee_per_kg.
-        $tariff       = $zones[$zone];
+        // 4) Coba RajaOngkir lebih dulu — tarif berbasis jarak dari kurir riil.
+        $api = self::tryRajaOngkir($storeAddress, $buyerAddress, $weightKgRaw, $weightGrams, $zone, $tariff, $baseKg);
+        if ($api !== null) {
+            return $api;
+        }
+
+        // 5) Fallback kalkulator zona lokal: base_fee + kelebihan kg × extra_fee_per_kg.
         $extraKg      = max(0, $weightKg - $baseKg);
         $shippingCost = $tariff['base_fee'] + $extraKg * $tariff['extra_fee_per_kg'];
 
         return [
             'available'        => true,
+            'source'           => 'local',
             'zone'             => $zone,
             'zone_label'       => $tariff['label'],
             'base_fee'         => $tariff['base_fee'],
@@ -134,6 +148,11 @@ final class ShippingCalculator
             'extra_fee_per_kg' => $tariff['extra_fee_per_kg'],
             'total_weight_kg'  => $weightKg,
             'shipping_cost'    => $shippingCost,
+            'courier_code'     => null,
+            'courier_name'     => null,
+            'service_name'     => null,
+            'service_desc'     => null,
+            'etd'              => null,
             'message'          => sprintf(
                 'Ongkir %s: %d kg × tarif %s.',
                 $tariff['label'],
@@ -141,6 +160,71 @@ final class ShippingCalculator
                 self::formatRupiah($shippingCost),
             ),
         ];
+    }
+
+    /**
+     * Coba ambil tarif dari RajaOngkir. Return null bila tidak available, mapping
+     * gagal, atau API error — caller akan fallback ke kalkulator zona lokal.
+     *
+     * Berat dikirim sebagai gram aktual (`$weightGrams`) — RajaOngkir/kurir yang
+     * menentukan tier pembulatan per kurir (mis. JNT EZ menaikkan tier setiap
+     * tambahan 1000 g, tidak per fraksi kg).
+     */
+    private static function tryRajaOngkir(array $store, array $buyer, float $weightKgRaw, int $weightGrams, string $zone, array $tariff, int $baseKg): ?array
+    {
+        try {
+            $svc = new RajaOngkirService();
+            if (! $svc->enabled()) return null;
+
+            $originId = $svc->resolveDistrictId(
+                $store['province_name'] ?? null,
+                $store['city_name']     ?? null,
+                $store['district_name'] ?? null,
+            );
+            $destId = $svc->resolveDistrictId(
+                $buyer['province_name'] ?? null,
+                $buyer['city_name']     ?? null,
+                $buyer['district_name'] ?? null,
+            );
+            if ($originId === null || $destId === null) return null;
+
+            $best = $svc->calculate($originId, $destId, $weightGrams);
+            if ($best === null) return null;
+
+            // Bulatkan berat tampilan ke 2 desimal — bisa decimal (mis. 1.5 kg)
+            // saat barang di bawah 1 kg utuh; angka biaya datang utuh dari API.
+            $displayWeight = round($weightKgRaw, 2);
+
+            return [
+                'available'        => true,
+                'source'           => 'rajaongkir',
+                'zone'             => $zone,
+                'zone_label'       => $tariff['label'],
+                // Field tarif zona dipertahankan untuk kompat — tidak relevan via API.
+                'base_fee'         => (int) $best['cost'],
+                'base_weight_kg'   => $baseKg,
+                'extra_fee_per_kg' => 0,
+                'total_weight_kg'  => $displayWeight,
+                'weight_grams'     => $weightGrams,
+                'shipping_cost'    => (int) $best['cost'],
+                'courier_code'     => $best['code']        ?: null,
+                'courier_name'     => $best['name']        ?: null,
+                'service_name'     => $best['service']     ?: null,
+                'service_desc'     => $best['description'] ?: null,
+                'etd'              => $best['etd']         ?: null,
+                'message'          => sprintf(
+                    'Ongkir %s · %s untuk %s g: %s%s.',
+                    $best['name'] !== '' ? $best['name'] : 'Kurir',
+                    $best['service'] !== '' ? $best['service'] : '-',
+                    number_format($weightGrams, 0, ',', '.'),
+                    self::formatRupiah((int) $best['cost']),
+                    $best['etd'] !== '' ? ' (estimasi ' . $best['etd'] . ')' : '',
+                ),
+            ];
+        } catch (\Throwable $e) {
+            // Container/Cache/Http tidak tersedia (mis. unit test) → fallback lokal.
+            return null;
+        }
     }
 
     private static function hasRegion(array $address): bool
@@ -173,6 +257,7 @@ final class ShippingCalculator
         $tariff = $zones[$zone];
         return [
             'available'        => false,
+            'source'           => 'local',
             'zone'             => $zone,
             'zone_label'       => $tariff['label'],
             'base_fee'         => $tariff['base_fee'],
@@ -180,6 +265,11 @@ final class ShippingCalculator
             'extra_fee_per_kg' => $tariff['extra_fee_per_kg'],
             'total_weight_kg'  => $weightKg,
             'shipping_cost'    => 0,
+            'courier_code'     => null,
+            'courier_name'     => null,
+            'service_name'     => null,
+            'service_desc'     => null,
+            'etd'              => null,
             'message'          => $message,
         ];
     }

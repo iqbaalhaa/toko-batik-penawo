@@ -44,4 +44,13 @@ return [
         'is_3ds'        => (bool) env('MIDTRANS_IS_3DS', true),
     ],
 
+    // RajaOngkir (Komerce) — sumber data perhitungan ongkir berbasis jarak.
+    // `key` kosong → ShippingCalculator otomatis fallback ke kalkulator zona lokal.
+    'rajaongkir' => [
+        'key'      => env('RAJAONGKIR_API_KEY'),
+        'base_url' => env('RAJAONGKIR_BASE_URL', 'https://rajaongkir.komerce.id/api/v1'),
+        'couriers' => env('RAJAONGKIR_COURIERS', 'jne:jnt:pos'),
+        'timeout'  => (int) env('RAJAONGKIR_TIMEOUT', 10),
+    ],
+
 ];

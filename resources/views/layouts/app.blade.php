@@ -531,34 +531,77 @@
 	@yield('content')
 
 	<!-- Footer -->
+	@php
+		// Helper: decode JSON list dari SiteSetting; fallback default kalau kosong/rusak.
+		$footerList = function (string $key, array $default) use ($setting) {
+			$raw = $setting($key);
+			if (! $raw) return $default;
+			$data = json_decode($raw, true);
+			return is_array($data) ? $data : $default;
+		};
+		// Helper: bentuk URL absolut/relatif aman dari path yang disimpan admin.
+		$footerUrl = function (?string $url) {
+			$url = trim((string) $url);
+			if ($url === '') return '#';
+			if (str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) return $url;
+			if (str_starts_with($url, '/'))  return $url;
+			return asset($url);
+		};
+
+		$footerCol1Links = $footerList('footer_col1_links', [
+			['label' => 'Batik Wanita', 'url' => '/produk'],
+			['label' => 'Batik Pria',   'url' => '/produk'],
+			['label' => 'Batik Anak',   'url' => '/produk'],
+			['label' => 'Aksesoris',    'url' => '/produk'],
+		]);
+		$footerCol2Links = $footerList('footer_col2_links', [
+			['label' => 'Lacak Pesanan', 'url' => '/akun/pesanan'],
+			['label' => 'Pengembalian',  'url' => '/kontak'],
+			['label' => 'Pengiriman',    'url' => '/kontak'],
+			['label' => 'FAQ',           'url' => '/kontak'],
+		]);
+		$footerPayIcons = $footerList('footer_payment_icons', [
+			['image_url' => 'frontend/images/icons/icon-pay-01.png', 'alt' => 'IKON'],
+			['image_url' => 'frontend/images/icons/icon-pay-02.png', 'alt' => 'IKON'],
+			['image_url' => 'frontend/images/icons/icon-pay-03.png', 'alt' => 'IKON'],
+			['image_url' => 'frontend/images/icons/icon-pay-04.png', 'alt' => 'IKON'],
+			['image_url' => 'frontend/images/icons/icon-pay-05.png', 'alt' => 'IKON'],
+		]);
+		$footerShowPayments = $setting('footer_show_payments', '1') === '1';
+
+		// Kolom 3: text custom dengan placeholder {address}/{phone}/{email}.
+		$footerCol3Default = 'Ada pertanyaan? Kunjungi toko kami di {address} atau hubungi kami di {phone}';
+		$footerCol3Text    = $setting('footer_col3_text') ?: $footerCol3Default;
+		$footerCol3Text    = strtr($footerCol3Text, [
+			'{address}' => $setting('contact_address', 'Jl. Malioboro No. 123, Kerinci'),
+			'{phone}'   => $setting('contact_phone', '+62 812-3456-7890'),
+			'{email}'   => $setting('contact_email', ''),
+		]);
+	@endphp
 	<footer class="bg3 p-t-75 p-b-32">
 		<div class="container">
 			<div class="row">
-				<div class="col-sm-6 col-lg-3 p-b-50">
-					<h4 class="stext-301 cl0 p-b-30">Kategori</h4>
+				<div class="col-sm-6 col-lg-4 p-b-50">
+					<h4 class="stext-301 cl0 p-b-30">{{ $setting('footer_col1_title', 'Kategori') }}</h4>
 					<ul>
-						<li class="p-b-10"><a href="#" class="stext-107 cl7 hov-cl1 trans-04">Batik Wanita</a></li>
-						<li class="p-b-10"><a href="#" class="stext-107 cl7 hov-cl1 trans-04">Batik Pria</a></li>
-						<li class="p-b-10"><a href="#" class="stext-107 cl7 hov-cl1 trans-04">Batik Anak</a></li>
-						<li class="p-b-10"><a href="#" class="stext-107 cl7 hov-cl1 trans-04">Aksesoris</a></li>
+						@foreach($footerCol1Links as $link)
+							<li class="p-b-10"><a href="{{ $footerUrl($link['url'] ?? '#') }}" class="stext-107 cl7 hov-cl1 trans-04">{{ $link['label'] ?? '' }}</a></li>
+						@endforeach
 					</ul>
 				</div>
 
-				<div class="col-sm-6 col-lg-3 p-b-50">
-					<h4 class="stext-301 cl0 p-b-30">Bantuan</h4>
+				<div class="col-sm-6 col-lg-4 p-b-50">
+					<h4 class="stext-301 cl0 p-b-30">{{ $setting('footer_col2_title', 'Bantuan') }}</h4>
 					<ul>
-						<li class="p-b-10"><a href="#" class="stext-107 cl7 hov-cl1 trans-04">Lacak Pesanan</a></li>
-						<li class="p-b-10"><a href="#" class="stext-107 cl7 hov-cl1 trans-04">Pengembalian</a></li>
-						<li class="p-b-10"><a href="#" class="stext-107 cl7 hov-cl1 trans-04">Pengiriman</a></li>
-						<li class="p-b-10"><a href="#" class="stext-107 cl7 hov-cl1 trans-04">FAQ</a></li>
+						@foreach($footerCol2Links as $link)
+							<li class="p-b-10"><a href="{{ $footerUrl($link['url'] ?? '#') }}" class="stext-107 cl7 hov-cl1 trans-04">{{ $link['label'] ?? '' }}</a></li>
+						@endforeach
 					</ul>
 				</div>
 
-				<div class="col-sm-6 col-lg-3 p-b-50">
-					<h4 class="stext-301 cl0 p-b-30">HUBUNGI KAMI</h4>
-					<p class="stext-107 cl7 size-201">
-						Ada pertanyaan? Kunjungi toko kami di {{ $setting('contact_address', 'Jl. Malioboro No. 123, Kerinci') }} atau hubungi kami di {{ $setting('contact_phone', '+62 812-3456-7890') }}
-					</p>
+				<div class="col-sm-6 col-lg-4 p-b-50">
+					<h4 class="stext-301 cl0 p-b-30">{{ $setting('footer_col3_title', 'Hubungi Kami') }}</h4>
+					<p class="stext-107 cl7 size-201">{{ $footerCol3Text }}</p>
 
 					<div class="p-t-27">
 						@if($setting('social_facebook'))
@@ -575,33 +618,21 @@
 						@endif
 					</div>
 				</div>
-
-				<div class="col-sm-6 col-lg-3 p-b-50">
-					<h4 class="stext-301 cl0 p-b-30">Buletin</h4>
-					<p class="stext-107 cl7 size-201" style="margin-bottom:14px;">
-						{{ $setting('footer_newsletter_text', 'Berlangganan newsletter untuk penawaran spesial') }}
-					</p>
-					<form>
-						<div class="wrap-input1 w-full p-b-4">
-							<input class="input1 bg-none plh1 stext-107 cl7" type="text" name="email" placeholder="email@contoh.com">
-							<div class="focus-input1 trans-04"></div>
-						</div>
-
-						<div class="p-t-18">
-							<button class="flex-c-m stext-101 cl0 size-103 bg1 bor1 hov-btn2 p-lr-15 trans-04">Berlangganan</button>
-						</div>
-					</form>
-				</div>
 			</div>
 
 			<div class="p-t-40">
-				<div class="flex-c-m flex-w p-b-18">
-					<a href="#" class="m-all-1"><img src="{{ asset('frontend/images/icons/icon-pay-01.png') }}" alt="IKON"></a>
-					<a href="#" class="m-all-1"><img src="{{ asset('frontend/images/icons/icon-pay-02.png') }}" alt="IKON"></a>
-					<a href="#" class="m-all-1"><img src="{{ asset('frontend/images/icons/icon-pay-03.png') }}" alt="IKON"></a>
-					<a href="#" class="m-all-1"><img src="{{ asset('frontend/images/icons/icon-pay-04.png') }}" alt="IKON"></a>
-					<a href="#" class="m-all-1"><img src="{{ asset('frontend/images/icons/icon-pay-05.png') }}" alt="IKON"></a>
-				</div>
+				@if($footerShowPayments && count($footerPayIcons) > 0)
+					<div class="flex-c-m flex-w p-b-18">
+						@foreach($footerPayIcons as $icon)
+							@php $iconUrl = trim((string) ($icon['image_url'] ?? '')); @endphp
+							@if($iconUrl !== '')
+								<a href="#" class="m-all-1">
+									<img src="{{ $footerUrl($iconUrl) }}" alt="{{ $icon['alt'] ?? 'IKON' }}">
+								</a>
+							@endif
+						@endforeach
+					</div>
+				@endif
 
 				<p class="stext-107 cl6 txt-center">
 					{{ $setting('footer_copyright', 'Hak Cipta © ' . date('Y') . ' Batik Penawo. Semua hak dilindungi.') }}

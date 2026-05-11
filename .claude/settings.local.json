@@ -172,7 +172,12 @@
       "Bash(php -l app/Models/Wishlist.php)",
       "Bash(awk 'NR==149' f:/Project/toko-batik-penawo/resources/views/home/akun/pengaturan.blade.php)",
       "Bash(awk 'NR>=159,NR<=170' f:/Project/toko-batik-penawo/resources/views/home/akun/pengaturan.blade.php)",
-      "Bash(awk 'NR>=149,NR<=170' f:/Project/toko-batik-penawo/resources/views/home/akun/pengaturan.blade.php)"
+      "Bash(awk 'NR>=149,NR<=170' f:/Project/toko-batik-penawo/resources/views/home/akun/pengaturan.blade.php)",
+      "WebFetch(domain:rajaongkir.com)",
+      "WebFetch(domain:rajaongkir.komerce.id)",
+      "Bash(php smoke_footer_cms.php)",
+      "Bash(php smoke_user_crud.php)",
+      "Bash(php -r ' *)"
     ]
   }
 }

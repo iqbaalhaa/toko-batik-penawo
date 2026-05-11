@@ -367,32 +367,183 @@
 
 	<!-- ====================== Tab: Footer ====================== -->
 	<div class="cms-panel" id="tab-footer" style="display:none;">
-		<div class="admin-card">
-			<div class="admin-card-header">
+		@php
+			// Decode JSON list dari SiteSetting; jaga-jaga kalau format rusak.
+			$decodeList = function (string $key, array $default) use ($setting) {
+				$raw = $setting($key);
+				if (! $raw) return $default;
+				$data = json_decode($raw, true);
+				return is_array($data) ? $data : $default;
+			};
+			$col1Links = $decodeList('footer_col1_links', [
+				['label' => 'Batik Wanita', 'url' => '/produk?kategori=wanita'],
+				['label' => 'Batik Pria',   'url' => '/produk?kategori=pria'],
+				['label' => 'Batik Anak',   'url' => '/produk?kategori=anak'],
+				['label' => 'Aksesoris',    'url' => '/produk?kategori=aksesoris'],
+			]);
+			$col2Links = $decodeList('footer_col2_links', [
+				['label' => 'Lacak Pesanan',  'url' => '/akun/pesanan'],
+				['label' => 'Pengembalian',   'url' => '/kontak'],
+				['label' => 'Pengiriman',     'url' => '/kontak'],
+				['label' => 'FAQ',            'url' => '/kontak'],
+			]);
+			$payIcons = $decodeList('footer_payment_icons', [
+				['image_url' => 'frontend/images/icons/icon-pay-01.png', 'alt' => 'Visa'],
+				['image_url' => 'frontend/images/icons/icon-pay-02.png', 'alt' => 'Mastercard'],
+				['image_url' => 'frontend/images/icons/icon-pay-03.png', 'alt' => 'PayPal'],
+				['image_url' => 'frontend/images/icons/icon-pay-04.png', 'alt' => 'Maestro'],
+				['image_url' => 'frontend/images/icons/icon-pay-05.png', 'alt' => 'Discover'],
+			]);
+			$showPayments = $setting('footer_show_payments', '1') === '1';
+		@endphp
+
+		<form action="{{ route('admin.cms.settings.save', 'footer') }}" method="POST" id="footerForm">
+			@csrf
+
+			<!-- Topbar -->
+			<div class="admin-card">
+				<div class="admin-card-header">
+					<div>
+						<h3 class="admin-card-title">Topbar</h3>
+						<div class="admin-card-sub">Strip bar di atas header — kosongkan untuk menyembunyikan</div>
+					</div>
+				</div>
 				<div>
-					<h3 class="admin-card-title">Pengaturan Footer</h3>
-					<div class="admin-card-sub">Teks yang tampil di footer dan topbar</div>
+					<label class="form-label-admin">Teks Promo Topbar</label>
+					<input type="text" name="footer_topbar_promo" class="form-control-admin"
+						value="{{ $setting('footer_topbar_promo', '') }}"
+						placeholder="Mis. Diskon spesial untuk pembelian di atas Rp500.000">
 				</div>
 			</div>
-			<form action="{{ route('admin.cms.settings.save', 'footer') }}" method="POST">
-				@csrf
-				<div style="margin-bottom:14px;">
-					<label class="form-label-admin">Teks Hak Cipta</label>
-					<input type="text" name="footer_copyright" class="form-control-admin" value="{{ $setting('footer_copyright', 'Hak Cipta © 2026 Batik Penawo. Semua hak dilindungi.') }}">
+
+			<!-- Kolom 1 (Kategori) -->
+			<div class="admin-card">
+				<div class="admin-card-header">
+					<div>
+						<h3 class="admin-card-title">Kolom 1 — Daftar Tautan</h3>
+						<div class="admin-card-sub">Mis. kategori produk</div>
+					</div>
 				</div>
 				<div style="margin-bottom:14px;">
-					<label class="form-label-admin">Teks Newsletter</label>
-					<input type="text" name="footer_newsletter_text" class="form-control-admin" value="{{ $setting('footer_newsletter_text', 'Berlangganan newsletter untuk penawaran spesial') }}">
+					<label class="form-label-admin">Judul Kolom</label>
+					<input type="text" name="footer_col1_title" class="form-control-admin"
+						value="{{ $setting('footer_col1_title', 'Kategori') }}">
+				</div>
+				<label class="form-label-admin">Tautan</label>
+				<div class="footer-rows" data-rows="footer_col1_links">
+					@foreach($col1Links as $i => $row)
+						<div class="footer-row">
+							<input type="text" name="footer_col1_links[{{ $i }}][label]" class="form-control-admin" placeholder="Label" value="{{ $row['label'] ?? '' }}">
+							<input type="text" name="footer_col1_links[{{ $i }}][url]"   class="form-control-admin" placeholder="URL (mis. /produk)" value="{{ $row['url'] ?? '' }}">
+							<button type="button" class="btn-admin-icon danger footer-row-del" title="Hapus baris"><i class="fa fa-trash-o"></i></button>
+						</div>
+					@endforeach
+				</div>
+				<button type="button" class="btn-admin btn-admin-outline footer-row-add" data-target="footer_col1_links">
+					<i class="fa fa-plus"></i> Tambah Tautan
+				</button>
+			</div>
+
+			<!-- Kolom 2 (Bantuan) -->
+			<div class="admin-card">
+				<div class="admin-card-header">
+					<div>
+						<h3 class="admin-card-title">Kolom 2 — Daftar Tautan</h3>
+						<div class="admin-card-sub">Mis. bantuan / customer service</div>
+					</div>
 				</div>
 				<div style="margin-bottom:14px;">
-					<label class="form-label-admin">Teks Promo Topbar (opsional)</label>
-					<input type="text" name="footer_topbar_promo" class="form-control-admin" value="{{ $setting('footer_topbar_promo', '') }}" placeholder="Mis. Diskon spesial untuk pembelian di atas Rp500.000">
+					<label class="form-label-admin">Judul Kolom</label>
+					<input type="text" name="footer_col2_title" class="form-control-admin"
+						value="{{ $setting('footer_col2_title', 'Bantuan') }}">
 				</div>
-				<div style="padding-top:14px; border-top:1px solid #f2efe7; margin-top:8px;">
-					<button type="submit" class="btn-admin"><i class="fa fa-floppy-o"></i> Simpan Perubahan</button>
+				<label class="form-label-admin">Tautan</label>
+				<div class="footer-rows" data-rows="footer_col2_links">
+					@foreach($col2Links as $i => $row)
+						<div class="footer-row">
+							<input type="text" name="footer_col2_links[{{ $i }}][label]" class="form-control-admin" placeholder="Label" value="{{ $row['label'] ?? '' }}">
+							<input type="text" name="footer_col2_links[{{ $i }}][url]"   class="form-control-admin" placeholder="URL (mis. /kontak)" value="{{ $row['url'] ?? '' }}">
+							<button type="button" class="btn-admin-icon danger footer-row-del" title="Hapus baris"><i class="fa fa-trash-o"></i></button>
+						</div>
+					@endforeach
 				</div>
-			</form>
-		</div>
+				<button type="button" class="btn-admin btn-admin-outline footer-row-add" data-target="footer_col2_links">
+					<i class="fa fa-plus"></i> Tambah Tautan
+				</button>
+			</div>
+
+			<!-- Kolom 3 (Hubungi Kami) -->
+			<div class="admin-card">
+				<div class="admin-card-header">
+					<div>
+						<h3 class="admin-card-title">Kolom 3 — Hubungi Kami</h3>
+						<div class="admin-card-sub">Alamat, telepon, dan ikon sosial dikelola di tab <a href="#tab-kontak" onclick="$('.cms-tab[data-tab=kontak]').click(); return false;">Info Kontak</a>. Di sini hanya teks pengantar.</div>
+					</div>
+				</div>
+				<div style="margin-bottom:14px;">
+					<label class="form-label-admin">Judul Kolom</label>
+					<input type="text" name="footer_col3_title" class="form-control-admin"
+						value="{{ $setting('footer_col3_title', 'Hubungi Kami') }}">
+				</div>
+				<div>
+					<label class="form-label-admin">Teks Pengantar</label>
+					<textarea name="footer_col3_text" rows="3" class="form-control-admin"
+						placeholder="Kosongkan untuk menampilkan kalimat default berisi alamat & telepon dari tab Info Kontak.">{{ $setting('footer_col3_text', '') }}</textarea>
+					<small style="color:#9a9288; font-size:11.5px;">Placeholder yang didukung: <code>{address}</code>, <code>{phone}</code>, <code>{email}</code>.</small>
+				</div>
+			</div>
+
+			<!-- Ikon Pembayaran -->
+			<div class="admin-card">
+				<div class="admin-card-header">
+					<div>
+						<h3 class="admin-card-title">Ikon Pembayaran</h3>
+						<div class="admin-card-sub">Strip ikon di bawah footer (mis. Visa, Mastercard, OVO)</div>
+					</div>
+				</div>
+				<label style="display:flex; align-items:center; gap:8px; margin-bottom:14px;">
+					<input type="checkbox" name="footer_show_payments" value="1" @checked($showPayments)>
+					<span>Tampilkan strip ikon pembayaran di footer</span>
+				</label>
+				<label class="form-label-admin">Daftar Ikon</label>
+				<div class="footer-rows" data-rows="footer_payment_icons">
+					@foreach($payIcons as $i => $row)
+						<div class="footer-row footer-row-icon">
+							<div class="footer-icon-preview">
+								@if(! empty($row['image_url']))
+									<img src="{{ \Illuminate\Support\Str::startsWith($row['image_url'], ['http://', 'https://', '/']) ? $row['image_url'] : asset($row['image_url']) }}" alt="">
+								@endif
+							</div>
+							<input type="text" name="footer_payment_icons[{{ $i }}][image_url]" class="form-control-admin" placeholder="URL gambar (mis. uploads/footer/visa.png atau https://...)" value="{{ $row['image_url'] ?? '' }}">
+							<input type="text" name="footer_payment_icons[{{ $i }}][alt]"       class="form-control-admin" placeholder="Alt teks" value="{{ $row['alt'] ?? '' }}" style="max-width:140px;">
+							<button type="button" class="btn-admin-icon danger footer-row-del" title="Hapus baris"><i class="fa fa-trash-o"></i></button>
+						</div>
+					@endforeach
+				</div>
+				<button type="button" class="btn-admin btn-admin-outline footer-row-add" data-target="footer_payment_icons">
+					<i class="fa fa-plus"></i> Tambah Ikon
+				</button>
+				<small style="display:block; color:#9a9288; font-size:11.5px; margin-top:8px;">
+					Tip: simpan file ikon ke <code>public/uploads/footer/</code> lalu masukkan path relatif (mis. <code>uploads/footer/visa.png</code>). URL absolut juga didukung.
+				</small>
+			</div>
+
+			<!-- Hak Cipta -->
+			<div class="admin-card">
+				<div class="admin-card-header">
+					<div>
+						<h3 class="admin-card-title">Baris Hak Cipta</h3>
+						<div class="admin-card-sub">Teks paling bawah footer</div>
+					</div>
+				</div>
+				<input type="text" name="footer_copyright" class="form-control-admin"
+					value="{{ $setting('footer_copyright', 'Hak Cipta © ' . date('Y') . ' Batik Penawo. Semua hak dilindungi.') }}">
+			</div>
+
+			<div class="admin-card" style="text-align:right;">
+				<button type="submit" class="btn-admin"><i class="fa fa-floppy-o"></i> Simpan Semua Pengaturan Footer</button>
+			</div>
+		</form>
 	</div>
 
 	<!-- ====================== Banner Modal ====================== -->
@@ -530,6 +681,21 @@
 		transition: border-color .15s, background .15s;
 	}
 	.banner-dropzone:hover { border-color: #c29e5c; background: #faf0d7; }
+
+	/* Footer CMS — dynamic rows */
+	.footer-rows { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+	.footer-row {
+		display: flex; gap: 8px; align-items: center;
+		padding: 8px; background: #faf7ef; border: 1px solid #ece8de; border-radius: 4px;
+	}
+	.footer-row .form-control-admin { flex: 1; margin: 0; }
+	.footer-row .btn-admin-icon { flex-shrink: 0; }
+	.footer-row-icon .footer-icon-preview {
+		width: 56px; height: 36px; border-radius: 4px; background: #fff;
+		border: 1px solid #ece8de; display: flex; align-items: center; justify-content: center;
+		flex-shrink: 0; overflow: hidden;
+	}
+	.footer-row-icon .footer-icon-preview img { max-width: 100%; max-height: 100%; }
 </style>
 @endpush
 
@@ -554,6 +720,56 @@
 		if (hash && hash.indexOf('#tab-') === 0) {
 			activateTab(hash.replace('#tab-', ''));
 		}
+
+		// ----- Footer CMS: dynamic rows (links + payment icons) -----
+		// Indeks per-target diturunkan dari jumlah baris awal supaya tidak bentrok
+		// dengan baris yang sudah dirender server-side.
+		var rowCounters = {};
+		$('.footer-rows').each(function() {
+			rowCounters[$(this).data('rows')] = $(this).children('.footer-row').length;
+		});
+
+		$(document).on('click', '.footer-row-add', function() {
+			var target = $(this).data('target');
+			var $rows  = $('.footer-rows[data-rows="' + target + '"]');
+			var i      = rowCounters[target]++;
+			var html;
+			if (target === 'footer_payment_icons') {
+				html = ''
+					+ '<div class="footer-row footer-row-icon">'
+					+   '<div class="footer-icon-preview"></div>'
+					+   '<input type="text" name="' + target + '[' + i + '][image_url]" class="form-control-admin" placeholder="URL gambar (mis. uploads/footer/visa.png atau https://...)">'
+					+   '<input type="text" name="' + target + '[' + i + '][alt]" class="form-control-admin" placeholder="Alt teks" style="max-width:140px;">'
+					+   '<button type="button" class="btn-admin-icon danger footer-row-del" title="Hapus baris"><i class="fa fa-trash-o"></i></button>'
+					+ '</div>';
+			} else {
+				html = ''
+					+ '<div class="footer-row">'
+					+   '<input type="text" name="' + target + '[' + i + '][label]" class="form-control-admin" placeholder="Label">'
+					+   '<input type="text" name="' + target + '[' + i + '][url]" class="form-control-admin" placeholder="URL (mis. /produk)">'
+					+   '<button type="button" class="btn-admin-icon danger footer-row-del" title="Hapus baris"><i class="fa fa-trash-o"></i></button>'
+					+ '</div>';
+			}
+			$rows.append(html);
+		});
+
+		$(document).on('click', '.footer-row-del', function() {
+			$(this).closest('.footer-row').remove();
+		});
+
+		// Live preview untuk URL ikon pembayaran.
+		$(document).on('input', '.footer-row-icon input[name$="[image_url]"]', function() {
+			var $row = $(this).closest('.footer-row-icon');
+			var $img = $row.find('.footer-icon-preview img');
+			var url  = $(this).val().trim();
+			if (! url) { $img.remove(); return; }
+			var resolved = (/^https?:\/\//i.test(url) || url.charAt(0) === '/') ? url : '{{ asset('') }}' + url;
+			if ($img.length) {
+				$img.attr('src', resolved);
+			} else {
+				$row.find('.footer-icon-preview').html('<img src="' + resolved + '" alt="">');
+			}
+		});
 	});
 
 	// ----- Banner modal -----

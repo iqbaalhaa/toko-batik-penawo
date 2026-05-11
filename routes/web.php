@@ -287,13 +287,21 @@ Route::post('/checkout/confirm', function (Request $request) {
         $total         = $summary['grand_total'];
         $shippingTotal = $summary['shipping_total'];
         $shippingBreakdown = array_map(function ($s) {
+            $sh = $s['shipping'];
             return [
                 'store_id'        => $s['store_id'],
                 'store_name'      => $s['store_name'],
-                'total_weight_kg' => $s['shipping']['total_weight_kg'],
-                'zone'            => $s['shipping']['zone'],
-                'zone_label'      => $s['shipping']['zone_label'],
-                'shipping_cost'   => $s['shipping']['shipping_cost'],
+                'total_weight_kg' => $sh['total_weight_kg'],
+                'weight_grams'    => $sh['weight_grams'] ?? null,
+                'zone'            => $sh['zone'],
+                'zone_label'      => $sh['zone_label'],
+                'shipping_cost'   => $sh['shipping_cost'],
+                // Snapshot kurir RajaOngkir bila dipakai — null untuk tarif lokal.
+                'source'          => $sh['source']       ?? 'local',
+                'courier_code'    => $sh['courier_code'] ?? null,
+                'courier_name'    => $sh['courier_name'] ?? null,
+                'service_name'    => $sh['service_name'] ?? null,
+                'etd'             => $sh['etd']          ?? null,
             ];
         }, $summary['stores']);
         $shippingAddrText = $address->toFormattedText();
@@ -385,9 +393,16 @@ Route::post('/checkout/confirm', function (Request $request) {
         }
         [$firstName, $lastName] = array_pad(explode(' ', trim($data['recipient_name']), 2), 2, '');
 
+        // Order_id ke Midtrans WAJIB unik per Snap session — kalau pakai
+        // invoice_number polos, sandbox bisa men-resolve ke transaksi lama
+        // (mis. setelah migrate:fresh) dan `Transaction::status()` mengembalikan
+        // status "settlement" dari sesi sebelumnya → halaman sukses keliru
+        // menandai order baru sebagai "Dibayar" padahal user belum bayar.
+        $mtOrderId = $order->invoice_number . '-' . time();
+
         $payload = [
             'transaction_details' => [
-                'order_id'     => $order->invoice_number,
+                'order_id'     => $mtOrderId,
                 'gross_amount' => (int) $total,
             ],
             'item_details'        => $itemDetails,
@@ -408,8 +423,9 @@ Route::post('/checkout/confirm', function (Request $request) {
             ],
         ];
 
-        $snapToken = \Midtrans\Snap::getSnapToken($payload);
-        $order->snap_token = $snapToken;
+        $snapToken               = \Midtrans\Snap::getSnapToken($payload);
+        $order->snap_token       = $snapToken;
+        $order->midtrans_order_id = $mtOrderId;
         $order->save();
     } catch (\Throwable $e) {
         Log::error('Midtrans snap token error', ['invoice' => $order->invoice_number, 'err' => $e->getMessage()]);
@@ -499,9 +515,10 @@ Route::post('/pesanan/{invoice}/midtrans/token', function (string $invoice) {
                 'name'     => \Illuminate\Support\Str::limit($it->product_name, 50, ''),
             ];
         }
+        $mtOrderId = $order->invoice_number . '-' . time();
         $payload = [
             'transaction_details' => [
-                'order_id'     => $order->invoice_number . '-' . time(),
+                'order_id'     => $mtOrderId,
                 'gross_amount' => (int) $order->total,
             ],
             'item_details'        => $itemDetails,
@@ -512,8 +529,9 @@ Route::post('/pesanan/{invoice}/midtrans/token', function (string $invoice) {
             'callbacks' => ['finish' => route('pesanan.sukses', $order->invoice_number)],
         ];
 
-        $snapToken = \Midtrans\Snap::getSnapToken($payload);
-        $order->snap_token = $snapToken;
+        $snapToken                = \Midtrans\Snap::getSnapToken($payload);
+        $order->snap_token        = $snapToken;
+        $order->midtrans_order_id = $mtOrderId;
         $order->save();
 
         return response()->json(['snap_token' => $snapToken]);
@@ -581,7 +599,7 @@ Route::post('/midtrans/notification', function (Request $request) {
 })->name('midtrans.notification');
 
 // Step 4: halaman sukses / invoice
-Route::get('/pesanan/{invoice}', function (string $invoice) {
+Route::get('/pesanan/{invoice}', function (string $invoice, Request $request) {
     $order = \App\Models\Order::with('items')->where('invoice_number', $invoice)->firstOrFail();
     // Simple access guard: user matches, OR admin
     $authUser = session('auth_user');
@@ -592,7 +610,13 @@ Route::get('/pesanan/{invoice}', function (string $invoice) {
 
     // Sinkronkan status dengan Midtrans — webhook bisa tidak sampai di lokal,
     // jadi saat user mendarat di halaman invoice, kita cek langsung ke API.
-    if ($order->payment_method === 'Midtrans' && $order->status === 'menunggu_bayar') {
+    //
+    // Skip kalau user baru saja menutup popup Snap (?cancelled=1 dari onClose JS):
+    // user belum bayar, dan kita tidak mau ambil resiko `Transaction::status()`
+    // mengembalikan data sesi sebelumnya yang nyangkut di sandbox.
+    $cancelled = $request->boolean('cancelled');
+
+    if ($order->payment_method === 'Midtrans' && $order->status === 'menunggu_bayar' && ! $cancelled) {
         try {
             \Midtrans\Config::$serverKey    = config('services.midtrans.server_key');
             \Midtrans\Config::$isProduction = config('services.midtrans.is_production');
@@ -604,7 +628,12 @@ Route::get('/pesanan/{invoice}', function (string $invoice) {
                 ];
             }
 
-            $status = \Midtrans\Transaction::status($order->invoice_number);
+            // Query Midtrans pakai order_id yang TEPAT dikirim saat membuat Snap
+            // token — fallback ke invoice_number untuk order legacy yang dibuat
+            // sebelum kolom midtrans_order_id diperkenalkan.
+            $idForStatus = $order->midtrans_order_id ?: $order->invoice_number;
+
+            $status = \Midtrans\Transaction::status($idForStatus);
             $status = is_object($status) ? (array) $status : (array) $status;
 
             $txStatus    = $status['transaction_status'] ?? null;
@@ -617,7 +646,15 @@ Route::get('/pesanan/{invoice}', function (string $invoice) {
                 $order->midtrans_payment_type       = $paymentType;
                 $order->midtrans_transaction_id     = $txId;
 
-                if (in_array($txStatus, ['capture', 'settlement']) && (! $fraud || $fraud === 'accept')) {
+                // Hanya tandai lunas pada kondisi pasti (Midtrans docs):
+                //  - settlement                 : final paid (semua channel)
+                //  - capture + fraud=accept     : credit card lolos fraud check
+                // Kondisi `capture` tanpa fraud_status='accept' (mis. fraud=null
+                // atau 'challenge') sengaja tidak di-paid otomatis.
+                $isPaid = $txStatus === 'settlement'
+                    || ($txStatus === 'capture' && $fraud === 'accept');
+
+                if ($isPaid) {
                     $order->status  = 'diproses';
                     $order->paid_at = $order->paid_at ?? now();
                 } elseif (in_array($txStatus, ['deny', 'cancel', 'expire'])) {
@@ -1574,6 +1611,79 @@ Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
         ]);
     })->name('user');
 
+    // ---- Admin User CRUD ----
+    Route::post('/user', function (Request $request) {
+        $data = $request->validate([
+            'name'     => 'required|string|min:2|max:60',
+            'email'    => 'required|email|max:120|unique:users,email',
+            'phone'    => 'nullable|string|max:30',
+            'password' => 'required|string|min:6',
+            'role'     => 'required|in:admin,staff,pelanggan',
+            'status'   => 'required|in:aktif,nonaktif',
+        ]);
+
+        User::create([
+            'name'     => $data['name'],
+            'email'    => $data['email'],
+            'phone'    => $data['phone'] ?? null,
+            'password' => Hash::make($data['password']),
+            'role'     => $data['role'],
+            'status'   => $data['status'],
+        ]);
+
+        return redirect()->route('admin.user')->with('status', 'User baru berhasil ditambahkan.');
+    })->name('user.store');
+
+    Route::put('/user/{user}', function (Request $request, User $user) {
+        $data = $request->validate([
+            'name'     => 'required|string|min:2|max:60',
+            'email'    => ['required', 'email', 'max:120', \Illuminate\Validation\Rule::unique('users', 'email')->ignore($user->id)],
+            'phone'    => 'nullable|string|max:30',
+            'password' => 'nullable|string|min:6',
+            'role'     => 'required|in:admin,staff,pelanggan',
+            'status'   => 'required|in:aktif,nonaktif',
+        ]);
+
+        // Cegah admin yang sedang login mengunci dirinya sendiri (demote/nonaktif).
+        $authUser = session('auth_user');
+        $isSelf   = $authUser && (int) $authUser['id'] === (int) $user->id;
+        if ($isSelf && ($data['role'] !== 'admin' || $data['status'] !== 'aktif')) {
+            return back()->withErrors([
+                'role' => 'Anda tidak dapat menurunkan peran/menonaktifkan akun sendiri yang sedang login.',
+            ])->withInput();
+        }
+
+        $user->name   = $data['name'];
+        $user->email  = $data['email'];
+        $user->phone  = $data['phone'] ?? null;
+        $user->role   = $data['role'];
+        $user->status = $data['status'];
+        if (! empty($data['password'])) {
+            $user->password = Hash::make($data['password']);
+        }
+        $user->save();
+
+        return redirect()->route('admin.user')->with('status', 'Data user "' . $user->name . '" berhasil diperbarui.');
+    })->name('user.update');
+
+    Route::delete('/user/{user}', function (User $user) {
+        // Tidak boleh hapus diri sendiri.
+        $authUser = session('auth_user');
+        if ($authUser && (int) $authUser['id'] === (int) $user->id) {
+            return back()->withErrors(['user' => 'Anda tidak dapat menghapus akun sendiri.']);
+        }
+        // Jaga-jaga: minimal harus tersisa 1 admin aktif setelah penghapusan.
+        if ($user->role === 'admin') {
+            $remainingAdmins = User::where('role', 'admin')->where('status', 'aktif')->where('id', '!=', $user->id)->count();
+            if ($remainingAdmins === 0) {
+                return back()->withErrors(['user' => 'Tidak dapat menghapus admin terakhir yang aktif.']);
+            }
+        }
+        $name = $user->name;
+        $user->delete();
+        return redirect()->route('admin.user')->with('status', 'User "' . $name . '" berhasil dihapus.');
+    })->name('user.destroy');
+
     Route::get('/cms', function () {
         return view('admin.cms', [
             'categories' => Category::withCount('products')->orderBy('sort_order')->get(),
@@ -1609,17 +1719,55 @@ Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
                 'shipping_outside_province_base_fee', 'shipping_outside_province_extra_fee',
             ],
             'footer'  => [
-                'footer_copyright', 'footer_newsletter_text', 'footer_topbar_promo',
+                // Topbar
+                'footer_topbar_promo',
+                // 3 kolom (judul + isi)
+                'footer_col1_title', 'footer_col1_links',
+                'footer_col2_title', 'footer_col2_links',
+                'footer_col3_title', 'footer_col3_text',
+                // Ikon pembayaran
+                'footer_show_payments', 'footer_payment_icons',
+                // Hak cipta
+                'footer_copyright',
             ],
         ];
         if (! isset($allowedKeys[$group])) {
             abort(404);
         }
 
-        $data = $request->only($allowedKeys[$group]);
+        // Field array di group footer — disimpan sebagai JSON string di site_settings.
+        $arrayKeys = [
+            'footer_col1_links'    => ['label', 'url'],
+            'footer_col2_links'    => ['label', 'url'],
+            'footer_payment_icons' => ['image_url', 'alt'],
+        ];
+        // Field checkbox di group footer — defaultkan ke '0' kalau tidak dikirim.
+        $checkboxKeys = ['footer_show_payments'];
+
         $pairs = [];
         foreach ($allowedKeys[$group] as $key) {
-            $pairs[$key] = $data[$key] ?? null;
+            if (isset($arrayKeys[$key])) {
+                $rows  = (array) $request->input($key, []);
+                $clean = [];
+                foreach ($rows as $row) {
+                    if (! is_array($row)) continue;
+                    $entry = [];
+                    foreach ($arrayKeys[$key] as $sub) {
+                        $entry[$sub] = trim((string) ($row[$sub] ?? ''));
+                    }
+                    // Buang baris kosong total (semua sub-field kosong).
+                    if (count(array_filter($entry, fn ($v) => $v !== '')) > 0) {
+                        $clean[] = $entry;
+                    }
+                }
+                $pairs[$key] = json_encode($clean, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                continue;
+            }
+            if (in_array($key, $checkboxKeys, true)) {
+                $pairs[$key] = $request->input($key) ? '1' : '0';
+                continue;
+            }
+            $pairs[$key] = $request->input($key);
         }
         SiteSetting::setMany($pairs);
 
