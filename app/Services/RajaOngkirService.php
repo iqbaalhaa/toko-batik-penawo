@@ -28,6 +28,9 @@ final class RajaOngkirService
     private int    $timeout;
     private int    $costTtl;
 
+    /** Penyebab kegagalan terakhir — diintip caller via lastErrorReason(). */
+    private ?string $lastErrorReason = null;
+
     public function __construct()
     {
         $cfg                   = (array) config('services.rajaongkir', []);
@@ -42,6 +45,25 @@ final class RajaOngkirService
     public function enabled(): bool
     {
         return $this->apiKey !== '';
+    }
+
+    /**
+     * Penyebab gagal terakhir. Berguna untuk surface pesan API ke UI alih-alih
+     * fallback diam-diam. Reset otomatis di awal tiap pemanggilan calculate*.
+     */
+    public function lastErrorReason(): ?string
+    {
+        return $this->lastErrorReason;
+    }
+
+    private function setError(string $reason): void
+    {
+        $this->lastErrorReason = $reason;
+    }
+
+    private function clearError(): void
+    {
+        $this->lastErrorReason = null;
     }
 
     /**
@@ -72,11 +94,21 @@ final class RajaOngkirService
         }
 
         // 2) Fallback ke pencarian berbasis nama via hierarki RajaOngkir.
-        return $this->resolveDistrictId(
+        $id = $this->resolveDistrictId(
             $address['province_name'] ?? null,
             $address['city_name']     ?? null,
             $address['district_name'] ?? null,
         );
+        if ($id === null && $this->lastErrorReason === null) {
+            // Bukan HTTP error — murni nama tidak cocok di katalog RajaOngkir.
+            $this->setError(sprintf(
+                'Wilayah "%s, %s, %s" tidak ditemukan di katalog RajaOngkir. Jalankan `php artisan rajaongkir:sync-wilayah --from-users` atau cek ejaan nama.',
+                $address['district_name'] ?? '?',
+                $address['city_name']     ?? '?',
+                $address['province_name'] ?? '?',
+            ));
+        }
+        return $id;
     }
 
     /**
@@ -100,6 +132,82 @@ final class RajaOngkirService
         if ($cityId === null) return null;
 
         return $this->findDistrictId($cityId, $districtName);
+    }
+
+    /**
+     * Hitung ongkir untuk pasangan ID kecamatan RajaOngkir + berat (gram).
+     * Mengembalikan SEMUA opsi layanan dari kurir yang dikonfigurasi, di-urut
+     * dari termurah ke termahal. Null bila API gagal / tidak ada layanan.
+     *
+     * Hasil di-cache (per origin/dest/weight/courier-list).
+     *
+     * @return list<array{name:string,code:string,service:string,description:string,cost:int,etd:string}>|null
+     */
+    public function calculateAll(int $originDistrictId, int $destDistrictId, int $weightGrams, ?string $couriers = null): ?array
+    {
+        $this->clearError();
+        $couriers    = $couriers !== null && $couriers !== '' ? $couriers : $this->defaultCouriers;
+        $weightGrams = max(1, $weightGrams);
+
+        $cacheKey = sprintf(
+            'rajaongkir:cost-all:%d:%d:%d:%s',
+            $originDistrictId,
+            $destDistrictId,
+            $weightGrams,
+            md5($couriers),
+        );
+
+        // Note: pakai Cache::get + manual put → kegagalan TIDAK di-cache. Kalau pakai
+        // Cache::remember dan callback return null, Laravel tetap cache null tsb,
+        // sehingga error sementara ngendap di TTL panjang.
+        try {
+            $cached = Cache::get($cacheKey);
+            if (is_array($cached)) return $cached;
+        } catch (\Throwable $e) {
+            // Cache tidak tersedia → langsung hit API.
+        }
+
+        try {
+            $resp = $this->postForm('/calculate/district/domestic-cost', [
+                'origin'      => (string) $originDistrictId,
+                'destination' => (string) $destDistrictId,
+                'weight'      => (string) $weightGrams,
+                'courier'     => $couriers,
+                'price'       => 'lowest',
+            ]);
+            if ($resp === null) {
+                // setError() sudah di-set di postForm() saat HTTP gagal.
+                return null;
+            }
+
+            $rows    = (array) ($resp['data'] ?? []);
+            $options = [];
+            foreach ($rows as $row) {
+                if (! isset($row['cost'])) continue;
+                $cost = (int) $row['cost'];
+                if ($cost <= 0) continue;
+                $options[] = [
+                    'name'        => (string) ($row['name']        ?? ''),
+                    'code'        => (string) ($row['code']        ?? ''),
+                    'service'     => (string) ($row['service']     ?? ''),
+                    'description' => (string) ($row['description'] ?? ''),
+                    'cost'        => $cost,
+                    'etd'         => (string) ($row['etd']         ?? ''),
+                ];
+            }
+            if (empty($options)) {
+                $this->setError('RajaOngkir tidak menemukan layanan kurir untuk rute ini.');
+                return null;
+            }
+            usort($options, fn ($a, $b) => $a['cost'] <=> $b['cost']);
+
+            try { Cache::put($cacheKey, $options, $this->costTtl); } catch (\Throwable $e) { /* cache tidak siap */ }
+            return $options;
+        } catch (\Throwable $e) {
+            $this->setError('Exception: ' . $e->getMessage());
+            Log::warning('RajaOngkir calculateAll failed', ['error' => $e->getMessage()]);
+            return null;
+        }
     }
 
     /**
@@ -276,6 +384,7 @@ final class RajaOngkirService
             ->get($this->baseUrl . $path);
 
         if (! $resp->ok()) {
+            $this->setError('HTTP ' . $resp->status() . ' dari RajaOngkir saat GET ' . $path);
             Log::warning('RajaOngkir GET failed', ['path' => $path, 'status' => $resp->status()]);
             return null;
         }
@@ -290,6 +399,12 @@ final class RajaOngkirService
             ->post($this->baseUrl . $path, $body);
 
         if (! $resp->ok()) {
+            // Coba ekstrak message dari body Komerce: {"meta":{"message":"...","code":...}}.
+            $body = $resp->json();
+            $apiMsg = is_array($body) ? ($body['meta']['message'] ?? null) : null;
+            $reason = 'HTTP ' . $resp->status();
+            if ($apiMsg) $reason .= ' — ' . $apiMsg;
+            $this->setError($reason);
             Log::warning('RajaOngkir POST failed', ['path' => $path, 'status' => $resp->status(), 'body' => $resp->body()]);
             return null;
         }

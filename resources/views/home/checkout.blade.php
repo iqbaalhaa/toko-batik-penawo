@@ -35,6 +35,46 @@
 		background:#fbe4df; border:1px solid #f2c6be; color:#a5432f;
 		padding:8px 10px; border-radius:4px; font-size:12.5px; margin-top:6px;
 	}
+
+	/* Picker kurir per toko */
+	.ship-picker-label { font-size:12.5px; font-weight:600; color:#4d4640; margin:10px 0 8px; display:flex; align-items:center; gap:6px; }
+	.ship-picker {
+		display: grid; grid-template-columns: 1fr; gap: 8px;
+		margin-bottom: 10px;
+	}
+	@media (min-width: 540px) {
+		.ship-picker { grid-template-columns: 1fr 1fr; }
+	}
+	.ship-option {
+		display: flex; flex-direction: column; gap: 4px;
+		padding: 10px 12px;
+		background: #fff;
+		border: 1px solid #e0dbcf; border-radius: 4px;
+		text-decoration: none; color: #4d4640;
+		transition: border-color .15s, background .15s, box-shadow .15s;
+		cursor: pointer;
+	}
+	.ship-option:hover { border-color: #c29e5c; text-decoration: none; color: #4d4640; }
+	.ship-option.is-active {
+		border-color: #c29e5c; background: #faf6ed;
+		box-shadow: 0 0 0 3px rgba(194,158,92,.12);
+	}
+	.ship-option-head {
+		display: flex; gap: 6px; align-items: baseline;
+		font-size: 13px;
+	}
+	.ship-option-courier { font-weight: 600; color: #2d2a26; }
+	.ship-option-service {
+		font-size: 11px; padding: 2px 8px;
+		background: #f5ecd7; color: #8a6b2b;
+		border-radius: 999px; letter-spacing: .3px;
+	}
+	.ship-option-meta {
+		font-size: 11.5px; color: #9a9288;
+		display: flex; gap: 8px; align-items: center;
+	}
+	.ship-option-etd { display:inline-flex; align-items:center; gap:4px; }
+	.ship-option-price { font-size: 13.5px; font-weight: 600; color: #c29e5c; margin-top: 2px; }
 	.checkout-label { display: block; font-size: 13px; font-weight: 500; color: #4d4640; margin-bottom: 6px; }
 	.checkout-input, .checkout-textarea {
 		width: 100%;
@@ -229,7 +269,20 @@
 							@endif
 
 							@foreach($summary['stores'] as $store)
-								@php $sh = $store['shipping']; @endphp
+								@php
+									$sh = $store['shipping'];
+									$storeId = (string) $store['store_id'];
+									// Builder URL untuk ganti opsi pengiriman toko ini sambil
+									// mempertahankan pilihan toko-toko lain (multi-store ready).
+									$buildShippingUrl = function (string $optCode) use ($storeId, $shippingSelections, $selectedAddress) {
+										$sel = $shippingSelections;
+										$sel[$storeId] = $optCode;
+										return route('checkout.show', [
+											'address_id' => $selectedAddress->id,
+											'shipping'   => $sel,
+										]);
+									};
+								@endphp
 								<div class="store-block">
 									<div class="store-name">
 										<i class="fa fa-shopping-bag" style="color:#c29e5c;"></i>
@@ -262,27 +315,68 @@
 										@endforeach
 									</ul>
 
+									{{-- Picker kurir + service per toko. Klik kartu → reload halaman
+									     dengan ?shipping[{storeId}]=courier:service. Pilihan terkirim
+									     juga via hidden input saat form di-submit. --}}
+									@if($sh['available'] && ! empty($sh['options']))
+										<div class="ship-picker-label">
+											<i class="fa fa-truck" style="color:#c29e5c;"></i> Pilih Kurir &amp; Layanan
+										</div>
+										<div class="ship-picker">
+											@foreach($sh['options'] as $opt)
+												@php $isActive = ($opt['code'] === ($sh['option_code'] ?? null)); @endphp
+												<a href="{{ $buildShippingUrl($opt['code']) }}"
+													class="ship-option {{ $isActive ? 'is-active' : '' }}">
+													<div class="ship-option-head">
+														<span class="ship-option-courier">{{ $opt['courier_name'] ?: 'Kurir' }}</span>
+														<span class="ship-option-service">{{ $opt['service_name'] ?: '—' }}</span>
+													</div>
+													<div class="ship-option-meta">
+														{{ $opt['service_desc'] ?: '—' }}
+														@if(! empty($opt['etd']))
+															<span class="ship-option-etd"><i class="fa fa-clock-o"></i> {{ $opt['etd'] }}</span>
+														@endif
+													</div>
+													<div class="ship-option-price">
+														{{ $rupiah($opt['cost']) }}
+														@if($isActive)<i class="fa fa-check-circle" style="color:#2f7a4c; margin-left:6px;"></i>@endif
+													</div>
+												</a>
+											@endforeach
+										</div>
+										{{-- Forward selection ke form submit checkout.confirm. --}}
+										<input type="hidden" form="checkoutForm" name="shipping[{{ $storeId }}]" value="{{ $sh['option_code'] }}">
+									@endif
+
 									<div class="store-shipping-row">
 										<span>Subtotal toko</span>
 										<strong>{{ $rupiah($store['subtotal']) }}</strong>
 									</div>
 									<div class="store-shipping-row">
 										<span>
-											Ongkir
-											@if($sh['available'])
-												@if(($sh['source'] ?? 'local') === 'rajaongkir')
-													<small style="color:#9a9288;">
-														({{ $sh['courier_name'] ?: 'Kurir' }} · {{ $sh['service_name'] ?: '—' }}@if(! empty($sh['etd'])), estimasi {{ $sh['etd'] }}@endif)
-													</small>
-												@else
-													<small style="color:#9a9288;">({{ $rupiah($sh['base_fee']) }} dasar {{ $sh['base_weight_kg'] }} kg + {{ $rupiah($sh['extra_fee_per_kg']) }}/kg)</small>
-												@endif
+											Ongkir terpilih
+											@if($sh['available'] && ($sh['source'] ?? 'local') === 'rajaongkir')
+												<small style="color:#9a9288;">
+													({{ $sh['courier_name'] ?: 'Kurir' }} · {{ $sh['service_name'] ?: '—' }}@if(! empty($sh['etd'])), estimasi {{ $sh['etd'] }}@endif)
+												</small>
+											@elseif($sh['available'])
+												<small style="color:#9a9288;">({{ $rupiah($sh['base_fee']) }} dasar {{ $sh['base_weight_kg'] }} kg + {{ $rupiah($sh['extra_fee_per_kg']) }}/kg)</small>
 											@endif
 										</span>
 										<strong>{{ $sh['available'] ? $rupiah($sh['shipping_cost']) : '—' }}</strong>
 									</div>
 									@if(! $sh['available'])
-										<div class="store-error"><i class="fa fa-exclamation-circle"></i> {{ $sh['message'] }}</div>
+										<div class="store-error">
+											<i class="fa fa-exclamation-circle"></i>
+											{{ $sh['message'] }}
+											@if(! empty($sh['debug_reason']) && (($authUser['role'] ?? null) === 'admin' || config('app.debug')))
+												{{-- Detail teknis hanya untuk admin atau saat APP_DEBUG=true. --}}
+												<details style="margin-top:6px; font-size:11px; color:#9a9288;">
+													<summary style="cursor:pointer;">Detail teknis (admin)</summary>
+													<code style="display:block; margin-top:4px; padding:6px 8px; background:#faf7ef; border-radius:3px; word-break:break-word;">{{ $sh['debug_reason'] }}</code>
+												</details>
+											@endif
+										</div>
 									@endif
 								</div>
 							@endforeach

@@ -180,17 +180,25 @@ Route::get('/checkout', function () {
         ?? $user->defaultAddress()
         ?? $addresses->first();
 
+    // Selection kurir per toko (mis. ?shipping[default]=jne:REG). Default kosong
+    // → calculator pilih opsi termurah otomatis.
+    $shippingSelections = collect((array) request()->input('shipping', []))
+        ->filter(fn ($v) => is_string($v) && $v !== '' && strlen($v) <= 64)
+        ->all();
+
     $shippingSvc     = new \App\Services\CheckoutShippingService();
     $summary         = $shippingSvc->summary(
         $lines,
         $selectedAddress->toShippingPayload(),
+        $shippingSelections,
     );
 
     return view('home.checkout', [
-        'summary'           => $summary,
-        'user'              => $user,
-        'addresses'         => $addresses,
-        'selectedAddress'   => $selectedAddress,
+        'summary'             => $summary,
+        'user'                => $user,
+        'addresses'           => $addresses,
+        'selectedAddress'     => $selectedAddress,
+        'shippingSelections'  => $shippingSelections,
     ]);
 })->name('checkout.show');
 
@@ -208,6 +216,11 @@ Route::post('/checkout/confirm', function (Request $request) {
         // Alamat hanya wajib untuk pengiriman (Midtrans). Untuk COD jemput, opsional.
         'address_id'      => 'required_if:payment_method,Midtrans|nullable|integer|exists:addresses,id',
         'note'            => 'nullable|string|max:300',
+        // Opsi kurir per toko (mis. shipping[default]=jne:REG). Server otoritatif
+        // — calculator akan tolak kode yang tidak cocok dengan opsi tersedia
+        // dan fallback ke termurah.
+        'shipping'        => 'nullable|array',
+        'shipping.*'      => 'nullable|string|max:64',
     ]);
 
     $isPickup = $data['payment_method'] === 'COD';
@@ -272,8 +285,12 @@ Route::post('/checkout/confirm', function (Request $request) {
         $shippingBreakdown = [];
         $shippingAddrText = 'JEMPUT DI TOKO BATIK PENAWO';
     } else {
+        $shippingSelections = array_filter(
+            (array) ($data['shipping'] ?? []),
+            fn ($v) => is_string($v) && $v !== '',
+        );
         $shippingSvc = new \App\Services\CheckoutShippingService();
-        $summary     = $shippingSvc->summary($lines, $address->toShippingPayload());
+        $summary     = $shippingSvc->summary($lines, $address->toShippingPayload(), $shippingSelections);
 
         if (! $summary['all_available']) {
             $message = 'Checkout tidak dapat dilanjutkan: ' . implode(' | ', $summary['errors']);

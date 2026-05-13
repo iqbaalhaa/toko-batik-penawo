@@ -23,8 +23,11 @@ class CheckoutShippingService
     /**
      * @param  array<int,array{product:Product,qty:int,unit_price:int,name?:string,size?:?string,color?:?string,image_url?:?string,cart_key?:string}>  $lines
      * @param  array|null  $buyerAddress  Hasil User::shippingAddress(); null jika belum dipilih.
+     * @param  array<string,string>  $selections  Map store_id → kode opsi kurir
+     *                                            (mis. ['default' => 'jne:REG']).
+     *                                            Kalau kosong, otomatis pilih termurah.
      */
-    public function summary(array $lines, ?array $buyerAddress): array
+    public function summary(array $lines, ?array $buyerAddress, array $selections = []): array
     {
         $errors = [];
 
@@ -83,10 +86,17 @@ class CheckoutShippingService
         $storesOut        = [];
 
         foreach ($stores as $store) {
+            $storeKey = (string) $store['store_id'];
+            // Selection bisa diberikan via query (?shipping[storeId]=jne:REG) atau
+            // hidden input di form checkout. Kalau tidak ada, calculator otomatis
+            // pilih opsi termurah.
+            $selectedCode = $selections[$storeKey] ?? null;
+
             $shipping = ShippingCalculator::calculate(
                 $store['store_address'],
                 $buyerAddress ?? [],
                 $store['total_weight_kg'],
+                $selectedCode,
             );
 
             if (! $shipping['available']) {

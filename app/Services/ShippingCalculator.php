@@ -97,7 +97,7 @@ final class ShippingCalculator
      * @param  array  $buyerAddress  Wilayah pembeli: minimal province_id, city_id, district_id (+ *_name untuk RajaOngkir).
      * @param  float  $totalWeightKg Total berat barang dalam kg (boleh desimal — akan dibulatkan ke atas).
      */
-    public static function calculate(array $storeAddress, array $buyerAddress, float $totalWeightKg): array
+    public static function calculate(array $storeAddress, array $buyerAddress, float $totalWeightKg, ?string $selectedOptionCode = null): array
     {
         $baseKg = self::baseWeightKg();
         $zones  = self::zones();
@@ -124,17 +124,41 @@ final class ShippingCalculator
         $weightGrams = (int) ceil($weightKgRaw * 1000); // gram presisi untuk RajaOngkir
         $weightKg    = (int) ceil($weightKgRaw);        // kg utuh untuk kalkulator lokal
 
-        // 3) Tentukan zona secara hierarkis (untuk label & fallback).
+        // 3) Tentukan zona secara hierarkis (untuk label & — bila API tidak aktif — fallback).
         $zone   = self::resolveZone($storeAddress, $buyerAddress);
         $tariff = $zones[$zone];
 
-        // 4) Coba RajaOngkir lebih dulu — tarif berbasis jarak dari kurir riil.
-        $api = self::tryRajaOngkir($storeAddress, $buyerAddress, $weightKgRaw, $weightGrams, $zone, $tariff, $baseKg);
-        if ($api !== null) {
-            return $api;
+        // 4) Coba RajaOngkir — pakai satu instance agar `lastErrorReason()` bisa
+        //    diintip kalau gagal. Konstruksi service dibungkus try/catch supaya
+        //    test PHPUnit (tanpa container Laravel) tidak meledak; itu memang
+        //    skenario "API tidak tersedia" → lanjut ke fallback lokal di bawah.
+        $svc = null;
+        try { $svc = new RajaOngkirService(); } catch (\Throwable $e) { /* container tidak siap */ }
+
+        if ($svc !== null && $svc->enabled()) {
+            $api = self::tryRajaOngkir(
+                $svc, $storeAddress, $buyerAddress, $weightKgRaw, $weightGrams,
+                $zone, $tariff, $baseKg, $selectedOptionCode,
+            );
+            if ($api !== null) {
+                return $api;
+            }
+            // API enabled tapi gagal → JANGAN fallback diam-diam ke tarif lokal.
+            // - Pesan untuk PELANGGAN: generik & sopan.
+            // - Pesan teknis (HTTP code / mapping fail / dsb.) tetap masuk Log + di
+            //   field `debug_reason` yang hanya dirender untuk admin / debug mode.
+            $debug = $svc->lastErrorReason() ?: 'API RajaOngkir tidak merespons.';
+            $fail  = self::failure(
+                $zone, $weightKg, $baseKg, $zones,
+                'Ongkir untuk alamat ini sedang tidak tersedia. Silakan coba beberapa saat lagi atau hubungi penjual.',
+            );
+            $fail['debug_reason'] = $debug;
+            return $fail;
         }
 
-        // 5) Fallback kalkulator zona lokal: base_fee + kelebihan kg × extra_fee_per_kg.
+        // 5) API tidak dikonfigurasi (RAJAONGKIR_API_KEY kosong) ATAU container
+        //    Laravel tidak tersedia (test PHPUnit) → fallback ke kalkulator zona
+        //    lokal. Ini cuma path test/dev tanpa API key.
         $extraKg      = max(0, $weightKg - $baseKg);
         $shippingCost = $tariff['base_fee'] + $extraKg * $tariff['extra_fee_per_kg'];
 
@@ -153,6 +177,18 @@ final class ShippingCalculator
             'service_name'     => null,
             'service_desc'     => null,
             'etd'              => null,
+            // Untuk fallback lokal hanya ada satu opsi (tarif zona) — diisi sebagai
+            // daftar 1-elemen agar view picker bisa render seragam.
+            'options'          => [[
+                'code'         => 'local:' . $zone,
+                'courier_code' => 'local',
+                'courier_name' => 'Tarif Toko',
+                'service_name' => $tariff['label'],
+                'service_desc' => 'Tarif zona internal (fallback)',
+                'cost'         => $shippingCost,
+                'etd'          => '',
+            ]],
+            'option_code'      => 'local:' . $zone,
             'message'          => sprintf(
                 'Ongkir %s: %d kg × tarif %s.',
                 $tariff['label'],
@@ -170,21 +206,49 @@ final class ShippingCalculator
      * menentukan tier pembulatan per kurir (mis. JNT EZ menaikkan tier setiap
      * tambahan 1000 g, tidak per fraksi kg).
      */
-    private static function tryRajaOngkir(array $store, array $buyer, float $weightKgRaw, int $weightGrams, string $zone, array $tariff, int $baseKg): ?array
+    private static function tryRajaOngkir(RajaOngkirService $svc, array $store, array $buyer, float $weightKgRaw, int $weightGrams, string $zone, array $tariff, int $baseKg, ?string $selectedOptionCode = null): ?array
     {
         try {
-            $svc = new RajaOngkirService();
-            if (! $svc->enabled()) return null;
-
             // Pakai resolver berbasis payload alamat lengkap — DB-first lookup
             // via kolom `districts.rajaongkir_id` (kalau sudah di-sync via
             // `rajaongkir:sync-wilayah`), fallback ke pencarian berbasis nama.
+            // lastErrorReason() di service otomatis terisi kalau resolve gagal —
+            // caller (calculate) yang akan menampilkannya ke user. Kita cukup
+            // bail out sini.
             $originId = $svc->resolveDistrictIdFromAddress($store);
-            $destId   = $svc->resolveDistrictIdFromAddress($buyer);
-            if ($originId === null || $destId === null) return null;
+            if ($originId === null) return null;
+            $destId = $svc->resolveDistrictIdFromAddress($buyer);
+            if ($destId === null) return null;
 
-            $best = $svc->calculate($originId, $destId, $weightGrams);
-            if ($best === null) return null;
+            // Ambil SEMUA opsi (sudah di-sort termurah dulu di service).
+            $allOptions = $svc->calculateAll($originId, $destId, $weightGrams);
+            if (empty($allOptions)) return null;
+
+            // Build daftar opsi untuk picker — kode unik per opsi = "<courier>:<service>".
+            $options = [];
+            foreach ($allOptions as $opt) {
+                $code = self::optionCode((string) $opt['code'], (string) $opt['service']);
+                $options[] = [
+                    'code'         => $code,
+                    'courier_code' => (string) $opt['code'],
+                    'courier_name' => (string) $opt['name'],
+                    'service_name' => (string) $opt['service'],
+                    'service_desc' => (string) $opt['description'],
+                    'cost'         => (int)    $opt['cost'],
+                    'etd'          => (string) $opt['etd'],
+                ];
+            }
+
+            // Pilih opsi: prioritas kode dari user, fallback termurah (index 0).
+            $picked = $options[0];
+            if ($selectedOptionCode) {
+                foreach ($options as $opt) {
+                    if (strcasecmp($opt['code'], $selectedOptionCode) === 0) {
+                        $picked = $opt;
+                        break;
+                    }
+                }
+            }
 
             // Bulatkan berat tampilan ke 2 desimal — bisa decimal (mis. 1.5 kg)
             // saat barang di bawah 1 kg utuh; angka biaya datang utuh dari API.
@@ -196,30 +260,38 @@ final class ShippingCalculator
                 'zone'             => $zone,
                 'zone_label'       => $tariff['label'],
                 // Field tarif zona dipertahankan untuk kompat — tidak relevan via API.
-                'base_fee'         => (int) $best['cost'],
+                'base_fee'         => $picked['cost'],
                 'base_weight_kg'   => $baseKg,
                 'extra_fee_per_kg' => 0,
                 'total_weight_kg'  => $displayWeight,
                 'weight_grams'     => $weightGrams,
-                'shipping_cost'    => (int) $best['cost'],
-                'courier_code'     => $best['code']        ?: null,
-                'courier_name'     => $best['name']        ?: null,
-                'service_name'     => $best['service']     ?: null,
-                'service_desc'     => $best['description'] ?: null,
-                'etd'              => $best['etd']         ?: null,
+                'shipping_cost'    => $picked['cost'],
+                'courier_code'     => $picked['courier_code'] ?: null,
+                'courier_name'     => $picked['courier_name'] ?: null,
+                'service_name'     => $picked['service_name'] ?: null,
+                'service_desc'     => $picked['service_desc'] ?: null,
+                'etd'              => $picked['etd']          ?: null,
+                'options'          => $options,
+                'option_code'      => $picked['code'],
                 'message'          => sprintf(
                     'Ongkir %s · %s untuk %s g: %s%s.',
-                    $best['name'] !== '' ? $best['name'] : 'Kurir',
-                    $best['service'] !== '' ? $best['service'] : '-',
+                    $picked['courier_name'] !== '' ? $picked['courier_name'] : 'Kurir',
+                    $picked['service_name']  !== '' ? $picked['service_name']  : '-',
                     number_format($weightGrams, 0, ',', '.'),
-                    self::formatRupiah((int) $best['cost']),
-                    $best['etd'] !== '' ? ' (estimasi ' . $best['etd'] . ')' : '',
+                    self::formatRupiah($picked['cost']),
+                    $picked['etd'] !== '' ? ' (estimasi ' . $picked['etd'] . ')' : '',
                 ),
             ];
         } catch (\Throwable $e) {
             // Container/Cache/Http tidak tersedia (mis. unit test) → fallback lokal.
             return null;
         }
+    }
+
+    /** Format kode opsi seragam: "<courier_lower>:<service_upper>". */
+    public static function optionCode(string $courier, string $service): string
+    {
+        return strtolower(trim($courier)) . ':' . strtoupper(trim($service));
     }
 
     private static function hasRegion(array $address): bool
@@ -265,6 +337,8 @@ final class ShippingCalculator
             'service_name'     => null,
             'service_desc'     => null,
             'etd'              => null,
+            'options'          => [],
+            'option_code'      => null,
             'message'          => $message,
         ];
     }

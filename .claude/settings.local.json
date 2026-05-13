@@ -177,7 +177,8 @@
       "WebFetch(domain:rajaongkir.komerce.id)",
       "Bash(php smoke_footer_cms.php)",
       "Bash(php smoke_user_crud.php)",
-      "Bash(php -r ' *)"
+      "Bash(php -r ' *)",
+      "Bash(php smoke_picker.php)"
     ]
   }
 }
