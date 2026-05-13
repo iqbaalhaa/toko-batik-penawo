@@ -253,67 +253,18 @@
 				</div>
 			</div>
 
-			<div class="admin-card">
-				<div class="admin-card-header">
-					<div>
-						<h3 class="admin-card-title">Tarif Ongkos Kirim per Zona</h3>
-						<div class="admin-card-sub">Ubah tarif di sini — perubahan langsung dipakai saat checkout berikutnya. Zona ditentukan otomatis dari perbandingan provinsi/kabupaten/kecamatan.</div>
+			<div class="admin-card" style="background:#faf7ef; border-color:#e4d5aa;">
+				<div style="display:flex; gap:12px; align-items:flex-start;">
+					<i class="fa fa-bolt" style="color:#c29e5c; font-size:18px; margin-top:2px;"></i>
+					<div style="font-size:13px; color:#6c665e; line-height:1.6;">
+						<strong style="color:#8a6b2b;">Tarif ongkir dihitung otomatis oleh RajaOngkir.</strong><br>
+						Alamat toko di atas dipakai sebagai titik asal pengiriman. Tarif & estimasi waktu kirim diambil real-time dari kurir (JNE/JNT/POS) berdasarkan jarak ke alamat pembeli, jadi tidak perlu mengatur zona/tarif manual lagi.
 					</div>
 				</div>
+			</div>
 
-				@php
-					$zoneCfg     = \App\Services\ShippingCalculator::zones();
-					$baseWeight  = \App\Services\ShippingCalculator::baseWeightKg();
-					$defaultZone = \App\Services\ShippingCalculator::DEFAULT_ZONES;
-				@endphp
-
-				<div style="margin-bottom:18px;">
-					<label class="form-label-admin">Berat Dasar (kg) <span style="color:#a5432f;">*</span></label>
-					<input type="number" name="shipping_base_weight_kg" class="form-control-admin" min="1" max="50" required
-						value="{{ $setting('shipping_base_weight_kg', $baseWeight) }}" style="max-width:200px;">
-					<div style="font-size:11.5px; color:#9a9288; margin-top:4px;">
-						Berat di bawah / sama dengan ini hanya dikenai tarif dasar. Lebih dari ini, kelebihannya dikalikan tarif tambahan.
-					</div>
-				</div>
-
-				<table class="admin-table" style="margin-top:0;">
-					<thead>
-						<tr>
-							<th style="width:30%;">Zona</th>
-							<th>Tarif Dasar (Rp)</th>
-							<th>Tarif Tambahan / kg (Rp)</th>
-						</tr>
-					</thead>
-					<tbody>
-						@foreach($zoneCfg as $zoneKey => $cfg)
-						<tr>
-							<td><strong>{{ $cfg['label'] }}</strong></td>
-							<td>
-								<input type="number" name="shipping_{{ $zoneKey }}_base_fee" class="form-control-admin"
-									min="0" step="500" required
-									value="{{ $setting('shipping_'.$zoneKey.'_base_fee', $cfg['base_fee']) }}"
-									style="max-width:180px;">
-								<div style="font-size:10.5px; color:#9a9288; margin-top:2px;">default: {{ $rupiah($defaultZone[$zoneKey]['base_fee']) }}</div>
-							</td>
-							<td>
-								<input type="number" name="shipping_{{ $zoneKey }}_extra_fee" class="form-control-admin"
-									min="0" step="500" required
-									value="{{ $setting('shipping_'.$zoneKey.'_extra_fee', $cfg['extra_fee_per_kg']) }}"
-									style="max-width:180px;">
-								<div style="font-size:10.5px; color:#9a9288; margin-top:2px;">default: {{ $rupiah($defaultZone[$zoneKey]['extra_fee_per_kg']) }}</div>
-							</td>
-						</tr>
-						@endforeach
-					</tbody>
-				</table>
-
-				<div style="font-size:12px; color:#9a9288; padding:10px 12px; background:#faf7ef; border-radius:4px; margin-top:14px;">
-					<i class="fa fa-info-circle"></i> Rumus: <code>shipping_cost = base_fee + max(0, total_weight_kg - base_weight) × extra_fee</code>. Total berat dibulatkan ke atas (ceil) sebelum dihitung.
-				</div>
-
-				<div style="padding-top:14px; border-top:1px solid #f2efe7; margin-top:14px;">
-					<button type="submit" class="btn-admin"><i class="fa fa-floppy-o"></i> Simpan Pengaturan Pengiriman</button>
-				</div>
+			<div style="padding-top:14px;">
+				<button type="submit" class="btn-admin"><i class="fa fa-floppy-o"></i> Simpan Alamat Toko</button>
 			</div>
 		</form>
 	</div>

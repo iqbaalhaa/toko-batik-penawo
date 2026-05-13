@@ -803,14 +803,12 @@ Route::prefix('akun')->name('akun.')->group(function () {
             'name'        => 'required|string|min:2|max:60',
             'email'       => 'required|email|unique:users,email,' . $user->id,
             'phone'       => 'nullable|string|max:25',
-            'birth_date'  => 'nullable|date|before:today',
             'gender'      => 'nullable|in:pria,wanita',
         ]);
 
         $user->name        = $data['name'];
         $user->email       = $data['email'];
         $user->phone       = $data['phone']       ?? null;
-        $user->birth_date  = $data['birth_date']  ?? null;
         $user->gender      = $data['gender']      ?? null;
 
         if (! empty($data['new_password'])) {
@@ -1724,21 +1722,14 @@ Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
                 'contact_hours', 'contact_maps_embed',
                 'social_facebook', 'social_instagram', 'social_pinterest', 'social_youtube',
             ],
-            // Alamat toko terstruktur + tarif ongkir per zona — dipakai oleh
-            // kalkulator ongkir. Disimpan di group sendiri agar dapat diakses
-            // dari halaman/admin terpisah.
+            // Alamat toko terstruktur — dipakai sebagai titik asal RajaOngkir.
+            // Tarif ongkir TIDAK lagi diatur di sini (sebelumnya zona-based);
+            // sekarang dihitung otomatis lewat RajaOngkirService.
             'pengiriman' => [
-                // Alamat toko
                 'store_province_id', 'store_province_name',
                 'store_city_id', 'store_city_name',
                 'store_district_id', 'store_district_name',
                 'store_full_address',
-                // Tarif ongkir (override default ShippingCalculator)
-                'shipping_base_weight_kg',
-                'shipping_same_district_base_fee',    'shipping_same_district_extra_fee',
-                'shipping_same_city_base_fee',        'shipping_same_city_extra_fee',
-                'shipping_same_province_base_fee',    'shipping_same_province_extra_fee',
-                'shipping_outside_province_base_fee', 'shipping_outside_province_extra_fee',
             ],
             'footer'  => [
                 // Topbar

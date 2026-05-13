@@ -162,10 +162,6 @@
 
 							<div class="row">
 								<div class="col-md-6" style="margin-bottom:14px;">
-									<label class="akun-label">Tanggal Lahir</label>
-									<input type="date" name="birth_date" class="akun-input" value="{{ old('birth_date', optional($user->birth_date)->format('Y-m-d')) }}">
-								</div>
-								<div class="col-md-6" style="margin-bottom:14px;">
 									<label class="akun-label">Jenis Kelamin</label>
 									<select name="gender" class="akun-input">
 										<option value="">— Tidak ingin menyebutkan —</option>

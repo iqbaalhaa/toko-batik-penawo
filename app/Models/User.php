@@ -29,7 +29,6 @@ class User extends Authenticatable
         'city',
         'province',
         'postal_code',
-        'birth_date',
         'gender',
         // Wilayah administratif (untuk perhitungan ongkir)
         'province_id',
@@ -114,7 +113,6 @@ class User extends Authenticatable
         return [
             'email_verified_at'    => 'datetime',
             'password'             => 'hashed',
-            'birth_date'           => 'date',
             'notify_order_updates' => 'boolean',
             'notify_promo'         => 'boolean',
         ];
