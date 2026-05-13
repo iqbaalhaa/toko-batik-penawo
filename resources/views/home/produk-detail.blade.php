@@ -2,6 +2,30 @@
 
 @section('title', 'Batik Penawo | '.$product->name)
 
+@push('styles')
+<style>
+	/* Galeri detail produk: tinggi slide tetap (rasio 4:5 portrait) supaya
+	   layout tidak ikut tinggi gambar aslinya. Gambar pakai object-fit contain
+	   agar foto utuh terlihat (tidak ke-crop) — beda dari grid kartu yang cover. */
+	.sec-product-detail .wrap-pic-w {
+		aspect-ratio: 4 / 5;
+		width: 100%;
+		background: #faf7ef;
+		display: flex; align-items: center; justify-content: center;
+		overflow: hidden;
+	}
+	.sec-product-detail .wrap-pic-w > img {
+		width: 100%; height: 100%;
+		object-fit: contain; object-position: center;
+		display: block;
+	}
+	@supports not (aspect-ratio: 4 / 5) {
+		.sec-product-detail .wrap-pic-w { padding-top: 125%; height: 0; position: relative; }
+		.sec-product-detail .wrap-pic-w > img { position: absolute; inset: 0; }
+	}
+</style>
+@endpush
+
 @php
 	// Pakai semua foto produk; jika hanya satu, lengkapi dengan gambar template agar slider tidak kosong.
 	$gallery = $product->image_urls;

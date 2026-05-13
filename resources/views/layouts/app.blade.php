@@ -232,6 +232,36 @@
 		.topbar-global .topbar-sep { color: #4a4a4a; padding: 0 2px; user-select: none; }
 		.topbar-global form.topbar-logout { margin: 0; padding: 0; display: inline-flex; }
 		@media (max-width: 768px) { .topbar-global .topbar-left { display: none; } }
+
+		/* Quick View — galeri (gambar utama + strip thumbnail). Lebar gambar utama
+		   di-cap agar tidak melar mengisi seluruh kolom modal. */
+		.qv-gallery { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+		.qv-main {
+			aspect-ratio: 4 / 5;
+			width: 100%; max-width: 320px;
+			background: #faf7ef; border-radius: 4px; overflow: hidden;
+			display: flex; align-items: center; justify-content: center;
+		}
+		.qv-main > img { width: 100%; height: 100%; object-fit: contain; object-position: center; display: block; }
+		@supports not (aspect-ratio: 4 / 5) {
+			.qv-main { padding-top: 125%; height: 0; position: relative; }
+			.qv-main > img { position: absolute; inset: 0; }
+		}
+		.qv-thumbs {
+			display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;
+			max-width: 320px;
+		}
+		.qv-thumbs:empty { display: none; }
+		.qv-thumb {
+			width: 48px; height: 48px;
+			background: #faf7ef; border: 2px solid #ece8de; border-radius: 4px;
+			overflow: hidden; cursor: pointer;
+			transition: border-color .15s;
+			flex-shrink: 0; padding: 0;
+		}
+		.qv-thumb:hover { border-color: #c29e5c; }
+		.qv-thumb.active { border-color: #c29e5c; }
+		.qv-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 	</style>
 	@stack('styles')
 </head>
@@ -661,8 +691,11 @@
 				<div class="row">
 					<div class="col-md-6 col-lg-7 p-b-30">
 						<div class="p-l-25 p-r-30 p-lr-0-lg">
-							<div class="wrap-pic-w pos-relative" style="background:#faf7ef;">
-								<img id="qv-image" src="{{ asset('frontend/images/product-01.jpg') }}" alt="Gambar produk" style="width:100%; display:block;">
+							<div class="qv-gallery">
+								<div class="qv-main">
+									<img id="qv-image" src="{{ asset('frontend/images/product-01.jpg') }}" alt="Gambar produk">
+								</div>
+								<div id="qv-thumbs" class="qv-thumbs"></div>
 							</div>
 						</div>
 					</div>
@@ -809,9 +842,37 @@
 			$('#qv-name').text(data.name || '—');
 			$('#qv-price').text(data.price || '');
 			$('#qv-description').text(data.description || '');
-			$('#qv-image').attr('src', data.image || '');
 			$('#qv-slug').val(data.slug);
 			$('#qv-detail-link').attr('href', data.detailUrl || '#');
+
+			// Galeri: jQuery `.data()` auto-parse JSON saat nilai diawali `[` atau `{`.
+			// Fallback ke string parsing kalau yang masuk masih berupa string.
+			var images = data.images;
+			if (typeof images === 'string') {
+				try { images = JSON.parse(images); } catch (e) { images = []; }
+			}
+			if (! Array.isArray(images) || images.length === 0) {
+				images = data.image ? [data.image] : [];
+			}
+
+			var $main   = $('#qv-image');
+			var $thumbs = $('#qv-thumbs').empty();
+			$main.attr('src', images[0] || '');
+
+			// Tampilkan thumbnail strip hanya bila ada lebih dari 1 foto.
+			if (images.length > 1) {
+				images.forEach(function (url, i) {
+					var $btn = $('<button type="button" class="qv-thumb"></button>')
+						.toggleClass('active', i === 0)
+						.append($('<img>').attr({ src: url, alt: 'Thumbnail ' + (i + 1) }))
+						.on('click', function () {
+							$main.attr('src', url);
+							$thumbs.find('.qv-thumb').removeClass('active');
+							$(this).addClass('active');
+						});
+					$thumbs.append($btn);
+				});
+			}
 
 			function fillSelect($sel, items, placeholder) {
 				$sel.empty().append($('<option>').text(placeholder));

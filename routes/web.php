@@ -1263,8 +1263,30 @@ Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
         ];
     };
 
-    Route::post('/produk', function (Request $request) use ($moveProductImages, $productValidationRules) {
-        $data = $request->validate($productValidationRules());
+    // Pesan validasi dalam bahasa Indonesia + petunjuk konkrit untuk admin.
+    // `images.*.max` mengacu pada ukuran file dalam kilobyte (kita batasi 2 MB).
+    $productValidationMessages = [
+        'name.required'          => 'Nama produk wajib diisi.',
+        'sku.required'           => 'SKU wajib diisi.',
+        'sku.unique'             => 'SKU sudah dipakai produk lain.',
+        'category_ids.required'  => 'Pilih minimal satu kategori.',
+        'category_ids.min'       => 'Pilih minimal satu kategori.',
+        'category_ids.*.exists'  => 'Kategori yang dipilih tidak valid.',
+        'price.required'         => 'Harga wajib diisi.',
+        'price.integer'          => 'Harga harus berupa angka.',
+        'stock.required'         => 'Stok wajib diisi.',
+        'description.required'   => 'Deskripsi wajib diisi.',
+        'weight_kg.required'     => 'Berat pengiriman (kg) wajib diisi untuk perhitungan ongkir.',
+        'weight_kg.min'          => 'Berat pengiriman minimal 0,01 kg.',
+        'status.in'              => 'Status produk tidak valid.',
+        'images.max'             => 'Maksimal 7 foto per produk.',
+        'images.*.image'         => 'Salah satu file yang diunggah bukan gambar yang valid.',
+        'images.*.mimes'         => 'Format foto harus JPG, PNG, atau WebP.',
+        'images.*.max'           => 'Ada foto yang melebihi 2 MB. Kompres atau ganti dengan foto berukuran lebih kecil.',
+    ];
+
+    Route::post('/produk', function (Request $request) use ($moveProductImages, $productValidationRules, $productValidationMessages) {
+        $data = $request->validate($productValidationRules(), $productValidationMessages);
 
         $categoryIds = $data['category_ids'];
         unset($data['category_ids']);
@@ -1288,8 +1310,8 @@ Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
         return redirect()->route('admin.produk')->with('status', 'Produk berhasil ditambahkan.');
     })->name('produk.store');
 
-    Route::put('/produk/{product}', function (Request $request, Product $product) use ($moveProductImages, $productValidationRules) {
-        $data = $request->validate($productValidationRules($product->id));
+    Route::put('/produk/{product}', function (Request $request, Product $product) use ($moveProductImages, $productValidationRules, $productValidationMessages) {
+        $data = $request->validate($productValidationRules($product->id), $productValidationMessages);
 
         $categoryIds = $data['category_ids'];
         unset($data['category_ids']);

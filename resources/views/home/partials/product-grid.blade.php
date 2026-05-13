@@ -1,3 +1,20 @@
+@once
+	@push('styles')
+	<style>
+		/* Normalisasi kartu produk: rasio gambar tetap (1:1) supaya seluruh kartu
+		   seragam, tidak ikut tinggi gambar aslinya. Gambar pakai object-fit cover. */
+		.block2-pic { position: relative; aspect-ratio: 1 / 1; width: 100%; background: #faf7ef; overflow: hidden; }
+		.block2-pic > a.dis-block,
+		.block2-pic > a.dis-block img { width: 100%; height: 100%; display: block; }
+		.block2-pic > a.dis-block img { object-fit: cover; object-position: center; }
+		/* Fallback untuk browser tanpa aspect-ratio (Safari <15) */
+		@supports not (aspect-ratio: 1 / 1) {
+			.block2-pic { padding-top: 100%; height: 0; }
+			.block2-pic > a.dis-block { position: absolute; inset: 0; }
+		}
+	</style>
+	@endpush
+@endonce
 <div class="row isotope-grid">
 	@foreach($products as $p)
 	<div class="col-sm-6 col-md-4 col-lg-3 p-b-35 isotope-item {{ $p->categories->pluck('slug')->join(' ') }}">
@@ -13,6 +30,7 @@
 					data-price="{{ $rupiah($p->price) }}"
 					data-description="{{ $p->description }}"
 					data-image="{{ $p->image_url }}"
+					data-images="{{ json_encode($p->image_urls) }}"
 					data-sizes="{{ json_encode($p->sizes ?? []) }}"
 					data-colors="{{ json_encode($p->colors ?? []) }}"
 					data-detail-url="{{ route('produk.detail', $p->slug) }}"

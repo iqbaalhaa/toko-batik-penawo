@@ -9,16 +9,8 @@
 		$nextSku = 'BP-' . str_pad((string) (\App\Models\Product::max('id') + 1), 3, '0', STR_PAD_LEFT);
 	@endphp
 
-	@if($errors->any())
-		<div class="flash" style="background:#fbe4df; border-color:#f2c6be; color:#a5432f;">
-			<strong>Gagal menyimpan:</strong>
-			<ul style="margin:6px 0 0 18px; padding:0;">
-				@foreach($errors->all() as $err)
-					<li>{{ $err }}</li>
-				@endforeach
-			</ul>
-		</div>
-	@endif
+	{{-- Error validation produk dirender di dalam modal (#produkAlert) — tidak
+	     perlu banner di halaman karena modal otomatis terbuka kembali. --}}
 
 	<div class="admin-card">
 		<div class="admin-card-header">
@@ -203,6 +195,16 @@
 						<button type="button" class="close" data-dismiss="modal">&times;</button>
 					</div>
 					<div class="modal-body" style="padding:24px;">
+						{{-- Alert prominen di dalam modal: server-side validation errors + client-side rejection foto. --}}
+						<div id="produkAlert" class="produk-alert" style="display:none;" role="alert">
+							<div class="produk-alert-icon"><i class="fa fa-exclamation-circle"></i></div>
+							<div class="produk-alert-body">
+								<div class="produk-alert-title" id="produkAlertTitle">Gagal menyimpan</div>
+								<ul class="produk-alert-list" id="produkAlertList"></ul>
+							</div>
+							<button type="button" class="produk-alert-close" aria-label="Tutup" onclick="document.getElementById('produkAlert').style.display='none';">&times;</button>
+						</div>
+
 						<div class="row">
 							<div class="col-md-8">
 								<div style="margin-bottom:14px;">
@@ -301,8 +303,7 @@
 								</label>
 								<input type="file" name="images[]" id="f_images" accept="image/jpeg,image/png,image/webp" multiple style="display:none;">
 
-								<div class="photo-counter"><span id="photoCount">0</span> / 7 foto</div>
-								<div id="photoError" class="photo-error" style="display:none;"></div>
+								<div class="photo-counter"><span id="photoCount">0</span> / 7 foto · maks 2 MB per foto</div>
 
 								<div style="margin-top:18px;">
 									<label class="form-label-admin">Status <span style="color:#a5432f;">*</span></label>
@@ -357,7 +358,33 @@
 	.photo-add-btn i { font-size: 24px; color: #c29e5c; margin-bottom: 4px; }
 	.photo-add-btn.disabled { opacity: .5; cursor: not-allowed; pointer-events: none; }
 	.photo-counter { font-size: 11.5px; color: #9a9288; margin-top: 6px; text-align: right; }
-	.photo-error { color: #a5432f; font-size: 12px; margin-top: 6px; padding: 6px 10px; background: #fbe4df; border-radius: 3px; }
+	/* Alert prominen di dalam modal — dipakai untuk validation errors server-side
+	   maupun rejection client-side (file terlalu besar / format salah / batas foto). */
+	.produk-alert {
+		display: flex; gap: 12px; align-items: flex-start;
+		background: #fbe4df; border: 1px solid #f2c6be; color: #7a2e22;
+		border-radius: 6px; padding: 12px 14px; margin-bottom: 18px;
+		animation: produkAlertIn .25s ease-out;
+	}
+	@keyframes produkAlertIn {
+		from { transform: translateY(-4px); opacity: 0; }
+		to   { transform: translateY(0); opacity: 1; }
+	}
+	.produk-alert-icon {
+		width: 32px; height: 32px; border-radius: 50%;
+		background: #f6cdc4; color: #a5432f;
+		display: flex; align-items: center; justify-content: center;
+		font-size: 16px; flex-shrink: 0;
+	}
+	.produk-alert-body { flex: 1; min-width: 0; }
+	.produk-alert-title { font-weight: 600; font-size: 13.5px; margin-bottom: 4px; }
+	.produk-alert-list { margin: 0; padding-left: 18px; font-size: 12.5px; line-height: 1.55; }
+	.produk-alert-list li { word-break: break-word; }
+	.produk-alert-close {
+		background: none; border: 0; color: #a5432f; font-size: 20px; line-height: 1;
+		cursor: pointer; padding: 0 4px; opacity: .6; transition: opacity .15s;
+	}
+	.produk-alert-close:hover { opacity: 1; }
 
 	.admin-pager { display: inline-flex; gap: 4px; }
 	.admin-pager-btn {
@@ -555,38 +582,92 @@ $(function() {
 		$('#f_images')[0].files = dt.files;
 	}
 
-	function showPhotoError(msg) {
-		if (!msg) { $('#photoError').hide(); return; }
-		$('#photoError').text(msg).show();
+	// Alert prominen di dalam modal — dipakai bersama untuk server-side errors
+	// dan client-side rejection foto. Menerima `items` array of string.
+	function showProdukAlert(title, items) {
+		var $alert = $('#produkAlert');
+		var $list  = $('#produkAlertList').empty();
+		$('#produkAlertTitle').text(title || 'Mohon periksa kembali');
+		(items || []).forEach(function (msg) {
+			$('<li></li>').text(msg).appendTo($list);
+		});
+		if ($list.children().length === 0) { $alert.hide(); return; }
+		$alert.show();
+		// Scroll modal-body ke atas supaya alert pasti kelihatan.
+		var body = document.querySelector('#modalProduk .modal-body');
+		if (body) body.scrollTop = 0;
+	}
+	function hideProdukAlert() { $('#produkAlert').hide(); }
+
+	function formatBytes(b) {
+		if (b >= 1024 * 1024) return (b / 1024 / 1024).toFixed(2) + ' MB';
+		if (b >= 1024)        return Math.round(b / 1024) + ' KB';
+		return b + ' B';
 	}
 
+	// Filter per-file (BUKAN total): tiap file yang >2 MB / format salah / over kapasitas
+	// dilewatkan secara independen. File lain yang valid tetap masuk.
 	$('#f_images').on('change', function(e) {
 		var picked = Array.from(e.target.files || []);
-		showPhotoError('');
-		var spaceLeft = MAX_PHOTOS - (existingImages.length + newFiles.length);
 		var rejected = [];
+		var input    = this;
 
-		for (var i = 0; i < picked.length; i++) {
-			var f = picked[i];
+		picked.forEach(function (f) {
 			if (newFiles.length + existingImages.length >= MAX_PHOTOS) {
-				rejected.push(f.name + ' (melebihi batas 7 foto)');
-				continue;
+				rejected.push('"' + f.name + '" — batas ' + MAX_PHOTOS + ' foto sudah tercapai.');
+				return;
 			}
 			if (f.size > MAX_BYTES) {
-				rejected.push(f.name + ' (lebih dari 2 MB)');
-				continue;
+				rejected.push('"' + f.name + '" (' + formatBytes(f.size) + ') melebihi batas 2 MB per foto — kompres atau ganti.');
+				return;
 			}
 			if (!/^image\/(jpeg|png|webp)$/.test(f.type)) {
-				rejected.push(f.name + ' (format tidak didukung)');
-				continue;
+				rejected.push('"' + f.name + '" formatnya tidak didukung. Hanya JPG, PNG, atau WebP.');
+				return;
 			}
 			newFiles.push(f);
-		}
+		});
 
+		// Replace FileList di <input> dengan hanya file yang lolos filter (via
+		// DataTransfer). Ini memastikan file >2 MB / format salah TIDAK ikut
+		// ter-submit ke server, terlepas dari apa yang dipilih user di picker.
 		syncInputFiles();
+
 		renderPhotos();
 		if (rejected.length) {
-			showPhotoError('Dilewati: ' + rejected.join(', '));
+			showProdukAlert(
+				rejected.length === 1 ? 'Foto dilewati' : rejected.length + ' foto dilewati',
+				rejected,
+			);
+		} else {
+			hideProdukAlert();
+		}
+	});
+
+	// Pengaman tambahan saat submit — bila karena alasan apa pun ada file >2 MB
+	// yang lolos sampai input.files (mis. drag-and-drop, autofill, atau bug browser),
+	// blokir submit dan tampilkan alert. File valid lainnya tetap aman.
+	$('#produkForm').on('submit', function (e) {
+		var oversized = newFiles.filter(function (f) { return f.size > MAX_BYTES; });
+		// Cek juga FileList aktual sebagai safety net terakhir.
+		var actual = Array.from($('#f_images')[0].files || []);
+		actual.forEach(function (f) {
+			if (f.size > MAX_BYTES && ! oversized.find(function (x) { return x === f; })) {
+				oversized.push(f);
+			}
+		});
+		if (oversized.length) {
+			e.preventDefault();
+			// Buang yang oversize dari newFiles agar tidak ikut submit setelah user retry.
+			newFiles = newFiles.filter(function (f) { return f.size <= MAX_BYTES; });
+			syncInputFiles();
+			renderPhotos();
+			showProdukAlert(
+				oversized.length + ' foto melebihi batas 2 MB — sudah dibuang dari unggahan',
+				oversized.map(function (f) {
+					return '"' + f.name + '" (' + formatBytes(f.size) + ') tidak dikirim karena lebih dari 2 MB. File lainnya tetap diunggah.';
+				}),
+			);
 		}
 	});
 
@@ -618,7 +699,7 @@ $(function() {
 		newFiles = [];
 		syncInputFiles();
 		renderPhotos();
-		showPhotoError('');
+		hideProdukAlert();
 		resetSizes('');
 	}
 
@@ -647,12 +728,13 @@ $(function() {
 		renderPhotos();
 	});
 
-	// Auto-open modal jika ada validation errors
+	// Auto-open modal jika ada validation errors + tampilkan ringkasan di alert modal.
 	@if($errors->any())
 		$('#modalProduk').modal('show');
 		@if(old('_method') === 'PUT')
 			$('#produkMethod').val('PUT');
 		@endif
+		showProdukAlert('Gagal menyimpan produk', {!! json_encode(array_values($errors->all()), JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) !!});
 	@endif
 
 });
