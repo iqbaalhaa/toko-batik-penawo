@@ -16,16 +16,17 @@ use Illuminate\Support\Facades\Log;
  */
 final class RajaOngkirService
 {
-    /** Mapping hierarki (provinsi/kota/kecamatan) — referensi statis. */
+    /** Mapping hierarki (provinsi/kota/kecamatan) — referensi statis, jarang berubah. */
     private const HIERARCHY_TTL = 60 * 60 * 24 * 30; // 30 hari
 
-    /** Hasil tarif — ringan untuk di-refresh agar harga tetap aktual. */
-    private const COST_TTL = 60 * 60; // 1 jam
+    /** Default TTL hasil tarif — di-override oleh config `services.rajaongkir.cache_ttl`. */
+    private const COST_TTL_DEFAULT = 60 * 60; // 1 jam
 
     private string $baseUrl;
     private string $apiKey;
     private string $defaultCouriers;
     private int    $timeout;
+    private int    $costTtl;
 
     public function __construct()
     {
@@ -34,12 +35,48 @@ final class RajaOngkirService
         $this->apiKey          = (string) ($cfg['key']      ?? '');
         $this->defaultCouriers = (string) ($cfg['couriers'] ?? 'jne:jnt:pos');
         $this->timeout         = (int)    ($cfg['timeout']  ?? 10);
+        $this->costTtl         = (int)    ($cfg['cache_ttl'] ?? self::COST_TTL_DEFAULT);
     }
 
     /** True bila API key sudah dikonfigurasi (mis. RAJAONGKIR_API_KEY=…). */
     public function enabled(): bool
     {
         return $this->apiKey !== '';
+    }
+
+    /**
+     * Resolve ID kecamatan RajaOngkir dari payload alamat lengkap.
+     *
+     * Strategi (hemat panggilan API):
+     *   1. Cek kolom `districts.rajaongkir_id` via cuid Kemendagri (`district_id`)
+     *      — kalau sudah di-sync, langsung return tanpa hit API.
+     *   2. Fallback ke pencarian berbasis nama (resolveDistrictId) — pakai
+     *      `province_name` / `city_name` / `district_name` di payload.
+     *
+     * Payload yang diharapkan: ['province_id','province_name','city_id',
+     * 'city_name','district_id','district_name'] — sesuai User::shippingAddress().
+     */
+    public function resolveDistrictIdFromAddress(array $address): ?int
+    {
+        // 1) DB-first: cek mapping rajaongkir_id yang sudah di-sync.
+        $districtId = $address['district_id'] ?? null;
+        if (! empty($districtId)) {
+            try {
+                $district = \App\Models\District::find($districtId);
+                if ($district && ! empty($district->rajaongkir_id) && is_numeric($district->rajaongkir_id)) {
+                    return (int) $district->rajaongkir_id;
+                }
+            } catch (\Throwable $e) {
+                // Tabel/model tidak siap (mis. test tanpa migrasi) → silent fallback.
+            }
+        }
+
+        // 2) Fallback ke pencarian berbasis nama via hierarki RajaOngkir.
+        return $this->resolveDistrictId(
+            $address['province_name'] ?? null,
+            $address['city_name']     ?? null,
+            $address['district_name'] ?? null,
+        );
     }
 
     /**
@@ -88,7 +125,7 @@ final class RajaOngkirService
         );
 
         try {
-            return Cache::remember($cacheKey, self::COST_TTL, function () use ($originDistrictId, $destDistrictId, $weightGrams, $couriers) {
+            return Cache::remember($cacheKey, $this->costTtl, function () use ($originDistrictId, $destDistrictId, $weightGrams, $couriers) {
                 $resp = $this->postForm('/calculate/district/domestic-cost', [
                     'origin'      => (string) $originDistrictId,
                     'destination' => (string) $destDistrictId,
@@ -119,6 +156,61 @@ final class RajaOngkirService
             });
         } catch (\Throwable $e) {
             Log::warning('RajaOngkir calculate failed', ['error' => $e->getMessage()]);
+            return null;
+        }
+    }
+
+    /**
+     * Ambil seluruh provinsi RajaOngkir (cached 30 hari).
+     * Dipakai oleh artisan sync-wilayah untuk mapping massal.
+     *
+     * @return list<array{id:int,name:string}>|null
+     */
+    public function listProvinces(): ?array
+    {
+        try {
+            $list = Cache::remember('rajaongkir:provinces', self::HIERARCHY_TTL, function () {
+                $resp = $this->get('/destination/province');
+                return $resp['data'] ?? [];
+            });
+            return is_array($list) ? $list : null;
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Ambil seluruh kota/kabupaten dalam satu provinsi RajaOngkir (cached 30 hari).
+     *
+     * @return list<array{id:int,name:string}>|null
+     */
+    public function listCities(int $provinceId): ?array
+    {
+        try {
+            $list = Cache::remember('rajaongkir:cities:' . $provinceId, self::HIERARCHY_TTL, function () use ($provinceId) {
+                $resp = $this->get('/destination/city/' . $provinceId);
+                return $resp['data'] ?? [];
+            });
+            return is_array($list) ? $list : null;
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Ambil seluruh kecamatan dalam satu kota/kabupaten RajaOngkir (cached 30 hari).
+     *
+     * @return list<array{id:int,name:string}>|null
+     */
+    public function listDistricts(int $cityId): ?array
+    {
+        try {
+            $list = Cache::remember('rajaongkir:districts:' . $cityId, self::HIERARCHY_TTL, function () use ($cityId) {
+                $resp = $this->get('/destination/district/' . $cityId);
+                return $resp['data'] ?? [];
+            });
+            return is_array($list) ? $list : null;
+        } catch (\Throwable $e) {
             return null;
         }
     }

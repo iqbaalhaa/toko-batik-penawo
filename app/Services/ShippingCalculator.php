@@ -176,16 +176,11 @@ final class ShippingCalculator
             $svc = new RajaOngkirService();
             if (! $svc->enabled()) return null;
 
-            $originId = $svc->resolveDistrictId(
-                $store['province_name'] ?? null,
-                $store['city_name']     ?? null,
-                $store['district_name'] ?? null,
-            );
-            $destId = $svc->resolveDistrictId(
-                $buyer['province_name'] ?? null,
-                $buyer['city_name']     ?? null,
-                $buyer['district_name'] ?? null,
-            );
+            // Pakai resolver berbasis payload alamat lengkap — DB-first lookup
+            // via kolom `districts.rajaongkir_id` (kalau sudah di-sync via
+            // `rajaongkir:sync-wilayah`), fallback ke pencarian berbasis nama.
+            $originId = $svc->resolveDistrictIdFromAddress($store);
+            $destId   = $svc->resolveDistrictIdFromAddress($buyer);
             if ($originId === null || $destId === null) return null;
 
             $best = $svc->calculate($originId, $destId, $weightGrams);

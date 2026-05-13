@@ -51,6 +51,10 @@ return [
         'base_url' => env('RAJAONGKIR_BASE_URL', 'https://rajaongkir.komerce.id/api/v1'),
         'couriers' => env('RAJAONGKIR_COURIERS', 'jne:jnt:pos'),
         'timeout'  => (int) env('RAJAONGKIR_TIMEOUT', 10),
+        // TTL cache hasil tarif (detik). Default 1 jam — boleh dinaikkan kalau
+        // kuota free tier ketat (100 hits/hari). Hierarki wilayah di-cache lebih
+        // lama (30 hari) karena data referensi praktis tidak berubah.
+        'cache_ttl' => (int) env('RAJAONGKIR_CACHE_TTL', 3600),
     ],
 
 ];
