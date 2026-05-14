@@ -65,7 +65,21 @@ class SyncRajaOngkirWilayah extends Command
 
         $apiProvinces = $svc->listProvinces() ?? [];
         if (empty($apiProvinces)) {
-            $this->error('Gagal mengambil daftar provinsi dari RajaOngkir. Cek API key/koneksi.');
+            $reason = $svc->lastErrorReason() ?: 'tidak ada detail tambahan.';
+            $this->error('Gagal mengambil daftar provinsi dari RajaOngkir:');
+            $this->line('  → ' . $reason);
+            // Hint khusus cURL SSL — biang kerok paling sering di Windows.
+            if (stripos($reason, 'ssl') !== false || stripos($reason, 'cert') !== false || stripos($reason, 'curl error 60') !== false) {
+                $this->newLine();
+                $this->warn('Sepertinya error sertifikat SSL (cURL error 60). Solusi cepat untuk WAMP/XAMPP di Windows:');
+                $this->line('  1. Download cacert.pem dari https://curl.se/ca/cacert.pem');
+                $this->line('  2. Simpan, mis. C:\\wamp64\\bin\\php\\cacert.pem');
+                $this->line('  3. Edit php.ini (CLI & Apache):');
+                $this->line('       curl.cainfo     = "C:\\wamp64\\bin\\php\\cacert.pem"');
+                $this->line('       openssl.cafile  = "C:\\wamp64\\bin\\php\\cacert.pem"');
+                $this->line('  4. Restart WAMP/Apache, jalankan ulang command ini.');
+                $this->line('  (Alternatif sementara: APP_ENV=local di .env — service akan skip SSL verify.)');
+            }
             return self::FAILURE;
         }
         $provincesMap = $this->mapByNormalizedName($apiProvinces);

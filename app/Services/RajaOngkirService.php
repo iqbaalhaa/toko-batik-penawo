@@ -276,15 +276,7 @@ final class RajaOngkirService
      */
     public function listProvinces(): ?array
     {
-        try {
-            $list = Cache::remember('rajaongkir:provinces', self::HIERARCHY_TTL, function () {
-                $resp = $this->get('/destination/province');
-                return $resp['data'] ?? [];
-            });
-            return is_array($list) ? $list : null;
-        } catch (\Throwable $e) {
-            return null;
-        }
+        return $this->cachedList('rajaongkir:provinces', '/destination/province');
     }
 
     /**
@@ -294,15 +286,7 @@ final class RajaOngkirService
      */
     public function listCities(int $provinceId): ?array
     {
-        try {
-            $list = Cache::remember('rajaongkir:cities:' . $provinceId, self::HIERARCHY_TTL, function () use ($provinceId) {
-                $resp = $this->get('/destination/city/' . $provinceId);
-                return $resp['data'] ?? [];
-            });
-            return is_array($list) ? $list : null;
-        } catch (\Throwable $e) {
-            return null;
-        }
+        return $this->cachedList('rajaongkir:cities:' . $provinceId, '/destination/city/' . $provinceId);
     }
 
     /**
@@ -312,15 +296,31 @@ final class RajaOngkirService
      */
     public function listDistricts(int $cityId): ?array
     {
+        return $this->cachedList('rajaongkir:districts:' . $cityId, '/destination/district/' . $cityId);
+    }
+
+    /**
+     * Helper: ambil list referensi, hanya cache hasil sukses non-kosong.
+     * Hasil null (HTTP error / SSL gagal / dsb.) TIDAK di-cache, supaya admin
+     * tidak terjebak hasil error mengendap 30 hari.
+     */
+    private function cachedList(string $cacheKey, string $path): ?array
+    {
         try {
-            $list = Cache::remember('rajaongkir:districts:' . $cityId, self::HIERARCHY_TTL, function () use ($cityId) {
-                $resp = $this->get('/destination/district/' . $cityId);
-                return $resp['data'] ?? [];
-            });
-            return is_array($list) ? $list : null;
+            $cached = Cache::get($cacheKey);
+            if (is_array($cached) && ! empty($cached)) return $cached;
         } catch (\Throwable $e) {
+            // Cache tidak siap → langsung hit API.
+        }
+        $resp = $this->get($path);
+        if ($resp === null) return null; // setError() sudah di-set di get().
+        $list = $resp['data'] ?? null;
+        if (! is_array($list) || empty($list)) {
+            $this->setError('Response RajaOngkir kosong untuk ' . $path);
             return null;
         }
+        try { Cache::put($cacheKey, $list, self::HIERARCHY_TTL); } catch (\Throwable $e) { /* cache tidak siap */ }
+        return $list;
     }
 
     private function findProvinceId(string $normalizedName): ?int
@@ -377,11 +377,37 @@ final class RajaOngkirService
         return null;
     }
 
+    /**
+     * Pending HTTP client dengan headers + timeout + SSL opt-out di env lokal.
+     *
+     * Windows + WAMP/XAMPP sering tidak punya CA bundle di PHP CLI (cURL error 60
+     * "unable to get local issuer certificate"). Untuk environment `local` kita
+     * skip SSL verify; di production tetap diverifikasi.
+     */
+    private function http(): \Illuminate\Http\Client\PendingRequest
+    {
+        $req = Http::withHeaders(['key' => $this->apiKey, 'Accept' => 'application/json'])
+            ->timeout($this->timeout);
+        try {
+            if (app()->environment('local')) {
+                $req = $req->withOptions(['verify' => false]);
+            }
+        } catch (\Throwable $e) {
+            // app() tidak tersedia di unit test pure-PHPUnit → biarkan default.
+        }
+        return $req;
+    }
+
     private function get(string $path): ?array
     {
-        $resp = Http::withHeaders(['key' => $this->apiKey, 'Accept' => 'application/json'])
-            ->timeout($this->timeout)
-            ->get($this->baseUrl . $path);
+        try {
+            $resp = $this->http()->get($this->baseUrl . $path);
+        } catch (\Throwable $e) {
+            // Connection refused / SSL handshake / DNS — biasanya cURL error.
+            $this->setError('Tidak bisa terhubung ke RajaOngkir: ' . $e->getMessage());
+            Log::warning('RajaOngkir GET exception', ['path' => $path, 'error' => $e->getMessage()]);
+            return null;
+        }
 
         if (! $resp->ok()) {
             $this->setError('HTTP ' . $resp->status() . ' dari RajaOngkir saat GET ' . $path);
@@ -393,10 +419,13 @@ final class RajaOngkirService
 
     private function postForm(string $path, array $body): ?array
     {
-        $resp = Http::withHeaders(['key' => $this->apiKey, 'Accept' => 'application/json'])
-            ->asForm()
-            ->timeout($this->timeout)
-            ->post($this->baseUrl . $path, $body);
+        try {
+            $resp = $this->http()->asForm()->post($this->baseUrl . $path, $body);
+        } catch (\Throwable $e) {
+            $this->setError('Tidak bisa terhubung ke RajaOngkir: ' . $e->getMessage());
+            Log::warning('RajaOngkir POST exception', ['path' => $path, 'error' => $e->getMessage()]);
+            return null;
+        }
 
         if (! $resp->ok()) {
             // Coba ekstrak message dari body Komerce: {"meta":{"message":"...","code":...}}.
