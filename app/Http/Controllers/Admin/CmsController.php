@@ -4,10 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Banner;
-use App\Models\Category;
 use App\Models\SiteSetting;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 
 class CmsController extends Controller
 {
@@ -21,8 +19,7 @@ class CmsController extends Controller
     public function index()
     {
         return view('admin.cms', [
-            'categories' => Category::withCount('products')->orderBy('sort_order')->get(),
-            'banners'    => Banner::orderBy('sort_order')->orderBy('id')->get(),
+            'banners' => Banner::orderBy('sort_order')->orderBy('id')->get(),
         ]);
     }
 
@@ -36,7 +33,7 @@ class CmsController extends Controller
             'kontak'  => [
                 'store_name', 'contact_email', 'contact_phone', 'contact_address',
                 'contact_hours', 'contact_maps_embed',
-                'social_facebook', 'social_instagram', 'social_pinterest', 'social_youtube',
+                'social_facebook', 'social_instagram', 'social_tiktok', 'social_youtube',
             ],
             // Alamat toko terstruktur — dipakai sebagai titik asal RajaOngkir.
             // Tarif ongkir TIDAK lagi diatur di sini (sebelumnya zona-based);
@@ -181,54 +178,4 @@ class CmsController extends Controller
         return redirect()->route('admin.cms', ['#tab-banner'])->with('status', 'Banner dihapus.');
     }
 
-    // ---- CMS: Kategori CRUD ----
-    public function storeKategori(Request $request)
-    {
-        $data = $request->validate([
-            'name'       => 'required|string|max:80',
-            'sort_order' => 'nullable|integer|min:0|max:9999',
-        ]);
-        $slug = Str::slug($data['name']);
-        // pastikan unik
-        $base = $slug; $i = 1;
-        while (Category::where('slug', $slug)->exists()) {
-            $slug = $base . '-' . (++$i);
-        }
-        Category::create([
-            'name'       => $data['name'],
-            'slug'       => $slug,
-            'sort_order' => $data['sort_order'] ?? 0,
-        ]);
-        return redirect()->route('admin.cms', ['#tab-kategori'])->with('status', 'Kategori ditambahkan.');
-    }
-
-    public function updateKategori(Request $request, Category $category)
-    {
-        $data = $request->validate([
-            'name'       => 'required|string|max:80',
-            'sort_order' => 'nullable|integer|min:0|max:9999',
-        ]);
-        $newSlug = Str::slug($data['name']);
-        if ($newSlug !== $category->slug) {
-            $base = $newSlug; $i = 1;
-            while (Category::where('slug', $newSlug)->where('id', '!=', $category->id)->exists()) {
-                $newSlug = $base . '-' . (++$i);
-            }
-            $category->slug = $newSlug;
-        }
-        $category->name = $data['name'];
-        $category->sort_order = $data['sort_order'] ?? $category->sort_order;
-        $category->save();
-        return redirect()->route('admin.cms', ['#tab-kategori'])->with('status', 'Kategori diperbarui.');
-    }
-
-    public function destroyKategori(Category $category)
-    {
-        if ($category->products()->exists()) {
-            return redirect()->route('admin.cms', ['#tab-kategori'])
-                ->withErrors(['kategori' => "Kategori '{$category->name}' masih dipakai produk dan tidak bisa dihapus."]);
-        }
-        $category->delete();
-        return redirect()->route('admin.cms', ['#tab-kategori'])->with('status', 'Kategori dihapus.');
-    }
 }

@@ -199,7 +199,9 @@
       "Bash(curl -s http://127.0.0.1:8123/kontak -o /tmp/kontak.html -w \"status: %{http_code}\\\\n\")",
       "Bash(curl -s http://127.0.0.1:8123/ -o /tmp/home.html -w \"status: %{http_code}\\\\n\")",
       "Bash(sed -n 1,12p /f/Project/toko-batik-penawo/resources/views/admin/laporan.blade.php)",
-      "Bash(sed -n 468,482p /f/Project/toko-batik-penawo/resources/views/layouts/admin.blade.php)"
+      "Bash(sed -n 468,482p /f/Project/toko-batik-penawo/resources/views/layouts/admin.blade.php)",
+      "Bash(grep -n '\\\\$categories' /f/Project/toko-batik-penawo/resources/views/admin/cms.blade.php)",
+      "Bash(sed -n 330,365p /f/Project/toko-batik-penawo/resources/views/layouts/admin.blade.php)"
     ],
     "additionalDirectories": [
       "\\tmp"

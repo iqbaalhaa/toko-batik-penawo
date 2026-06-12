@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AddressController;
+use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\CmsController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\OrderController;
@@ -105,13 +106,16 @@ Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
     Route::put('/user/{user}', [UserController::class, 'update'])->name('user.update');
     Route::delete('/user/{user}', [UserController::class, 'destroy'])->name('user.destroy');
 
-    // CMS: site settings, banner, kategori
+    // Kategori produk — halaman mandiri (diakses dari menu sidebar)
+    Route::get('/kategori', [CategoryController::class, 'index'])->name('kategori');
+    Route::post('/kategori', [CategoryController::class, 'store'])->name('kategori.store');
+    Route::put('/kategori/{category}', [CategoryController::class, 'update'])->name('kategori.update');
+    Route::delete('/kategori/{category}', [CategoryController::class, 'destroy'])->name('kategori.destroy');
+
+    // CMS: site settings & banner
     Route::get('/cms', [CmsController::class, 'index'])->name('cms');
     Route::post('/cms/settings/{group}', [CmsController::class, 'saveSettings'])->name('cms.settings.save');
     Route::post('/cms/banner', [CmsController::class, 'storeBanner'])->name('cms.banner.store');
     Route::put('/cms/banner/{banner}', [CmsController::class, 'updateBanner'])->name('cms.banner.update');
     Route::delete('/cms/banner/{banner}', [CmsController::class, 'destroyBanner'])->name('cms.banner.destroy');
-    Route::post('/cms/kategori', [CmsController::class, 'storeKategori'])->name('cms.kategori.store');
-    Route::put('/cms/kategori/{category}', [CmsController::class, 'updateKategori'])->name('cms.kategori.update');
-    Route::delete('/cms/kategori/{category}', [CmsController::class, 'destroyKategori'])->name('cms.kategori.destroy');
 });

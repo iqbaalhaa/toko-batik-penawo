@@ -346,8 +346,8 @@
 			<li class="{{ request()->routeIs('admin.produk*') ? 'active' : '' }}">
 				<a href="{{ route('admin.produk') }}"><i class="fa fa-shopping-basket"></i><span>Kelola Produk</span></a>
 			</li>
-			<li>
-				<a href="{{ route('admin.cms') }}#tab-kategori"><i class="fa fa-tags"></i><span>Kategori</span></a>
+			<li class="{{ request()->routeIs('admin.kategori*') ? 'active' : '' }}">
+				<a href="{{ route('admin.kategori') }}"><i class="fa fa-tags"></i><span>Kategori</span></a>
 			</li>
 			<li class="{{ request()->routeIs('admin.pesanan*') ? 'active' : '' }}">
 				<a href="{{ route('admin.pesanan') }}">

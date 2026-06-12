@@ -107,7 +107,7 @@
 				$sosmed = array_filter([
 					'fa-facebook'  => $setting('social_facebook'),
 					'fa-instagram' => $setting('social_instagram'),
-					'fa-pinterest' => $setting('social_pinterest'),
+					'fa-music' => $setting('social_tiktok'),
 					'fa-youtube-play' => $setting('social_youtube'),
 				]);
 			@endphp

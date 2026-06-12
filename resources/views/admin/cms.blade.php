@@ -23,7 +23,6 @@
 				<li><a href="#tab-tentang" class="cms-tab" data-tab="tentang"><i class="fa fa-info-circle"></i> Tentang Kami</a></li>
 				<li><a href="#tab-kontak" class="cms-tab" data-tab="kontak"><i class="fa fa-envelope-o"></i> Info Kontak</a></li>
 				<li><a href="#tab-pengiriman" class="cms-tab" data-tab="pengiriman"><i class="fa fa-truck"></i> Pengiriman</a></li>
-				<li><a href="#tab-kategori" class="cms-tab" data-tab="kategori"><i class="fa fa-folder-open-o"></i> Kategori</a></li>
 				<li><a href="#tab-footer" class="cms-tab" data-tab="footer"><i class="fa fa-align-justify"></i> Footer</a></li>
 			</ul>
 		</div>
@@ -187,8 +186,8 @@
 					</div>
 					<div class="col-md-6">
 						<div style="margin-bottom:14px;">
-							<label class="form-label-admin"><i class="fa fa-pinterest-p" style="color:#bd081c;"></i> Pinterest</label>
-							<input type="text" name="social_pinterest" class="form-control-admin" value="{{ $setting('social_pinterest', '') }}">
+							<label class="form-label-admin"><i class="fa fa-music" style="color:#010101;"></i> TikTok</label>
+							<input type="text" name="social_tiktok" class="form-control-admin" value="{{ $setting('social_tiktok', '') }}" placeholder="https://tiktok.com/@batikpenawuo">
 						</div>
 						<div style="margin-bottom:14px;">
 							<label class="form-label-admin"><i class="fa fa-youtube-play" style="color:#ff0000;"></i> YouTube</label>
@@ -267,53 +266,6 @@
 				<button type="submit" class="btn-admin"><i class="fa fa-floppy-o"></i> Simpan Alamat Toko</button>
 			</div>
 		</form>
-	</div>
-
-	<!-- ====================== Tab: Kategori ====================== -->
-	<div class="cms-panel" id="tab-kategori" style="display:none;">
-		<div class="admin-card">
-			<div class="admin-card-header">
-				<div>
-					<h3 class="admin-card-title">Kategori Produk</h3>
-					<div class="admin-card-sub">Kelompok produk yang ditampilkan di filter</div>
-				</div>
-				<button type="button" class="btn-admin" onclick="openCategoryModal()"><i class="fa fa-plus"></i> Tambah Kategori</button>
-			</div>
-			<table class="admin-table">
-				<thead>
-					<tr>
-						<th>Nama Kategori</th>
-						<th>Slug</th>
-						<th>Jumlah Produk</th>
-						<th>Urutan</th>
-						<th style="width:140px;">Aksi</th>
-					</tr>
-				</thead>
-				<tbody>
-					@forelse($categories as $c)
-					<tr>
-						<td style="font-weight:500;">{{ $c->name }}</td>
-						<td><code style="background:#f5f2ea; padding:2px 6px; border-radius:3px; font-size:12px;">{{ $c->slug }}</code></td>
-						<td>{{ $c->products_count }} produk</td>
-						<td>{{ $c->sort_order }}</td>
-						<td>
-							<button type="button" class="btn-admin-icon" title="Edit"
-								onclick='openCategoryModal(@json($c))'><i class="fa fa-pencil-square-o"></i></button>
-							<form action="{{ route('admin.cms.kategori.destroy', $c) }}" method="POST" style="display:inline;"
-								data-confirm-title="Hapus kategori?"
-								data-confirm-message='Kategori "{{ $c->name }}" akan dihapus. Hanya bisa dihapus jika belum dipakai produk.'
-								data-confirm-ok="Hapus Kategori">
-								@csrf @method('DELETE')
-								<button type="submit" class="btn-admin-icon danger" title="Hapus"><i class="fa fa-trash-o"></i></button>
-							</form>
-						</td>
-					</tr>
-					@empty
-					<tr><td colspan="5" style="text-align:center; padding:16px; color:#9a9288;">Belum ada kategori</td></tr>
-					@endforelse
-				</tbody>
-			</table>
-		</div>
 	</div>
 
 	<!-- ====================== Tab: Footer ====================== -->
@@ -566,32 +518,6 @@
 		</div>
 	</div>
 
-	<!-- ====================== Category Modal ====================== -->
-	<div class="cms-modal-overlay" id="categoryModal" style="display:none;">
-		<div class="cms-modal" style="max-width:480px;">
-			<div class="cms-modal-head">
-				<h4 id="categoryModalTitle">Tambah Kategori</h4>
-				<button type="button" class="cms-modal-close" onclick="closeCategoryModal()"><i class="fa fa-times"></i></button>
-			</div>
-			<form id="categoryForm" action="{{ route('admin.cms.kategori.store') }}" method="POST">
-				@csrf
-				<input type="hidden" name="_method" id="categoryMethod" value="POST">
-				<div style="margin-bottom:12px;">
-					<label class="form-label-admin">Nama Kategori <span style="color:#a5432f;">*</span></label>
-					<input type="text" name="name" id="categoryName" class="form-control-admin" required>
-				</div>
-				<div style="margin-bottom:6px;">
-					<label class="form-label-admin">Urutan</label>
-					<input type="number" name="sort_order" id="categorySort" class="form-control-admin" value="0" min="0">
-				</div>
-				<div style="padding-top:14px; border-top:1px solid #f2efe7; margin-top:14px; text-align:right;">
-					<button type="button" class="btn-admin btn-admin-outline" onclick="closeCategoryModal()">Batal</button>
-					<button type="submit" class="btn-admin"><i class="fa fa-floppy-o"></i> Simpan</button>
-				</div>
-			</form>
-		</div>
-	</div>
-
 @endsection
 
 @push('styles')
@@ -775,25 +701,5 @@
 		reader.readAsDataURL(input.files[0]);
 	}
 
-	// ----- Category modal -----
-	function openCategoryModal(c) {
-		var form = document.getElementById('categoryForm');
-		var title = document.getElementById('categoryModalTitle');
-		if (c) {
-			title.textContent = 'Edit Kategori';
-			form.action = '{{ url('admin/cms/kategori') }}/' + c.id;
-			document.getElementById('categoryMethod').value = 'PUT';
-			document.getElementById('categoryName').value = c.name || '';
-			document.getElementById('categorySort').value = c.sort_order || 0;
-		} else {
-			title.textContent = 'Tambah Kategori';
-			form.action = '{{ route('admin.cms.kategori.store') }}';
-			document.getElementById('categoryMethod').value = 'POST';
-			form.reset();
-			document.getElementById('categorySort').value = 0;
-		}
-		document.getElementById('categoryModal').style.display = 'flex';
-	}
-	function closeCategoryModal() { document.getElementById('categoryModal').style.display = 'none'; }
 </script>
 @endpush

@@ -661,8 +661,8 @@
 						@if($setting('social_instagram'))
 							<a href="{{ $setting('social_instagram') }}" target="_blank" class="fs-18 cl7 hov-cl1 trans-04 m-r-16"><i class="fa fa-instagram"></i></a>
 						@endif
-						@if($setting('social_pinterest'))
-							<a href="{{ $setting('social_pinterest') }}" target="_blank" class="fs-18 cl7 hov-cl1 trans-04 m-r-16"><i class="fa fa-pinterest-p"></i></a>
+						@if($setting('social_tiktok'))
+							<a href="{{ $setting('social_tiktok') }}" target="_blank" class="fs-18 cl7 hov-cl1 trans-04 m-r-16"><i class="fa fa-music"></i></a>
 						@endif
 						@if($setting('social_youtube'))
 							<a href="{{ $setting('social_youtube') }}" target="_blank" class="fs-18 cl7 hov-cl1 trans-04 m-r-16"><i class="fa fa-youtube-play"></i></a>
