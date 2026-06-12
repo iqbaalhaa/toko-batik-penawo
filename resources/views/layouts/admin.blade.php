@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-	<title>@yield('title', 'Admin') &mdash; Batik Penawo</title>
+	<title>@yield('title', 'Admin') &mdash; Batik Penawuo</title>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="icon" type="image/x-icon" href="{{ asset('image/favicon.ico') }}"/>
@@ -421,9 +421,9 @@
 	<!-- Sidebar -->
 	<aside class="admin-sidebar">
 		<div class="admin-sidebar-brand">
-			<img src="{{ asset('image/logo.png') }}" alt="Batik Penawo">
+			<img src="{{ asset('image/logo.png') }}" alt="Batik Penawuo">
 			<div>
-				<div class="admin-sidebar-brand-text">Batik Penawo</div>
+				<div class="admin-sidebar-brand-text">Batik Penawuo</div>
 				<div class="admin-sidebar-brand-sub">Admin</div>
 			</div>
 		</div>
@@ -535,7 +535,7 @@
 					<div class="admin-user" id="adminUserTrigger">
 						<div class="admin-user-avatar">{{ strtoupper(substr($authUser['name'] ?? 'AD', 0, 2)) }}</div>
 						<div class="admin-user-meta">
-							<div class="admin-user-name">{{ $authUser['name'] ?? 'Admin Penawo' }}</div>
+							<div class="admin-user-name">{{ $authUser['name'] ?? 'Admin Penawuo' }}</div>
 							<div class="admin-user-role">Administrator</div>
 						</div>
 						<i class="fa fa-chevron-down admin-user-caret"></i>
@@ -543,7 +543,7 @@
 
 					<div class="admin-user-dropdown">
 						<div class="admin-user-dropdown-head">
-							<div class="admin-user-dropdown-name">{{ $authUser['name'] ?? 'Admin Penawo' }}</div>
+							<div class="admin-user-dropdown-name">{{ $authUser['name'] ?? 'Admin Penawuo' }}</div>
 							<div class="admin-user-dropdown-email">{{ $authUser['email'] ?? '' }}</div>
 						</div>
 

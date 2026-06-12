@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Batik Penawo | Pesanan ' . $order->invoice_number)
+@section('title', 'Batik Penawuo | Pesanan ' . $order->invoice_number)
 
 @push('styles')
 <style>
@@ -318,7 +318,7 @@
 								<form action="{{ route('pesanan.selesai', $order->invoice_number) }}" method="POST"
 									data-confirm-title="{{ $isPickup ? 'Konfirmasi Pengambilan' : 'Konfirmasi Penerimaan' }}"
 									data-confirm-message="{{ $isPickup
-										? 'Pastikan Anda sudah mengambil pesanan ' . $order->invoice_number . ' di toko Batik Penawo dan sudah membayar. Tindakan ini tidak dapat dibatalkan.'
+										? 'Pastikan Anda sudah mengambil pesanan ' . $order->invoice_number . ' di toko Batik Penawuo dan sudah membayar. Tindakan ini tidak dapat dibatalkan.'
 										: 'Pastikan paket pesanan ' . $order->invoice_number . ' sudah Anda terima dengan baik dan dalam kondisi sesuai. Tindakan ini tidak dapat dibatalkan.' }}"
 									data-confirm-ok="{{ $isPickup ? 'Ya, Sudah Dijemput' : 'Ya, Sudah Diterima' }}"
 									data-confirm-variant="success">

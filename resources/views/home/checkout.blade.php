@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Batik Penawo | Pembayaran')
+@section('title', 'Batik Penawuo | Pembayaran')
 
 @push('styles')
 <style>
@@ -247,7 +247,7 @@
 									<i class="fa fa-shopping-bag m-r-6" style="color:#6c665e;"></i>
 									Bayar di Toko (Jemput Sendiri)
 									<div style="font-size:11.5px; color:#9a9288; margin-top:3px;">
-										Pesanan dipersiapkan, lalu Anda ambil & bayar tunai langsung di toko Batik Penawo.
+										Pesanan dipersiapkan, lalu Anda ambil & bayar tunai langsung di toko Batik Penawuo.
 									</div>
 								</span>
 							</label>

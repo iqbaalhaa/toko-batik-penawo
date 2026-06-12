@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Batik Penawo | Tentang Kami')
+@section('title', 'Batik Penawuo | Tentang Kami')
 
 @section('content')
 	<!-- Title page -->
@@ -19,7 +19,7 @@
 					<div class="p-t-7 p-r-85 p-r-15-lg p-r-0-md">
 						<h3 class="mtext-111 cl2 p-b-16">Cerita Kami</h3>
 
-						<div class="stext-113 cl6 p-b-26" style="white-space:pre-line;">{{ $setting('about_story', 'Batik Penawo lahir dari kecintaan pada warisan budaya Nusantara. Kami memulai perjalanan sebagai usaha keluarga di Kerinci, merangkul para pengrajin batik lokal untuk menghadirkan kain-kain bermotif klasik maupun kontemporer.') }}</div>
+						<div class="stext-113 cl6 p-b-26" style="white-space:pre-line;">{{ $setting('about_story', 'Batik Penawuo lahir dari kecintaan pada warisan budaya Nusantara. Kami memulai perjalanan sebagai usaha keluarga di Kerinci, merangkul para pengrajin batik lokal untuk menghadirkan kain-kain bermotif klasik maupun kontemporer.') }}</div>
 
 						<p class="stext-113 cl6 p-b-26">
 							Ada pertanyaan? Kunjungi toko kami di {{ $setting('contact_address', 'Jl. Malioboro No. 123, Kerinci') }} atau hubungi kami di {{ $setting('contact_phone', '(+62) 812-3456-7890') }}.
@@ -30,7 +30,7 @@
 				<div class="col-11 col-md-5 col-lg-4 m-lr-auto">
 					<div class="how-bor1 ">
 						<div class="hov-img0">
-							<img src="{{ asset('frontend/images/about-01.jpg') }}" alt="Cerita Batik Penawo">
+							<img src="{{ asset('frontend/images/about-01.jpg') }}" alt="Cerita Batik Penawuo">
 						</div>
 					</div>
 				</div>
@@ -50,7 +50,7 @@
 							</p>
 
 							<span class="stext-111 cl8">
-								- Tim {{ $setting('store_name', 'Batik Penawo') }}
+								- Tim {{ $setting('store_name', 'Batik Penawuo') }}
 							</span>
 						</div>
 						@endif
@@ -60,7 +60,7 @@
 				<div class="order-md-1 col-11 col-md-5 col-lg-4 m-lr-auto p-b-30">
 					<div class="how-bor2">
 						<div class="hov-img0">
-							<img src="{{ asset('frontend/images/about-02.jpg') }}" alt="Misi Batik Penawo">
+							<img src="{{ asset('frontend/images/about-02.jpg') }}" alt="Misi Batik Penawuo">
 						</div>
 					</div>
 				</div>

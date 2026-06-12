@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Batik Penawo | Wishlist Saya')
+@section('title', 'Batik Penawuo | Wishlist Saya')
 
 @push('styles')
 <style>

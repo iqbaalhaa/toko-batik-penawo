@@ -98,7 +98,7 @@
 				@csrf
 				<div style="margin-bottom:14px;">
 					<label class="form-label-admin">Judul Utama</label>
-					<input type="text" name="about_title" class="form-control-admin" value="{{ $setting('about_title', 'Cerita Batik Penawo') }}">
+					<input type="text" name="about_title" class="form-control-admin" value="{{ $setting('about_title', 'Cerita Batik Penawuo') }}">
 				</div>
 				<div style="margin-bottom:14px;">
 					<label class="form-label-admin">Sub Judul</label>
@@ -106,7 +106,7 @@
 				</div>
 				<div style="margin-bottom:14px;">
 					<label class="form-label-admin">Cerita Kami</label>
-					<textarea name="about_story" rows="6" class="form-control-admin">{{ $setting('about_story', 'Batik Penawo lahir dari kecintaan pada warisan budaya Nusantara. Kami memulai perjalanan sebagai usaha keluarga di Kerinci, merangkul para pengrajin batik lokal untuk menghadirkan kain-kain bermotif klasik maupun kontemporer.') }}</textarea>
+					<textarea name="about_story" rows="6" class="form-control-admin">{{ $setting('about_story', 'Batik Penawuo lahir dari kecintaan pada warisan budaya Nusantara. Kami memulai perjalanan sebagai usaha keluarga di Kerinci, merangkul para pengrajin batik lokal untuk menghadirkan kain-kain bermotif klasik maupun kontemporer.') }}</textarea>
 				</div>
 				<div style="margin-bottom:14px;">
 					<label class="form-label-admin">Misi Kami</label>
@@ -139,11 +139,11 @@
 					<div class="col-md-6">
 						<div style="margin-bottom:14px;">
 							<label class="form-label-admin">Nama Toko</label>
-							<input type="text" name="store_name" class="form-control-admin" value="{{ $setting('store_name', 'Batik Penawo') }}">
+							<input type="text" name="store_name" class="form-control-admin" value="{{ $setting('store_name', 'Batik Penawuo') }}">
 						</div>
 						<div style="margin-bottom:14px;">
 							<label class="form-label-admin">Email</label>
-							<input type="email" name="contact_email" class="form-control-admin" value="{{ $setting('contact_email', 'halo@batikpenawo.id') }}">
+							<input type="email" name="contact_email" class="form-control-admin" value="{{ $setting('contact_email', 'halo@batikpenawuo.id') }}">
 						</div>
 						<div style="margin-bottom:14px;">
 							<label class="form-label-admin">No. Telepon / WhatsApp</label>
@@ -192,7 +192,7 @@
 						</div>
 						<div style="margin-bottom:14px;">
 							<label class="form-label-admin"><i class="fa fa-youtube-play" style="color:#ff0000;"></i> YouTube</label>
-							<input type="text" name="social_youtube" class="form-control-admin" value="{{ $setting('social_youtube', '') }}" placeholder="https://youtube.com/@batikpenawo">
+							<input type="text" name="social_youtube" class="form-control-admin" value="{{ $setting('social_youtube', '') }}" placeholder="https://youtube.com/@batikpenawuo">
 						</div>
 					</div>
 				</div>
@@ -488,7 +488,7 @@
 					</div>
 				</div>
 				<input type="text" name="footer_copyright" class="form-control-admin"
-					value="{{ $setting('footer_copyright', 'Hak Cipta © ' . date('Y') . ' Batik Penawo. Semua hak dilindungi.') }}">
+					value="{{ $setting('footer_copyright', 'Hak Cipta © ' . date('Y') . ' Batik Penawuo. Semua hak dilindungi.') }}">
 			</div>
 
 			<div class="admin-card" style="text-align:right;">

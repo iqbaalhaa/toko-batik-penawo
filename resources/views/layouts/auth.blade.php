@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-	<title>@yield('title', 'Batik Penawo')</title>
+	<title>@yield('title', 'Batik Penawuo')</title>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="icon" type="image/x-icon" href="{{ asset('image/favicon.ico') }}"/>

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Batik Penawo | Beranda')
+@section('title', 'Batik Penawuo | Beranda')
 
 @push('styles')
 <style>
@@ -83,7 +83,7 @@
 									</div>
 
 									<div class="layer-slick1 animated visible-false" data-appear="fadeInUp" data-delay="800">
-										<h2 class="ltext-201 cl2 p-t-19 p-b-43 respon1">{{ $setting('store_name', 'Batik Penawo') }}</h2>
+										<h2 class="ltext-201 cl2 p-t-19 p-b-43 respon1">{{ $setting('store_name', 'Batik Penawuo') }}</h2>
 									</div>
 
 									<div class="layer-slick1 animated visible-false" data-appear="zoomIn" data-delay="1600">
@@ -93,7 +93,7 @@
 
 								<div class="col-md-6 hero-image-col">
 									<div class="hero-image-wrap layer-slick1 animated visible-false" data-appear="fadeIn" data-delay="400">
-										<img src="{{ asset('frontend/images/slide-01.jpg') }}" alt="Batik Penawo" style="max-height: 480px;">
+										<img src="{{ asset('frontend/images/slide-01.jpg') }}" alt="Batik Penawuo" style="max-height: 480px;">
 									</div>
 								</div>
 							</div>

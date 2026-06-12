@@ -1,6 +1,6 @@
 @extends('layouts.auth')
 
-@section('title', 'Batik Penawo | Daftar')
+@section('title', 'Batik Penawuo | Daftar')
 @section('auth-heading', 'Daftar')
 
 @push('styles')
@@ -29,7 +29,7 @@
 	<div class="auth-wrap">
 		<div class="auth-card">
 			<h2 class="auth-title">Buat Akun Baru</h2>
-			<p class="auth-subtitle">Bergabunglah dan nikmati promo eksklusif Batik Penawo</p>
+			<p class="auth-subtitle">Bergabunglah dan nikmati promo eksklusif Batik Penawuo</p>
 
 			<form action="{{ route('register.submit') }}" method="POST">
 				@csrf

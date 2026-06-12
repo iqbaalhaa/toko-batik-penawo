@@ -13,8 +13,8 @@ class UserSeeder extends Seeder
         // Admin & Staff
         $staff = [
             [
-                'name'     => 'Admin Penawo',
-                'email'    => 'admin@penawo.id',
+                'name'     => 'Admin Penawuo',
+                'email'    => 'admin@penawuo.id',
                 'password' => Hash::make('admin123'),
                 'role'     => 'admin',
                 'phone'    => '081234567890',
@@ -22,7 +22,7 @@ class UserSeeder extends Seeder
             ],
             [
                 'name'     => 'Operator Gudang',
-                'email'    => 'gudang@penawo.id',
+                'email'    => 'gudang@penawuo.id',
                 'password' => Hash::make('gudang123'),
                 'role'     => 'staff',
                 'phone'    => '081234567891',

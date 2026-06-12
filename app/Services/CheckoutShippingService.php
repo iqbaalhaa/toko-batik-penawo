@@ -13,7 +13,7 @@ use App\Models\SiteSetting;
  * - Memanggil ShippingCalculator untuk tiap toko.
  * - Mengagregasi subtotal, total ongkir, dan grand total.
  *
- * Saat ini sistem masih single-tenant (Batik Penawo) sehingga semua produk
+ * Saat ini sistem masih single-tenant (Batik Penawuo) sehingga semua produk
  * dikelompokkan di bawah toko default yang dikonfigurasi via SiteSetting
  * (`store_*`). Saat skema multi-toko/petani ditambahkan, cukup ganti
  * `resolveStoreFor()` untuk membaca dari relasi `$product->store`.

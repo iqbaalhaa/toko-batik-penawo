@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Batik Penawo | Produk')
+@section('title', 'Batik Penawuo | Produk')
 
 @section('content')
 	<!-- Title page -->

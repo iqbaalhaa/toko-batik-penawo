@@ -1,6 +1,6 @@
 @extends('layouts.auth')
 
-@section('title', 'Batik Penawo | Masuk')
+@section('title', 'Batik Penawuo | Masuk')
 @section('auth-heading', 'Masuk')
 
 @push('styles')
@@ -29,7 +29,7 @@
 @section('content')
 	<div class="auth-wrap">
 		<div class="auth-card">
-			<h2 class="auth-title">Masuk ke Batik Penawo</h2>
+			<h2 class="auth-title">Masuk ke Batik Penawuo</h2>
 			<p class="auth-subtitle">Belanja koleksi batik Nusantara dengan mudah</p>
 
 			<form action="{{ route('login.submit') }}" method="POST">

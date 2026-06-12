@@ -1,5 +1,5 @@
 @php
-	$storeName    = $setting('store_name', 'Batik Penawo');
+	$storeName    = $setting('store_name', 'Batik Penawuo');
 	$storeAddress = $setting('contact_address', 'Kerinci, Jambi');
 	$storePhone   = $setting('contact_phone', '');
 
@@ -97,7 +97,7 @@
 
 	<div class="thanks">
 		Terima kasih atas pembelian Anda!<br>
-		Selamat menikmati produk Batik Penawo.
+		Selamat menikmati produk Batik Penawuo.
 		<br><br>
 		-- {{ $order->invoice_number }} --
 	</div>

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Batik Penawo | Kontak')
+@section('title', 'Batik Penawuo | Kontak')
 
 @section('content')
 	<!-- Title page -->
@@ -40,7 +40,7 @@
 							<span class="mtext-110 cl2">Alamat</span>
 
 							<p class="stext-115 cl6 size-213 p-t-18">
-								{{ $setting('store_name', 'Batik Penawo') }}, {{ $setting('contact_address', 'Jl. Malioboro No. 123, Kerinci 55213, Indonesia') }}
+								{{ $setting('store_name', 'Batik Penawuo') }}, {{ $setting('contact_address', 'Jl. Malioboro No. 123, Kerinci 55213, Indonesia') }}
 							</p>
 						</div>
 					</div>
@@ -71,7 +71,7 @@
 							<span class="mtext-110 cl2">Dukungan Pelanggan</span>
 
 							<p class="stext-115 cl1 size-213 p-t-18">
-								{{ $setting('contact_email', 'halo@batikpenawo.id') }}
+								{{ $setting('contact_email', 'halo@batikpenawuo.id') }}
 							</p>
 						</div>
 					</div>

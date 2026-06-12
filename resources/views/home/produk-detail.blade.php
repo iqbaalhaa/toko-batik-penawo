@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Batik Penawo | '.$product->name)
+@section('title', 'Batik Penawuo | '.$product->name)
 
 @push('styles')
 <style>
@@ -201,7 +201,7 @@
 						<div class="tab-pane fade show active" id="description" role="tabpanel">
 							<div class="how-pos2 p-lr-15-md">
 								<p class="stext-102 cl6">
-									{{ $product->description }} Setiap produk Batik Penawo dibuat dengan ketelitian oleh pengrajin batik Indonesia menggunakan bahan berkualitas. Pola dapat sedikit berbeda antar produk karena proses handmade.
+									{{ $product->description }} Setiap produk Batik Penawuo dibuat dengan ketelitian oleh pengrajin batik Indonesia menggunakan bahan berkualitas. Pola dapat sedikit berbeda antar produk karena proses handmade.
 								</p>
 							</div>
 						</div>

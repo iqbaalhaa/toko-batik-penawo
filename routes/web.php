@@ -297,7 +297,7 @@ Route::post('/checkout/confirm', function (Request $request) {
         $total            = $subtotalProducts;
         $shippingTotal    = 0;
         $shippingBreakdown = [];
-        $shippingAddrText = 'JEMPUT DI TOKO BATIK PENAWO';
+        $shippingAddrText = 'JEMPUT DI TOKO BATIK PENAWUO';
     } else {
         $shippingSelections = array_filter(
             (array) ($data['shipping'] ?? []),
@@ -1119,7 +1119,7 @@ Route::prefix('akun')->name('akun.')->group(function () {
         session()->regenerateToken();
 
         return redirect()->route('home')
-            ->with('status', 'Akun Anda telah dihapus permanen. Terima kasih sudah berbelanja di Batik Penawo.');
+            ->with('status', 'Akun Anda telah dihapus permanen. Terima kasih sudah berbelanja di Batik Penawuo.');
     })->name('pengaturan.hapus-akun');
 });
 

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-	<title>@yield('title', 'Batik Penawo')</title>
+	<title>@yield('title', 'Batik Penawuo')</title>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="icon" type="image/x-icon" href="{{ asset('image/favicon.ico') }}"/>
@@ -314,7 +314,7 @@
 			<div class="wrap-menu-desktop">
 				<nav class="limiter-menu-desktop container">
 					<a href="{{ url('/') }}" class="logo">
-						<img src="{{ asset('image/logox.png') }}" alt="BATIK PENAWO">
+						<img src="{{ asset('image/logox.png') }}" alt="BATIK PENAWUO">
 					</a>
 
 					<div class="menu-desktop">
@@ -428,7 +428,7 @@
 		<!-- Header Mobile -->
 		<div class="wrap-header-mobile">
 			<div class="logo-mobile">
-				<a href="{{ url('/') }}"><img src="{{ asset('image/logox.png') }}" alt="BATIK PENAWO"></a>
+				<a href="{{ url('/') }}"><img src="{{ asset('image/logox.png') }}" alt="BATIK PENAWUO"></a>
 			</div>
 
 			<div class="wrap-icon-header flex-w flex-r-m m-r-15">
@@ -665,7 +665,7 @@
 				@endif
 
 				<p class="stext-107 cl6 txt-center">
-					{{ $setting('footer_copyright', 'Hak Cipta © ' . date('Y') . ' Batik Penawo. Semua hak dilindungi.') }}
+					{{ $setting('footer_copyright', 'Hak Cipta © ' . date('Y') . ' Batik Penawuo. Semua hak dilindungi.') }}
 				</p>
 			</div>
 		</div>
