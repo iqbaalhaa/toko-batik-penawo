@@ -281,8 +281,6 @@
 
 					<div class="topbar-right">
 						<a href="{{ route('kontak') }}" class="topbar-link"><i class="fa fa-question-circle-o"></i>Bantuan</a>
-						<span class="topbar-sep">|</span>
-						<a href="#" class="topbar-link"><i class="fa fa-globe"></i>Bahasa Indonesia</a>
 
 						@if(!$authUser)
 							<span class="topbar-sep">|</span>
@@ -462,7 +460,6 @@
 					<div class="right-top-bar flex-w h-full">
 						<a href="#" class="flex-c-m p-lr-10 trans-04">Bantuan & FAQ</a>
 						<a href="#" class="flex-c-m p-lr-10 trans-04">Akun Saya</a>
-						<a href="#" class="flex-c-m p-lr-10 trans-04">ID</a>
 						<a href="#" class="flex-c-m p-lr-10 trans-04">IDR</a>
 					</div>
 				</li>
@@ -762,20 +759,6 @@
 									<a href="#" id="qv-detail-link" class="stext-106 cl6 hov-cl1 trans-04" style="text-decoration:underline;">Lihat detail lengkap &rarr;</a>
 								</div>
 							</form>
-
-							<div class="flex-w flex-m p-l-100 p-t-40 respon7">
-								<a href="#" class="fs-14 cl3 hov-cl1 trans-04 lh-10 p-lr-5 p-tb-2 m-r-8 tooltip100" data-tooltip="Facebook">
-									<i class="fa fa-facebook"></i>
-								</a>
-
-								<a href="#" class="fs-14 cl3 hov-cl1 trans-04 lh-10 p-lr-5 p-tb-2 m-r-8 tooltip100" data-tooltip="Twitter">
-									<i class="fa fa-twitter"></i>
-								</a>
-
-								<a href="#" class="fs-14 cl3 hov-cl1 trans-04 lh-10 p-lr-5 p-tb-2 m-r-8 tooltip100" data-tooltip="Google Plus">
-									<i class="fa fa-google-plus"></i>
-								</a>
-							</div>
 						</div>
 					</div>
 				</div>

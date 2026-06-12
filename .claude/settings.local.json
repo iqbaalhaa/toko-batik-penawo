@@ -191,7 +191,12 @@
       "Bash(php -l /f/Project/toko-batik-penawo/routes/web.php)",
       "Bash(php -r '$r=json_decode\\(stream_get_contents\\(STDIN\\),true\\); echo count\\($r\\),\" routes\\\\n\"; foreach\\($r as $x\\){ if\\(str_contains\\($x[\"action\"],\"Closure\"\\)\\) echo \"CLOSURE: \",$x[\"uri\"],\"\\\\n\"; }')",
       "Bash(php -r '$r=json_decode\\(stream_get_contents\\(STDIN\\),true\\); foreach\\($r as $x\\){ if\\($x[\"name\"]\\) echo $x[\"name\"],\"\\\\n\"; }')",
-      "Bash(git show *)"
+      "Bash(git show *)",
+      "Bash(curl -s http://127.0.0.1:8123/produk/tes-bp-001)",
+      "Bash(echo \"Sisa kata Ulasan/reviews: $\\(curl -s http://127.0.0.1:8123/produk/tes-bp-001)",
+      "Bash(curl -s http://127.0.0.1:8123/kontak)",
+      "Bash(echo \"Sisa form kirim: $\\(curl -s http://127.0.0.1:8123/kontak)",
+      "Bash(curl -s http://127.0.0.1:8123/kontak -o /tmp/kontak.html -w \"status: %{http_code}\\\\n\")"
     ],
     "additionalDirectories": [
       "\\tmp"

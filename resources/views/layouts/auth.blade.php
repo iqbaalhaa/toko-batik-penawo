@@ -38,8 +38,6 @@
 					<span class="topbar-sep">|</span>
 					<a href="{{ route('kontak') }}" class="topbar-link"><i class="fa fa-question-circle-o"></i>Bantuan</a>
 					<span class="topbar-sep">|</span>
-					<a href="#" class="topbar-link"><i class="fa fa-globe"></i>Bahasa Indonesia</a>
-					<span class="topbar-sep">|</span>
 					<a href="{{ route('register') }}" class="topbar-link topbar-link-strong">Daftar</a>
 					<span class="topbar-sep">|</span>
 					<a href="{{ route('login') }}" class="topbar-link topbar-link-strong">Masuk</a>
