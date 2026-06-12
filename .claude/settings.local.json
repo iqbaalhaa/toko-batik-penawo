@@ -196,7 +196,8 @@
       "Bash(echo \"Sisa kata Ulasan/reviews: $\\(curl -s http://127.0.0.1:8123/produk/tes-bp-001)",
       "Bash(curl -s http://127.0.0.1:8123/kontak)",
       "Bash(echo \"Sisa form kirim: $\\(curl -s http://127.0.0.1:8123/kontak)",
-      "Bash(curl -s http://127.0.0.1:8123/kontak -o /tmp/kontak.html -w \"status: %{http_code}\\\\n\")"
+      "Bash(curl -s http://127.0.0.1:8123/kontak -o /tmp/kontak.html -w \"status: %{http_code}\\\\n\")",
+      "Bash(curl -s http://127.0.0.1:8123/ -o /tmp/home.html -w \"status: %{http_code}\\\\n\")"
     ],
     "additionalDirectories": [
       "\\tmp"

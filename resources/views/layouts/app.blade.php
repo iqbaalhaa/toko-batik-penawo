@@ -336,7 +336,7 @@
 					</div>
 
 					<div class="wrap-icon-header flex-w flex-r-m">
-						<div class="icon-header-item cl2 hov-cl1 trans-04 p-l-22 p-r-11 js-show-modal-search">
+						<div class="icon-header-item cl2 hov-cl1 trans-04 p-l-22 p-r-11 js-toggle-search-drop" title="Cari produk">
 							<i class="fa fa-search"></i>
 						</div>
 
@@ -421,7 +421,7 @@
 			</div>
 
 			<div class="wrap-icon-header flex-w flex-r-m m-r-15">
-				<div class="icon-header-item cl2 hov-cl1 trans-04 p-r-11 js-show-modal-search">
+				<div class="icon-header-item cl2 hov-cl1 trans-04 p-r-11 js-toggle-search-drop" title="Cari produk">
 					<i class="fa fa-search"></i>
 				</div>
 
@@ -486,47 +486,53 @@
 			</ul>
 		</div>
 
-		<!-- Modal Search -->
+		<!-- Panel pencarian dropdown — menggantikan modal fullscreen template -->
 		<style>
-			.wrap-search-header input { font-size: 28px; }
-			@media (max-width: 576px) { .wrap-search-header input { font-size: 20px; } }
-			.header-search-suggest {
-				position: absolute; left: 0; right: 0; top: 100%; z-index: 50;
-				background: #fff; border: 2px solid #e6e6e6; border-top: 0;
-				max-height: 55vh; overflow-y: auto;
+			.header-search-drop {
+				position: fixed; z-index: 1300;
+				width: 430px; max-width: calc(100vw - 24px);
+				background: #fff;
+				border: 1px solid #ece8de; border-radius: 10px;
+				box-shadow: 0 14px 38px rgba(0,0,0,.14);
+				display: none;
 			}
-			.hss-item { display: flex; align-items: center; gap: 14px; padding: 10px 16px; color: #333; transition: background .2s; }
+			.header-search-drop.show { display: block; }
+			.hsd-form { display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 16px; }
+			.hsd-form .fa-search { color: #b3ab9c; font-size: 14px; }
+			.hsd-form input {
+				flex: 1; min-width: 0; border: 0; outline: none;
+				font-family: Poppins-Regular; font-size: 14px; color: #333;
+				height: 38px; background: transparent;
+			}
+			.hsd-submit {
+				border: 0; cursor: pointer; border-radius: 999px;
+				background: #c29e5c; color: #fff;
+				font-family: Poppins-Medium; font-size: 12.5px;
+				padding: 8px 18px; transition: background .2s;
+			}
+			.hsd-submit:hover { background: #a88541; }
+			.header-search-suggest { max-height: 55vh; overflow-y: auto; border-top: 1px solid #f2efe7; }
+			.hss-item { display: flex; align-items: center; gap: 12px; padding: 9px 14px; color: #333; transition: background .2s; }
 			.hss-item:hover { background: #f6f3ec; text-decoration: none; color: #333; }
-			.hss-item img { width: 52px; height: 52px; object-fit: cover; flex-shrink: 0; background: #faf7ef; }
-			.hss-name { font-family: Poppins-Regular; font-size: 15px; line-height: 1.3; }
+			.hss-item img { width: 44px; height: 44px; object-fit: cover; flex-shrink: 0; background: #faf7ef; border-radius: 6px; }
+			.hss-name { font-family: Poppins-Regular; font-size: 13.5px; line-height: 1.3; }
 			.hss-name mark { background: #fff3c4; padding: 0 1px; }
-			.hss-meta { font-size: 12px; color: #999; margin-top: 2px; }
-			.hss-price { margin-left: auto; font-family: Poppins-Medium; font-size: 14px; color: #717fe0; white-space: nowrap; }
-			.hss-empty { padding: 18px 16px; color: #999; font-size: 14px; text-align: center; }
-			.hss-all { display: block; padding: 12px 16px; text-align: center; font-family: Poppins-Medium; font-size: 14px;
-				color: #717fe0; border-top: 1px solid #f0f0f0; }
-			.hss-all:hover { background: #717fe0; color: #fff; text-decoration: none; }
-			.header-search-hint { color: rgba(255,255,255,.75); font-size: 13px; text-align: center; padding-top: 14px; }
-			.header-search-hint kbd { background: rgba(255,255,255,.15); border-radius: 3px; padding: 1px 6px; font-family: inherit; }
+			.hss-meta { font-size: 11.5px; color: #999; margin-top: 2px; }
+			.hss-price { margin-left: auto; font-family: Poppins-Medium; font-size: 13px; color: #c29e5c; white-space: nowrap; }
+			.hss-empty { padding: 16px 14px; color: #999; font-size: 13px; text-align: center; }
+			.hss-all { display: block; padding: 11px 14px; text-align: center; font-family: Poppins-Medium; font-size: 13px;
+				color: #c29e5c; border-top: 1px solid #f2efe7; border-radius: 0 0 10px 10px; }
+			.hss-all:hover { background: #c29e5c; color: #fff; text-decoration: none; }
 		</style>
-		<div class="modal-search-header flex-c-m trans-04 js-hide-modal-search">
-			<div class="container-search-header">
-				<button class="flex-c-m btn-hide-modal-search trans-04 js-hide-modal-search">
-					<img src="{{ asset('frontend/images/icons/icon-close2.png') }}" alt="TUTUP">
-				</button>
-
-				<form class="wrap-search-header flex-w p-l-15" action="{{ route('produk') }}" method="GET" autocomplete="off">
-					<button type="submit" class="flex-c-m trans-04" aria-label="Cari">
-						<i class="fa fa-search"></i>
-					</button>
-					<input class="plh3" type="text" name="q" id="headerSearchInput"
-						placeholder="Cari produk batik..." value="{{ request('q') }}"
-						minlength="2" required aria-label="Kata kunci pencarian">
-				</form>
-
-				<div class="header-search-suggest dis-none" id="headerSearchSuggest"></div>
-				<div class="header-search-hint">Ketik untuk melihat saran produk &middot; tekan <kbd>Enter</kbd> untuk semua hasil &middot; <kbd>Esc</kbd> untuk menutup</div>
-			</div>
+		<div class="header-search-drop" id="headerSearchDrop">
+			<form class="hsd-form" action="{{ route('produk') }}" method="GET" autocomplete="off">
+				<i class="fa fa-search"></i>
+				<input type="text" name="q" id="headerSearchInput"
+					placeholder="Cari produk batik..." value="{{ request('q') }}"
+					minlength="2" required aria-label="Kata kunci pencarian">
+				<button type="submit" class="hsd-submit">Cari</button>
+			</form>
+			<div class="header-search-suggest dis-none" id="headerSearchSuggest"></div>
 		</div>
 	</header>
 
@@ -875,24 +881,55 @@
 	</script>
 	<script src="{{ asset('frontend/js/main.js') }}"></script>
 	<script>
-		// Live search di modal cari header: debounce 250ms, render saran produk,
-		// fokus otomatis saat modal dibuka, Esc untuk menutup.
+		// Pencarian header dengan panel dropdown (bukan modal fullscreen):
+		// panel muncul menempel di bawah ikon cari, live search debounce 250ms,
+		// tutup via klik di luar panel atau Esc.
 		(function () {
 			var $input = $('#headerSearchInput');
 			var $box   = $('#headerSearchSuggest');
+			var $drop  = $('#headerSearchDrop');
 			var url    = '{{ route('api.produk.cari') }}';
 			var allUrl = '{{ route('produk') }}';
 			var timer  = null;
 			var seq    = 0;
 
-			$('.js-show-modal-search').on('click', function () {
-				setTimeout(function () { $input.trigger('focus').trigger('select'); }, 200);
+			function positionDrop($icon) {
+				var rect  = $icon[0].getBoundingClientRect();
+				var width = Math.min(430, window.innerWidth - 24);
+				// Rata kanan terhadap ikon; jaga supaya tidak keluar viewport.
+				var left = Math.max(12, Math.min(rect.right - width, window.innerWidth - width - 12));
+				$drop.css({ top: (rect.bottom + 10) + 'px', left: left + 'px' });
+			}
+
+			var $lastIcon = null;
+			$('.js-toggle-search-drop').on('click', function (e) {
+				e.stopPropagation();
+				$lastIcon = $(this);
+				if ($drop.hasClass('show')) {
+					$drop.removeClass('show');
+					return;
+				}
+				positionDrop($lastIcon);
+				$drop.addClass('show');
+				setTimeout(function () { $input.trigger('focus').trigger('select'); }, 50);
 			});
 
+			// Reposisi saat resize/scroll selama panel terbuka (header template fixed saat scroll).
+			$(window).on('resize scroll', function () {
+				if ($drop.hasClass('show') && $lastIcon && $lastIcon.is(':visible')) {
+					positionDrop($lastIcon);
+				}
+			});
+
+			// Tutup: klik di luar panel, atau Esc.
+			$(document).on('click', function (e) {
+				if ($drop.hasClass('show') && ! $(e.target).closest('#headerSearchDrop').length) {
+					$drop.removeClass('show');
+				}
+			});
 			$(document).on('keydown', function (e) {
-				if (e.key === 'Escape' && $('.modal-search-header').hasClass('show-modal-search')) {
-					$('.modal-search-header').removeClass('show-modal-search');
-					$('.js-show-modal-search').css('opacity', '1');
+				if (e.key === 'Escape' && $drop.hasClass('show')) {
+					$drop.removeClass('show');
 				}
 			});
 
