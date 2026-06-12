@@ -31,6 +31,10 @@ class AuthController extends Controller
         $user = User::where('email', $data['email'])->first();
 
         if (! $user || ! Hash::check($data['password'], $user->password)) {
+            // Akun soft-deleted tidak ikut query default — beri pesan yang jelas.
+            if (! $user && User::withTrashed()->where('email', $data['email'])->exists()) {
+                return back()->withErrors(['email' => 'Akun ini telah dihapus. Hubungi admin untuk pemulihan akun.'])->withInput($request->only('email'));
+            }
             return back()->withErrors(['email' => 'Email atau password salah.'])->withInput($request->only('email'));
         }
 

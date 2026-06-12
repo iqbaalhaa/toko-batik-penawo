@@ -2,11 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Address;
 use App\Models\Order;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 /**
@@ -154,15 +152,9 @@ class AccountController extends Controller
             return back()->withErrors(['password' => 'Akun admin tidak dapat dihapus dari sini.']);
         }
 
-        // Hapus dependent records secara eksplisit supaya tidak bergantung
-        // pada FK cascade di DB (engine bisa beda — InnoDB vs MyISAM).
-        DB::transaction(function () use ($user) {
-            Address::where('user_id', $user->id)->delete();
-            // Pesanan tetap ada untuk catatan toko, hanya user_id-nya di-null-kan
-            // (customer_name & customer_email sudah ter-snapshot di Order saat dibuat).
-            Order::where('user_id', $user->id)->update(['user_id' => null]);
-            $user->delete();
-        });
+        // Soft delete: baris users hanya ditandai deleted_at. Alamat dan
+        // pesanan dibiarkan utuh supaya akun dapat dipulihkan admin bila perlu.
+        $user->delete();
 
         // Logout total.
         session()->forget('auth_user');
@@ -170,6 +162,6 @@ class AccountController extends Controller
         session()->regenerateToken();
 
         return redirect()->route('home')
-            ->with('status', 'Akun Anda telah dihapus permanen. Terima kasih sudah berbelanja di Batik Penawuo.');
+            ->with('status', 'Akun Anda telah dihapus. Hubungi admin jika ingin memulihkan akun. Terima kasih sudah berbelanja di Batik Penawuo.');
     }
 }

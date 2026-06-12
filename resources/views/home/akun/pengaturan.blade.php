@@ -90,6 +90,13 @@
 						<div class="akun-flash"><i class="fa fa-check-circle"></i> {{ session('status') }}</div>
 					@endif
 
+					@if($errors->any())
+						<div class="akun-flash" style="background:#fbe4df; border-color:#f2c6be; color:#a5432f;">
+							<i class="fa fa-exclamation-circle"></i>
+							{{ $errors->first() }}
+						</div>
+					@endif
+
 					<form action="{{ route('akun.pengaturan.update') }}" method="POST">
 						@csrf
 
@@ -148,12 +155,12 @@
 
 						<div style="padding-top:16px; margin-top:6px; border-top:1px solid #f2efe7; display:flex; gap:10px; flex-wrap:wrap;">
 							<a href="{{ route('akun.profil') }}" class="akun-btn" style="background:#fff; color:#4d4640; border:1px solid #ddd6c6;"><i class="fa fa-user m-r-6"></i> Edit Profil</a>
-							<form action="{{ route('logout') }}" method="POST" style="margin:0;">
+							<form action="{{ route('logout') }}" method="POST" style="margin:0;"
+								data-confirm-title="Keluar dari akun?"
+								data-confirm-message="Anda akan dialihkan ke beranda. Login lagi untuk akses akun."
+								data-confirm-ok="Keluar">
 								@csrf
-								<button type="submit" class="akun-btn" style="background:#fff; color:#a5432f; border:1px solid #f2c6be;"
-									data-confirm-title="Keluar dari akun?"
-									data-confirm-message="Anda akan dialihkan ke beranda. Login lagi untuk akses akun."
-									data-confirm-ok="Keluar">
+								<button type="submit" class="akun-btn" style="background:#fff; color:#a5432f; border:1px solid #f2c6be;">
 									<i class="fa fa-sign-out m-r-6"></i> Keluar dari Akun Ini
 								</button>
 							</form>
@@ -190,21 +197,24 @@
 					{{-- ======================== Hapus Akun (zona berbahaya) ======================== --}}
 					<div class="akun-card" style="border-color:#f2c6be; background:#fffaf9;">
 						<h3 class="akun-card-title" style="color:#a5432f;">
-							<i class="fa fa-exclamation-triangle m-r-6"></i> Hapus Akun Permanen
+							<i class="fa fa-exclamation-triangle m-r-6"></i> Hapus Akun
 						</h3>
 						<p class="akun-card-sub" style="color:#7a5848;">
-							Tindakan ini tidak dapat dibatalkan. Data berikut akan dihapus permanen:
+							Setelah dihapus, akun Anda dinonaktifkan dan tidak dapat dipakai untuk login:
 						</p>
 						<ul style="margin: 0 0 16px 22px; font-size:12.5px; color:#6c665e; line-height:1.8;">
-							<li>Profil &amp; data pribadi</li>
-							<li>Semua alamat tersimpan</li>
-							<li>Preferensi notifikasi</li>
+							<li>Anda langsung keluar dan tidak bisa login kembali</li>
+							<li>Email akun ini tidak dapat dipakai mendaftar ulang</li>
+							<li>Riwayat pesanan tetap tersimpan sebagai catatan toko</li>
 						</ul>
 						<p style="font-size:12px; color:#9a9288; margin-bottom:14px;">
-							<i class="fa fa-info-circle"></i> Pesanan yang sudah pernah Anda buat tetap tersimpan di sistem toko sebagai catatan, tetapi tidak lagi terhubung ke akun Anda.
+							<i class="fa fa-info-circle"></i> Berubah pikiran di kemudian hari? Hubungi admin toko untuk memulihkan akun Anda.
 						</p>
 
-						<form action="{{ route('akun.pengaturan.hapus-akun') }}" method="POST" id="formHapusAkun">
+						<form action="{{ route('akun.pengaturan.hapus-akun') }}" method="POST" id="formHapusAkun"
+							data-confirm-title="Hapus akun Anda?"
+							data-confirm-message="Akun akan dinonaktifkan dan Anda tidak bisa login lagi. Hubungi admin jika suatu saat ingin memulihkan akun."
+							data-confirm-ok="Ya, Hapus Akun Saya">
 							@csrf @method('DELETE')
 
 							<div style="margin-bottom:12px;">
@@ -220,10 +230,7 @@
 							</div>
 
 							<button type="submit" id="btnHapusAkun" class="akun-btn" disabled
-								style="background:#a5432f; color:#fff; border:1px solid #a5432f; opacity:.6; cursor:not-allowed;"
-								data-confirm-title="Hapus akun secara permanen?"
-								data-confirm-message="Tindakan ini TIDAK DAPAT DIBATALKAN. Akun dan alamat Anda akan hilang selamanya."
-								data-confirm-ok="Ya, Hapus Akun Saya">
+								style="background:#a5432f; color:#fff; border:1px solid #a5432f; opacity:.6; cursor:not-allowed;">
 								<i class="fa fa-trash m-r-6"></i> Hapus Akun Saya
 							</button>
 						</form>
