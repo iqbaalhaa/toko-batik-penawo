@@ -287,15 +287,18 @@
 									<div class="store-name">
 										<i class="fa fa-shopping-bag" style="color:#c29e5c;"></i>
 										{{ $store['store_name'] }}
-										<span class="zone-tag {{ $sh['zone'] }}">{{ $sh['zone_label'] }}</span>
+										<span class="zone-tag {{ $sh['zone'] }} js-pickup-hide">{{ $sh['zone_label'] }}</span>
 									</div>
-									<div class="store-meta">
+									<div class="store-meta js-pickup-hide">
 										{{ count($store['items']) }} produk · Total berat
 										@if(isset($sh['weight_grams']))
 											{{ number_format($sh['weight_grams'], 0, ',', '.') }} g
 										@else
 											{{ $sh['total_weight_kg'] }} kg
 										@endif
+									</div>
+									<div class="store-meta js-pickup-show" style="display:none;">
+										{{ count($store['items']) }} produk · diambil langsung di toko
 									</div>
 
 									<ul class="checkout-items">
@@ -319,10 +322,10 @@
 									     dengan ?shipping[{storeId}]=courier:service. Pilihan terkirim
 									     juga via hidden input saat form di-submit. --}}
 									@if($sh['available'] && ! empty($sh['options']))
-										<div class="ship-picker-label">
+										<div class="ship-picker-label js-pickup-hide">
 											<i class="fa fa-truck" style="color:#c29e5c;"></i> Pilih Kurir &amp; Layanan
 										</div>
-										<div class="ship-picker">
+										<div class="ship-picker js-pickup-hide">
 											@foreach($sh['options'] as $opt)
 												@php $isActive = ($opt['code'] === ($sh['option_code'] ?? null)); @endphp
 												<a href="{{ $buildShippingUrl($opt['code']) }}"
@@ -344,15 +347,16 @@
 												</a>
 											@endforeach
 										</div>
-										{{-- Forward selection ke form submit checkout.confirm. --}}
-										<input type="hidden" form="checkoutForm" name="shipping[{{ $storeId }}]" value="{{ $sh['option_code'] }}">
+										{{-- Forward selection ke form submit checkout.confirm.
+										     Disabled saat COD agar tidak ikut ter-submit. --}}
+										<input type="hidden" form="checkoutForm" name="shipping[{{ $storeId }}]" value="{{ $sh['option_code'] }}" class="js-shipping-input">
 									@endif
 
 									<div class="store-shipping-row">
 										<span>Subtotal toko</span>
 										<strong>{{ $rupiah($store['subtotal']) }}</strong>
 									</div>
-									<div class="store-shipping-row">
+									<div class="store-shipping-row js-pickup-hide">
 										<span>
 											Ongkir terpilih
 											@if($sh['available'] && ($sh['source'] ?? 'local') === 'rajaongkir')
@@ -366,7 +370,7 @@
 										<strong>{{ $sh['available'] ? $rupiah($sh['shipping_cost']) : '—' }}</strong>
 									</div>
 									@if(! $sh['available'])
-										<div class="store-error">
+										<div class="store-error js-pickup-hide">
 											<i class="fa fa-exclamation-circle"></i>
 											{{ $sh['message'] }}
 											@if(! empty($sh['debug_reason']) && (($authUser['role'] ?? null) === 'admin' || config('app.debug')))
@@ -381,18 +385,21 @@
 								</div>
 							@endforeach
 
-							<div style="margin-top:14px; padding-top:12px; border-top:1px solid #ece8de;">
+							<div style="margin-top:14px; padding-top:12px; border-top:1px solid #ece8de;"
+								data-subtotal="{{ $summary['subtotal_products'] }}"
+								data-shipping-total="{{ $summary['shipping_total'] }}"
+								data-grand-total="{{ $summary['grand_total'] }}">
 								<div class="summary-row">
 									<span>Subtotal Produk</span>
 									<span>{{ $rupiah($summary['subtotal_products']) }}</span>
 								</div>
-								<div class="summary-row">
+								<div class="summary-row js-pickup-hide">
 									<span>Total Ongkir</span>
 									<span>{{ $rupiah($summary['shipping_total']) }}</span>
 								</div>
 								<div class="summary-row total">
 									<span>Total Bayar</span>
-									<span>{{ $rupiah($summary['grand_total']) }}</span>
+									<span class="js-grand-total-out">{{ $rupiah($summary['grand_total']) }}</span>
 								</div>
 							</div>
 
@@ -437,10 +444,13 @@
 		var notice      = document.getElementById('codNotice');
 		var addrSelect  = document.getElementById('checkoutAddressSelect');
 		var radios      = form.querySelectorAll('input[name="payment_method"]');
-		var shippingRow = null;
-		document.querySelectorAll('.summary-row').forEach(function(r){
-			if (r.textContent.trim().indexOf('Ongkir') === 0 || r.textContent.indexOf('Total Ongkir') > -1) shippingRow = r;
-		});
+		var pickupHideEls = document.querySelectorAll('.js-pickup-hide');
+		var pickupShowEls = document.querySelectorAll('.js-pickup-show');
+		var shippingInputs = document.querySelectorAll('.js-shipping-input');
+		var totalsBlock   = document.querySelector('[data-grand-total]');
+		var totalOutEl    = document.querySelector('.js-grand-total-out');
+
+		function rupiah(n) { return 'Rp' + Number(n || 0).toLocaleString('id-ID'); }
 
 		function applyPaymentUI() {
 			var pm = (form.querySelector('input[name="payment_method"]:checked') || {}).value;
@@ -460,10 +470,25 @@
 				addrSelect.required = !isCod;
 			}
 
-			// Sembunyikan baris ongkir & sesuaikan total saat COD.
-			if (shippingRow) shippingRow.style.display = isCod ? 'none' : '';
+			// Sembunyikan SEMUA elemen ongkir saat COD: zone-tag, weight info,
+			// picker kurir, baris "Ongkir terpilih" per toko, baris "Total Ongkir",
+			// dan store-error (karena error ongkir tidak relevan untuk jemput sendiri).
+			pickupHideEls.forEach(function (el) { el.style.display = isCod ? 'none' : ''; });
+			pickupShowEls.forEach(function (el) { el.style.display = isCod ? '' : 'none'; });
+
+			// Disable hidden input shipping[storeId] saat COD agar tidak ikut submit.
+			shippingInputs.forEach(function (inp) { inp.disabled = isCod; });
+
+			// Swap total: COD = subtotal saja (tanpa ongkir).
+			if (totalsBlock && totalOutEl) {
+				var subtotal = parseInt(totalsBlock.dataset.subtotal || '0', 10);
+				var grand    = parseInt(totalsBlock.dataset.grandTotal || '0', 10);
+				totalOutEl.textContent = rupiah(isCod ? subtotal : grand);
+			}
+
 			if (btn) {
-				btn.disabled = false;
+				// COD tidak butuh ongkir, jadi tombol selalu enabled untuk metode ini.
+				btn.disabled = isCod ? false : ! {{ $summary['all_available'] ? 'true' : 'false' }};
 				btn.innerHTML = isCod
 					? '<i class="fa fa-shopping-bag m-r-6"></i> Pesan & Jemput di Toko'
 					: '<i class="fa fa-lock m-r-6"></i> Bayar Sekarang';

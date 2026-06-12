@@ -19,10 +19,24 @@ Route::get('/', function () {
     $banners = Banner::where('is_active', true)->orderBy('sort_order')->orderBy('id')->get();
     return view('home.index', compact('products', 'categories', 'banners'));
 })->name('home');
-Route::get('/produk', function () {
-    $products = Product::with('categories')->where('status', '!=', 'arsip')->latest()->paginate(12)->withQueryString();
+Route::get('/produk', function (Request $request) {
     $categories = Category::orderBy('sort_order')->get();
-    return view('home.produk', compact('products', 'categories'));
+
+    // Filter via ?kategori=<slug>. Dipakai oleh link footer & tombol filter
+    // di halaman produk supaya bisa di-bookmark / di-share dengan kategori
+    // sudah ter-apply.
+    $activeCategorySlug = $request->query('kategori');
+    $activeCategory     = $activeCategorySlug
+        ? $categories->firstWhere('slug', $activeCategorySlug)
+        : null;
+
+    $query = Product::with('categories')->where('status', '!=', 'arsip')->latest();
+    if ($activeCategory) {
+        $query->whereHas('categories', fn ($q) => $q->where('categories.id', $activeCategory->id));
+    }
+
+    $products = $query->paginate(12)->withQueryString();
+    return view('home.produk', compact('products', 'categories', 'activeCategory'));
 })->name('produk');
 
 Route::get('/produk/{slug}', function (string $slug) {

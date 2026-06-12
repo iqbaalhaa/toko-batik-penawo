@@ -1,8 +1,16 @@
 <div class="flex-w flex-sb-m p-b-52">
 	<div class="flex-w flex-l-m filter-tope-group m-tb-10">
-		<button class="stext-106 cl6 hov1 bor3 trans-04 m-r-32 m-tb-5 how-active1" data-filter="*">Semua Produk</button>
+		{{-- Link server-side (bookmarkable) + tetap pakai class isotope (.how-active1)
+		     untuk kompat dengan style template. Active state = bandingkan slug
+		     dengan ?kategori di URL. --}}
+		@php $activeSlug = ($activeCategory ?? null)?->slug; @endphp
+		<a href="{{ route('produk') }}"
+			class="stext-106 cl6 hov1 bor3 trans-04 m-r-32 m-tb-5 {{ $activeSlug ? '' : 'how-active1' }}"
+			data-filter="*">Semua Produk</a>
 		@foreach(($categories ?? []) as $cat)
-			<button class="stext-106 cl6 hov1 bor3 trans-04 m-r-32 m-tb-5" data-filter=".{{ $cat->slug }}">{{ $cat->name }}</button>
+			<a href="{{ route('produk', ['kategori' => $cat->slug]) }}"
+				class="stext-106 cl6 hov1 bor3 trans-04 m-r-32 m-tb-5 {{ $activeSlug === $cat->slug ? 'how-active1' : '' }}"
+				data-filter=".{{ $cat->slug }}">{{ $cat->name }}</a>
 		@endforeach
 	</div>
 

@@ -579,10 +579,10 @@
 		};
 
 		$footerCol1Links = $footerList('footer_col1_links', [
-			['label' => 'Batik Wanita', 'url' => '/produk'],
-			['label' => 'Batik Pria',   'url' => '/produk'],
-			['label' => 'Batik Anak',   'url' => '/produk'],
-			['label' => 'Aksesoris',    'url' => '/produk'],
+			['label' => 'Batik Wanita', 'url' => '/produk?kategori=batik-wanita'],
+			['label' => 'Batik Pria',   'url' => '/produk?kategori=batik-pria'],
+			['label' => 'Aksesoris',    'url' => '/produk?kategori=aksesoris'],
+			['label' => 'Semua Produk', 'url' => '/produk'],
 		]);
 		$footerCol2Links = $footerList('footer_col2_links', [
 			['label' => 'Lacak Pesanan', 'url' => '/akun/pesanan'],
