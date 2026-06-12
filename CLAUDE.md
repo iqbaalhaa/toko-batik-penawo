@@ -28,9 +28,15 @@ Tests run on in-memory SQLite (phpunit.xml); the dev database is MySQL.
 
 ## Critical Architecture Facts
 
-### All application logic lives in `routes/web.php` (~1950 lines)
+### Controller layout
 
-There are **no controllers** (only the abstract base `Controller`). Every route is a closure in `routes/web.php`. When adding features, follow this pattern — do not introduce controllers unless explicitly asked. Route sections in order: public catalog/cart/checkout → Midtrans endpoints → wilayah API (`/api/wilayah/*`) → auth (login/register/logout) → customer account (`/profil`, `/pesanan`, `/alamat`, `/pengaturan`) → admin panel (`Route::prefix('admin')->name('admin.')->middleware('admin')`).
+`routes/web.php` is declaration-only; all logic lives in controllers under `app/Http/Controllers/`:
+
+- Public: `HomeController` (catalog, search, static pages), `CartController` (session cart), `CheckoutController` (3-step checkout, invoice page, order completion), `MidtransController` (Snap re-token + webhook), `WilayahController` (`/api/wilayah/*` cascading dropdowns)
+- Auth/account: `AuthController` (session login/register/logout), `AccountController` (profil, pesanan, pengaturan, hapus akun), `AddressController` (max 3 addresses per user)
+- Admin (`App\Http\Controllers\Admin`, behind `admin` middleware): `DashboardController`, `ProductController`, `OrderController`, `ReportController` (stock movements), `UserController`, `CmsController` (site settings, banners, categories)
+
+Route names are Indonesian (`produk`, `keranjang`, `pesanan`, `akun.*`, `admin.*`) and are referenced extensively in Blade views — never rename them. In the admin order routes, static paths (`/pesanan/cetak-massal`, `/pesanan/bulk`) must stay registered before `/pesanan/{order}`.
 
 ### Custom session auth — NOT Laravel Auth
 

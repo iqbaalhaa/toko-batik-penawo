@@ -188,7 +188,13 @@
       "Bash(curl -s \"http://127.0.0.1:8123/api/produk/cari?q=tes\")",
       "Bash(curl -s \"http://127.0.0.1:8123/produk?q=tes\")",
       "Bash(curl -s \"http://127.0.0.1:8123/produk?q=zzzz\")",
-      "Bash(php -l /f/Project/toko-batik-penawo/routes/web.php)"
+      "Bash(php -l /f/Project/toko-batik-penawo/routes/web.php)",
+      "Bash(php -r '$r=json_decode\\(stream_get_contents\\(STDIN\\),true\\); echo count\\($r\\),\" routes\\\\n\"; foreach\\($r as $x\\){ if\\(str_contains\\($x[\"action\"],\"Closure\"\\)\\) echo \"CLOSURE: \",$x[\"uri\"],\"\\\\n\"; }')",
+      "Bash(php -r '$r=json_decode\\(stream_get_contents\\(STDIN\\),true\\); foreach\\($r as $x\\){ if\\($x[\"name\"]\\) echo $x[\"name\"],\"\\\\n\"; }')",
+      "Bash(git show *)"
+    ],
+    "additionalDirectories": [
+      "\\tmp"
     ]
   }
 }
