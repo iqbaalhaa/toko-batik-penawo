@@ -1,7 +1,7 @@
 @extends('layouts.admin')
 
 @section('title', 'Laporan Stok')
-@section('page_title', 'Laporan Barang Masuk &amp; Keluar')
+@section('page_title', 'Laporan Barang Masuk & Keluar')
 @section('page_subtitle', 'Pantau dan catat mutasi stok produk')
 
 @push('styles')

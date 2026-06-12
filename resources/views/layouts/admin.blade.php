@@ -113,28 +113,6 @@
 		.admin-topbar-title { font-size: 17px; font-weight: 600; color: #2d2a26; }
 		.admin-topbar-title small { color: #9a9288; font-weight: 400; font-size: 12.5px; display: block; margin-top: 2px; letter-spacing: .2px; }
 		.admin-topbar-right { display: flex; align-items: center; gap: 18px; }
-		.admin-topbar-icon {
-			width: 38px; height: 38px;
-			display: inline-flex; align-items: center; justify-content: center;
-			background: #f5f2ea; color: #6c665e; border-radius: 50%;
-			font-size: 17px; transition: background .15s, color .15s;
-			position: relative;
-		}
-		.admin-topbar-icon:hover { background: var(--brand); color: #fff; }
-		.admin-topbar-icon .dot {
-			position: absolute; top: 8px; right: 9px;
-			width: 8px; height: 8px; border-radius: 50%; background: #e0533e; border: 2px solid #fff;
-		}
-		.admin-topbar-icon .count-badge {
-			position: absolute; top: 4px; right: 2px;
-			min-width: 18px; height: 18px; padding: 0 5px;
-			border-radius: 999px;
-			background: #e0533e; color: #fff;
-			font-size: 10.5px; font-weight: 600;
-			display: inline-flex; align-items: center; justify-content: center;
-			border: 2px solid #fff;
-			font-variant-numeric: tabular-nums;
-		}
 
 		/* Sidebar badge */
 		.sidebar-badge {
@@ -150,74 +128,6 @@
 			.sidebar-badge { display: none; }
 		}
 
-		/* Notifikasi dropdown */
-		.admin-notif-wrap { position: relative; }
-		.admin-notif-trigger {
-			background: none; border: 0; padding: 0;
-			width: 38px; height: 38px;
-			display: inline-flex; align-items: center; justify-content: center;
-			background: #f5f2ea; color: #6c665e; border-radius: 50%;
-			font-size: 17px; cursor: pointer;
-			transition: background .15s, color .15s;
-			position: relative;
-		}
-		.admin-notif-trigger:hover { background: var(--brand); color: #fff; }
-		.admin-notif-dropdown {
-			position: absolute; top: calc(100% + 6px); right: 0;
-			width: 340px; background: #fff;
-			border: 1px solid #ece8de; border-radius: 8px;
-			box-shadow: 0 10px 30px rgba(0,0,0,.10);
-			z-index: 1100;
-			opacity: 0; visibility: hidden; transform: translateY(-6px);
-			transition: opacity .15s, transform .15s, visibility 0s linear .15s;
-			overflow: hidden;
-		}
-		.admin-notif-wrap.open .admin-notif-dropdown {
-			opacity: 1; visibility: visible; transform: translateY(0);
-			transition: opacity .15s, transform .15s;
-		}
-		.admin-notif-dropdown:before {
-			content: ''; position: absolute; top: -7px; right: 14px;
-			width: 12px; height: 12px; background: #fff;
-			border-top: 1px solid #ece8de; border-left: 1px solid #ece8de;
-			transform: rotate(45deg);
-		}
-		.admin-notif-head {
-			padding: 14px 16px; display: flex; justify-content: space-between; align-items: center;
-			border-bottom: 1px solid #f2efe7; background: #faf7ef;
-		}
-		.admin-notif-head strong { font-size: 13.5px; color: #2d2a26; }
-		.admin-notif-head .head-meta { font-size: 11.5px; color: #9a9288; }
-		.admin-notif-list { list-style: none; margin: 0; padding: 0; max-height: 360px; overflow-y: auto; }
-		.admin-notif-item {
-			display: flex; gap: 12px; padding: 12px 16px;
-			border-bottom: 1px solid #f2efe7; text-decoration: none;
-			transition: background .12s;
-		}
-		.admin-notif-item:hover { background: #faf7ef; text-decoration: none; }
-		.admin-notif-item:last-child { border-bottom: 0; }
-		.admin-notif-icon {
-			width: 36px; height: 36px; flex-shrink: 0;
-			border-radius: 50%; background: #f5ecd7; color: #8a6b2b;
-			display: inline-flex; align-items: center; justify-content: center;
-			font-size: 14px;
-		}
-		.admin-notif-icon.diproses { background: #fcf1d9; color: #a87318; }
-		.admin-notif-body { flex: 1; min-width: 0; }
-		.admin-notif-title { font-size: 13px; color: #2d2a26; font-weight: 500; }
-		.admin-notif-meta { font-size: 11.5px; color: #9a9288; margin-top: 2px; display: flex; gap: 6px; flex-wrap: wrap; }
-		.admin-notif-amount { color: #c29e5c; font-weight: 600; font-size: 12px; white-space: nowrap; align-self: flex-start; padding-top: 2px; }
-		.admin-notif-empty {
-			padding: 28px 16px; text-align: center;
-			color: #9a9288; font-size: 12.5px;
-		}
-		.admin-notif-empty i { font-size: 28px; color: #d8d1bf; display: block; margin-bottom: 8px; }
-		.admin-notif-foot {
-			padding: 10px 16px; text-align: center;
-			border-top: 1px solid #f2efe7; background: #faf7ef;
-		}
-		.admin-notif-foot a { font-size: 12.5px; color: var(--brand); font-weight: 500; }
-		.admin-notif-foot a:hover { color: var(--brand-dark); text-decoration: none; }
 		.admin-user { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 4px 8px 4px 4px; border-radius: 999px; transition: background .15s; }
 		.admin-user:hover { background: #faf6ed; }
 		.admin-user-caret { color: #9a9288; font-size: 11px; margin-left: 2px; transition: transform .2s; }
@@ -476,61 +386,6 @@
 			</div>
 
 			<div class="admin-topbar-right">
-				<div class="admin-notif-wrap" id="adminNotifWrap">
-					<button type="button" class="admin-notif-trigger" id="adminNotifTrigger" title="Notifikasi pesanan masuk">
-						<i class="fa fa-bell-o"></i>
-						@if(($pendingOrdersCount ?? 0) > 0)
-							<span class="count-badge">{{ $pendingOrdersCount > 99 ? '99+' : $pendingOrdersCount }}</span>
-						@endif
-					</button>
-
-					<div class="admin-notif-dropdown">
-						<div class="admin-notif-head">
-							<strong>Pesanan Masuk</strong>
-							<span class="head-meta">{{ $pendingOrdersCount ?? 0 }} perlu diproses</span>
-						</div>
-
-						<ul class="admin-notif-list">
-							@forelse($recentPendingOrders ?? [] as $o)
-								@php
-									$isPaid = $o->status === 'diproses';
-								@endphp
-								<a href="{{ route('admin.pesanan') }}?q={{ $o->invoice_number }}" class="admin-notif-item">
-									<div class="admin-notif-icon {{ $isPaid ? 'diproses' : '' }}">
-										<i class="fa {{ $isPaid ? 'fa-check' : 'fa-clock-o' }}"></i>
-									</div>
-									<div class="admin-notif-body">
-										<div class="admin-notif-title">{{ $o->customer_name }}</div>
-										<div class="admin-notif-meta">
-											<span>{{ $o->invoice_number }}</span>
-											<span>·</span>
-											<span>{{ $isPaid ? 'Sudah dibayar' : 'Menunggu bayar' }}</span>
-											<span>·</span>
-											<span>{{ $o->created_at->diffForHumans() }}</span>
-										</div>
-									</div>
-									<div class="admin-notif-amount">Rp{{ number_format($o->total, 0, ',', '.') }}</div>
-								</a>
-							@empty
-								<li class="admin-notif-empty">
-									<i class="fa fa-inbox"></i>
-									Belum ada pesanan baru.
-								</li>
-							@endforelse
-						</ul>
-
-						@if(($pendingOrdersCount ?? 0) > 0)
-							<div class="admin-notif-foot">
-								<a href="{{ route('admin.pesanan') }}">Lihat semua pesanan &rarr;</a>
-							</div>
-						@endif
-					</div>
-				</div>
-
-				<a href="#" class="admin-topbar-icon" title="Pesan">
-					<i class="fa fa-envelope-o"></i>
-				</a>
-
 				<div class="admin-user-wrap" id="adminUserWrap">
 					<div class="admin-user" id="adminUserTrigger">
 						<div class="admin-user-avatar">{{ strtoupper(substr($authUser['name'] ?? 'AD', 0, 2)) }}</div>
@@ -607,25 +462,6 @@
 		});
 	})();
 
-	(function(){
-		var wrap    = document.getElementById('adminNotifWrap');
-		var trigger = document.getElementById('adminNotifTrigger');
-		if (!wrap || !trigger) return;
-
-		trigger.addEventListener('click', function(e){
-			e.stopPropagation();
-			wrap.classList.toggle('open');
-			// Tutup dropdown user kalau sedang terbuka
-			var userWrap = document.getElementById('adminUserWrap');
-			if (userWrap) userWrap.classList.remove('open');
-		});
-		document.addEventListener('click', function(e){
-			if (!wrap.contains(e.target)) wrap.classList.remove('open');
-		});
-		document.addEventListener('keydown', function(e){
-			if (e.key === 'Escape') wrap.classList.remove('open');
-		});
-	})();
 </script>
 @stack('scripts')
 </body>

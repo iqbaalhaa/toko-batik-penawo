@@ -66,20 +66,13 @@ class AppServiceProvider extends ServiceProvider
             ]);
         });
 
-        // Notifikasi pesanan masuk untuk layout admin
+        // Badge jumlah pesanan perlu diproses di sidebar layout admin
         View::composer('layouts.admin', function ($view) {
-            $pendingCount  = 0;
-            $recentPending = collect();
+            $pendingCount = 0;
             if (Schema::hasTable('orders')) {
-                $statuses      = ['menunggu_bayar', 'diproses'];
-                $pendingCount  = Order::whereIn('status', $statuses)->count();
-                $recentPending = Order::whereIn('status', $statuses)
-                    ->latest()->take(5)->get();
+                $pendingCount = Order::whereIn('status', ['menunggu_bayar', 'diproses'])->count();
             }
-            $view->with([
-                'pendingOrdersCount'  => $pendingCount,
-                'recentPendingOrders' => $recentPending,
-            ]);
+            $view->with(['pendingOrdersCount' => $pendingCount]);
         });
     }
 }
