@@ -118,16 +118,4 @@ class User extends Authenticatable
         ];
     }
 
-    public function wishlists()
-    {
-        return $this->hasMany(Wishlist::class)->latest();
-    }
-
-    /**
-     * Cek apakah produk sudah ada di wishlist user ini.
-     */
-    public function hasWishlisted(int $productId): bool
-    {
-        return $this->wishlists()->where('product_id', $productId)->exists();
-    }
 }

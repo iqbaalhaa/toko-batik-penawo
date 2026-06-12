@@ -138,32 +138,6 @@
 						</form>
 
 						<div class="flex-w flex-m p-l-100 p-t-40 respon7">
-							@php
-								// Cek status wishlist untuk user yang sedang login.
-								$inWishlist = false;
-								if (session('auth_user.id')) {
-									$inWishlist = \App\Models\Wishlist::where('user_id', session('auth_user.id'))
-										->where('product_id', $product->id)->exists();
-								}
-							@endphp
-							<div class="flex-m bor9 p-r-10 m-r-11">
-								@if(session('auth_user'))
-									<form action="{{ route('akun.wishlist.toggle') }}" method="POST" style="margin:0; display:inline;">
-										@csrf
-										<input type="hidden" name="slug" value="{{ $product->slug }}">
-										<button type="submit" class="fs-14 cl3 hov-cl1 trans-04 lh-10 p-lr-5 p-tb-2 tooltip100"
-											data-tooltip="{{ $inWishlist ? 'Hapus dari Wishlist' : 'Tambah ke Wishlist' }}"
-											style="background:none; border:0; cursor:pointer; {{ $inWishlist ? 'color:#c29e5c;' : '' }}">
-											<i class="fa {{ $inWishlist ? 'fa-heart' : 'fa-heart-o' }}"></i>
-										</button>
-									</form>
-								@else
-									<a href="{{ route('login') }}" class="fs-14 cl3 hov-cl1 trans-04 lh-10 p-lr-5 p-tb-2 tooltip100" data-tooltip="Masuk untuk menambah ke Wishlist">
-										<i class="fa fa-heart-o"></i>
-									</a>
-								@endif
-							</div>
-
 							<a href="#" class="fs-14 cl3 hov-cl1 trans-04 lh-10 p-lr-5 p-tb-2 m-r-8 tooltip100" data-tooltip="Facebook">
 								<i class="fa fa-facebook"></i>
 							</a>
@@ -346,13 +320,6 @@
 								<div class="block2-txt-child1 flex-col-l ">
 									<a href="{{ route('produk.detail', $rp->slug) }}" class="stext-104 cl4 hov-cl1 trans-04 js-name-b2 p-b-6">{{ $rp->name }}</a>
 									<span class="stext-105 cl3">{{ $rupiah($rp->price) }}</span>
-								</div>
-
-								<div class="block2-txt-child2 flex-r p-t-3">
-									<a href="#" class="btn-addwish-b2 dis-block pos-relative js-addwish-b2">
-										<img class="icon-heart1 dis-block trans-04" src="{{ asset('frontend/images/icons/icon-heart-01.png') }}" alt="ICON">
-										<img class="icon-heart2 dis-block trans-04 ab-t-l" src="{{ asset('frontend/images/icons/icon-heart-02.png') }}" alt="ICON">
-									</a>
 								</div>
 							</div>
 						</div>

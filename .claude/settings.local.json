@@ -187,7 +187,8 @@
       "Bash(kill %1)",
       "Bash(curl -s \"http://127.0.0.1:8123/api/produk/cari?q=tes\")",
       "Bash(curl -s \"http://127.0.0.1:8123/produk?q=tes\")",
-      "Bash(curl -s \"http://127.0.0.1:8123/produk?q=zzzz\")"
+      "Bash(curl -s \"http://127.0.0.1:8123/produk?q=zzzz\")",
+      "Bash(php -l /f/Project/toko-batik-penawo/routes/web.php)"
     ]
   }
 }

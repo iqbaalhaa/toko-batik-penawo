@@ -198,7 +198,7 @@
 						<ul style="margin: 0 0 16px 22px; font-size:12.5px; color:#6c665e; line-height:1.8;">
 							<li>Profil &amp; data pribadi</li>
 							<li>Semua alamat tersimpan</li>
-							<li>Wishlist &amp; preferensi notifikasi</li>
+							<li>Preferensi notifikasi</li>
 						</ul>
 						<p style="font-size:12px; color:#9a9288; margin-bottom:14px;">
 							<i class="fa fa-info-circle"></i> Pesanan yang sudah pernah Anda buat tetap tersimpan di sistem toko sebagai catatan, tetapi tidak lagi terhubung ke akun Anda.
@@ -222,7 +222,7 @@
 							<button type="submit" id="btnHapusAkun" class="akun-btn" disabled
 								style="background:#a5432f; color:#fff; border:1px solid #a5432f; opacity:.6; cursor:not-allowed;"
 								data-confirm-title="Hapus akun secara permanen?"
-								data-confirm-message="Tindakan ini TIDAK DAPAT DIBATALKAN. Akun, alamat, dan wishlist Anda akan hilang selamanya."
+								data-confirm-message="Tindakan ini TIDAK DAPAT DIBATALKAN. Akun dan alamat Anda akan hilang selamanya."
 								data-confirm-ok="Ya, Hapus Akun Saya">
 								<i class="fa fa-trash m-r-6"></i> Hapus Akun Saya
 							</button>

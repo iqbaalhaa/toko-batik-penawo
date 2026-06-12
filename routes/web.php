@@ -1023,56 +1023,6 @@ Route::prefix('akun')->name('akun.')->group(function () {
         return redirect()->route('akun.profil')->with('status', 'Alamat utama diperbarui.');
     })->name('alamat.default');
 
-    // ---- Wishlist ----
-    Route::get('/wishlist', function () {
-        $authUser = session('auth_user');
-        if (! $authUser) {
-            return redirect()->route('login')->withErrors(['email' => 'Silakan masuk untuk melihat wishlist.']);
-        }
-        $items = \App\Models\Wishlist::with('product')
-            ->where('user_id', $authUser['id'])
-            ->latest()
-            ->get()
-            ->filter(fn ($w) => $w->product !== null && $w->product->status !== 'arsip');
-
-        return view('home.akun.wishlist', compact('items'));
-    })->name('wishlist');
-
-    // Toggle: kalau sudah ada → hapus, kalau belum → tambah. Diakses dari halaman produk.
-    Route::post('/wishlist/toggle', function (Request $request) {
-        $authUser = session('auth_user');
-        if (! $authUser) {
-            return redirect()->route('login')->withErrors(['email' => 'Silakan masuk untuk menyimpan ke wishlist.']);
-        }
-        $data = $request->validate([
-            'slug' => 'required|string|exists:products,slug',
-        ]);
-        $product = \App\Models\Product::where('slug', $data['slug'])->firstOrFail();
-
-        $existing = \App\Models\Wishlist::where('user_id', $authUser['id'])
-            ->where('product_id', $product->id)->first();
-
-        if ($existing) {
-            $existing->delete();
-            $msg = 'Produk dihapus dari wishlist.';
-        } else {
-            \App\Models\Wishlist::create([
-                'user_id'    => $authUser['id'],
-                'product_id' => $product->id,
-            ]);
-            $msg = 'Produk ditambahkan ke wishlist.';
-        }
-
-        return redirect()->back()->with('status', $msg);
-    })->name('wishlist.toggle');
-
-    Route::delete('/wishlist/{wishlist}', function (\App\Models\Wishlist $wishlist) {
-        $authUser = session('auth_user');
-        if (! $authUser || $wishlist->user_id !== $authUser['id']) abort(403);
-        $wishlist->delete();
-        return redirect()->route('akun.wishlist')->with('status', 'Produk dihapus dari wishlist.');
-    })->name('wishlist.destroy');
-
     // ---- Pengaturan ----
     Route::get('/pengaturan', function () {
         $authUser = session('auth_user');
@@ -1145,7 +1095,6 @@ Route::prefix('akun')->name('akun.')->group(function () {
         // pada FK cascade di DB (engine bisa beda — InnoDB vs MyISAM).
         \Illuminate\Support\Facades\DB::transaction(function () use ($user) {
             \App\Models\Address::where('user_id', $user->id)->delete();
-            \App\Models\Wishlist::where('user_id', $user->id)->delete();
             // Pesanan tetap ada untuk catatan toko, hanya user_id-nya di-null-kan
             // (customer_name & customer_email sudah ter-snapshot di Order saat dibuat).
             \App\Models\Order::where('user_id', $user->id)->update(['user_id' => null]);

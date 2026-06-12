@@ -30,7 +30,7 @@ Tests run on in-memory SQLite (phpunit.xml); the dev database is MySQL.
 
 ### All application logic lives in `routes/web.php` (~1950 lines)
 
-There are **no controllers** (only the abstract base `Controller`). Every route is a closure in `routes/web.php`. When adding features, follow this pattern — do not introduce controllers unless explicitly asked. Route sections in order: public catalog/cart/checkout → Midtrans endpoints → wilayah API (`/api/wilayah/*`) → auth (login/register/logout) → customer account (`/profil`, `/pesanan`, `/alamat`, `/wishlist`, `/pengaturan`) → admin panel (`Route::prefix('admin')->name('admin.')->middleware('admin')`).
+There are **no controllers** (only the abstract base `Controller`). Every route is a closure in `routes/web.php`. When adding features, follow this pattern — do not introduce controllers unless explicitly asked. Route sections in order: public catalog/cart/checkout → Midtrans endpoints → wilayah API (`/api/wilayah/*`) → auth (login/register/logout) → customer account (`/profil`, `/pesanan`, `/alamat`, `/pengaturan`) → admin panel (`Route::prefix('admin')->name('admin.')->middleware('admin')`).
 
 ### Custom session auth — NOT Laravel Auth
 

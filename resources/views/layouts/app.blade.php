@@ -400,15 +400,6 @@
 
 									<a href="{{ route('akun.profil') }}" class="profile-dropdown-link"><i class="fa fa-user"></i>Profil Saya</a>
 									<a href="{{ route('akun.pesanan') }}" class="profile-dropdown-link"><i class="fa fa-file-text-o"></i>Pesanan Saya</a>
-									@php
-										$_wlCount = session('auth_user.id')
-											? \App\Models\Wishlist::where('user_id', session('auth_user.id'))->count()
-											: 0;
-									@endphp
-									<a href="{{ route('akun.wishlist') }}" class="profile-dropdown-link">
-										<i class="fa fa-heart-o"></i>Wishlist
-										@if($_wlCount > 0)<span class="profile-dropdown-badge" style="background:#c29e5c; color:#fff;">{{ $_wlCount }}</span>@endif
-									</a>
 									<a href="{{ route('akun.pengaturan') }}" class="profile-dropdown-link"><i class="fa fa-cog"></i>Pengaturan</a>
 
 									<div class="profile-dropdown-divider"></div>
@@ -773,12 +764,6 @@
 							</form>
 
 							<div class="flex-w flex-m p-l-100 p-t-40 respon7">
-								<div class="flex-m bor9 p-r-10 m-r-11">
-									<a href="#" class="fs-14 cl3 hov-cl1 trans-04 lh-10 p-lr-5 p-tb-2 js-addwish-detail tooltip100" data-tooltip="Tambah ke Favorit">
-										<i class="fa fa-heart"></i>
-									</a>
-								</div>
-
 								<a href="#" class="fs-14 cl3 hov-cl1 trans-04 lh-10 p-lr-5 p-tb-2 m-r-8 tooltip100" data-tooltip="Facebook">
 									<i class="fa fa-facebook"></i>
 								</a>
@@ -833,26 +818,6 @@
 	<script src="{{ asset('frontend/vendor/isotope/isotope.pkgd.min.js') }}"></script>
 	<script src="{{ asset('frontend/vendor/sweetalert/sweetalert.min.js') }}"></script>
 	<script>
-		$('.js-addwish-b2').on('click', function(e){ e.preventDefault(); });
-
-		$('.js-addwish-b2').each(function(){
-			var nameProduct = $(this).parent().parent().find('.js-name-b2').html();
-			$(this).on('click', function(){
-				swal(nameProduct, "berhasil ditambahkan ke favorit!", "success");
-				$(this).addClass('js-addedwish-b2');
-				$(this).off('click');
-			});
-		});
-
-		$('.js-addwish-detail').each(function(){
-			var nameProduct = $(this).parent().parent().parent().find('.js-name-detail').html();
-			$(this).on('click', function(){
-				swal(nameProduct, "berhasil ditambahkan ke favorit!", "success");
-				$(this).addClass('js-addedwish-detail');
-				$(this).off('click');
-			});
-		});
-
 		$('.js-addcart-detail').each(function(){
 			var nameProduct = $(this).parent().parent().parent().parent().find('.js-name-detail').html();
 			$(this).on('click', function(){
