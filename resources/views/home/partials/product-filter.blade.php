@@ -29,15 +29,36 @@
 	</div>
 
 	<!-- Search product -->
-	<div class="dis-none panel-search w-full p-t-10 p-b-15">
-		<div class="bor8 dis-flex p-l-15">
-			<button class="size-113 flex-c-m fs-16 cl2 hov-cl1 trans-04">
+	@php $term = $searchTerm ?? ''; @endphp
+	<div class="{{ $term !== '' ? '' : 'dis-none' }} panel-search w-full p-t-10 p-b-15">
+		<form class="bor8 dis-flex p-l-15" action="{{ route('produk') }}" method="GET">
+			@if($activeSlug)
+				<input type="hidden" name="kategori" value="{{ $activeSlug }}">
+			@endif
+			<button type="submit" class="size-113 flex-c-m fs-16 cl2 hov-cl1 trans-04" aria-label="Cari">
 				<i class="fa fa-search"></i>
 			</button>
 
-			<input class="mtext-107 cl2 size-114 plh2 p-r-15" type="text" name="search-product" placeholder="Cari produk">
-		</div>
+			<input class="mtext-107 cl2 size-114 plh2 p-r-15" type="text" name="q"
+				placeholder="Cari produk" value="{{ $term }}" minlength="2" required>
+		</form>
 	</div>
+
+	@if($term !== '')
+		<!-- Info hasil pencarian aktif + tombol hapus -->
+		<div class="w-full p-b-10">
+			<div class="flex-w flex-m" style="gap:10px; background:#f6f3ec; border:1px solid #e6e0d2; border-radius:6px; padding:10px 16px;">
+				<i class="fa fa-search cl6"></i>
+				<span class="stext-106 cl2">
+					{{ $products->total() }} produk ditemukan untuk &ldquo;<strong>{{ $term }}</strong>&rdquo;@if($activeSlug) di kategori <strong>{{ $activeCategory->name }}</strong>@endif
+				</span>
+				<a href="{{ $activeSlug ? route('produk', ['kategori' => $activeSlug]) : route('produk') }}"
+					class="stext-106 cl6 hov-cl1 trans-04" style="margin-left:auto;">
+					<i class="fa fa-times m-r-4"></i>Hapus pencarian
+				</a>
+			</div>
+		</div>
+	@endif
 
 	<!-- Filter -->
 	<div class="dis-none panel-filter w-full p-t-10">

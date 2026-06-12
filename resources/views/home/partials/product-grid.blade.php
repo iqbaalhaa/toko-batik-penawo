@@ -15,6 +15,16 @@
 	</style>
 	@endpush
 @endonce
+@if(count($products) === 0)
+	<div class="txt-center p-t-50 p-b-50">
+		<i class="fa fa-search fs-40" style="color:#d9d2c2;"></i>
+		<p class="mtext-111 cl2 p-t-20">Produk tidak ditemukan</p>
+		<p class="stext-107 cl6 p-t-6">Coba kata kunci lain atau lihat semua produk.</p>
+		<a href="{{ route('produk') }}" class="flex-c-m stext-101 cl0 size-103 bg1 bor1 hov-btn1 p-lr-15 trans-04 m-t-20" style="display:inline-flex;">
+			Lihat Semua Produk
+		</a>
+	</div>
+@endif
 <div class="row isotope-grid">
 	@foreach($products as $p)
 	<div class="col-sm-6 col-md-4 col-lg-3 p-b-35 isotope-item {{ $p->categories->pluck('slug')->join(' ') }}">
