@@ -194,7 +194,13 @@
 						</form>
 					</div>
 
-					{{-- ======================== Hapus Akun (zona berbahaya) ======================== --}}
+					{{--
+					======================== Hapus Akun (dinonaktifkan) ========================
+					Untuk mengaktifkan kembali:
+					1. Uncomment blok ini
+					2. Uncomment route DELETE /pengaturan/hapus-akun di routes/web.php
+					3. Uncomment method hapusAkun() di AccountController.php
+
 					<div class="akun-card" style="border-color:#f2c6be; background:#fffaf9;">
 						<h3 class="akun-card-title" style="color:#a5432f;">
 							<i class="fa fa-exclamation-triangle m-r-6"></i> Hapus Akun
@@ -236,7 +242,6 @@
 						</form>
 
 						<script>
-						// Aktifkan tombol hanya bila frasa konfirmasi cocok persis.
 						(function () {
 							var input = document.getElementById('alConfirmPhrase');
 							var btn   = document.getElementById('btnHapusAkun');
@@ -250,6 +255,7 @@
 						})();
 						</script>
 					</div>
+					--}}
 				</main>
 			</div>
 		</div>

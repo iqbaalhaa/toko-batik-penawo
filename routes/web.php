@@ -72,7 +72,7 @@ Route::prefix('akun')->name('akun.')->group(function () {
     Route::get('/pengaturan', [AccountController::class, 'pengaturan'])->name('pengaturan');
     Route::post('/pengaturan', [AccountController::class, 'updatePengaturan'])->name('pengaturan.update');
     Route::post('/pengaturan/password', [AccountController::class, 'updatePassword'])->name('pengaturan.password');
-    Route::delete('/pengaturan/hapus-akun', [AccountController::class, 'hapusAkun'])->name('pengaturan.hapus-akun');
+    // Route::delete('/pengaturan/hapus-akun', [AccountController::class, 'hapusAkun'])->name('pengaturan.hapus-akun');
 });
 
 // ---- Panel admin (guarded by EnsureAdmin middleware, alias 'admin') ----

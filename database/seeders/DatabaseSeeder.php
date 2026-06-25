@@ -10,6 +10,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             UserSeeder::class,
+            SiteSettingSeeder::class,
             CategorySeeder::class, // dipertahankan — admin butuh kategori untuk tambah produk via panel
             // Wilayah administratif (Kemendagri) — referensi untuk kalkulator ongkir.
             // Urutan penting karena ada FK: province → regency → district.

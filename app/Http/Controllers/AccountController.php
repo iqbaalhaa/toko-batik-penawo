@@ -128,40 +128,44 @@ class AccountController extends Controller
             ->with('status', 'Password berhasil diperbarui. Gunakan password baru di login berikutnya.');
     }
 
-    // Hapus akun — wajib konfirmasi password + checkbox understanding.
-    public function hapusAkun(Request $request)
-    {
-        $authUser = session('auth_user');
-        if (! $authUser) return redirect()->route('login');
-        $user = User::findOrFail($authUser['id']);
-
-        $data = $request->validate([
-            'password'      => 'required|string',
-            'confirm_phrase' => 'required|in:HAPUS AKUN SAYA',
-        ], [
-            'confirm_phrase.in' => 'Frasa konfirmasi tidak sesuai. Ketik persis "HAPUS AKUN SAYA".',
-        ]);
-
-        if (! Hash::check($data['password'], $user->password)) {
-            return back()->withErrors(['password' => 'Password salah. Akun tidak dihapus.']);
-        }
-
-        // Blokir admin menghapus akun lewat sini supaya tidak ada yang sengaja
-        // ngosongin sistem; admin harus dikelola via panel admin.
-        if ($user->role === 'admin') {
-            return back()->withErrors(['password' => 'Akun admin tidak dapat dihapus dari sini.']);
-        }
-
-        // Soft delete: baris users hanya ditandai deleted_at. Alamat dan
-        // pesanan dibiarkan utuh supaya akun dapat dipulihkan admin bila perlu.
-        $user->delete();
-
-        // Logout total.
-        session()->forget('auth_user');
-        session()->invalidate();
-        session()->regenerateToken();
-
-        return redirect()->route('home')
-            ->with('status', 'Akun Anda telah dihapus. Hubungi admin jika ingin memulihkan akun. Terima kasih sudah berbelanja di Batik Penawuo.');
-    }
+    /*
+    |--------------------------------------------------------------------------
+    | Hapus Akun (dinonaktifkan — disembunyikan dari UI)
+    |--------------------------------------------------------------------------
+    | Fitur ini sementara disembunyikan. Soft delete tetap tersedia di DB
+    | (kolom deleted_at) dan bisa diaktifkan kembali dengan:
+    | 1. Uncomment method ini
+    | 2. Uncomment route di routes/web.php  (DELETE /pengaturan/hapus-akun)
+    | 3. Uncomment blok "Hapus Akun" di resources/views/home/akun/pengaturan.blade.php
+    |
+    // public function hapusAkun(Request $request)
+    // {
+    //     $authUser = session('auth_user');
+    //     if (! $authUser) return redirect()->route('login');
+    //     $user = User::findOrFail($authUser['id']);
+    //
+    //     $data = $request->validate([
+    //         'password'       => 'required|string',
+    //         'confirm_phrase' => 'required|in:HAPUS AKUN SAYA',
+    //     ], [
+    //         'confirm_phrase.in' => 'Frasa konfirmasi tidak sesuai. Ketik persis "HAPUS AKUN SAYA".',
+    //     ]);
+    //
+    //     if (! Hash::check($data['password'], $user->password)) {
+    //         return back()->withErrors(['password' => 'Password salah. Akun tidak dihapus.']);
+    //     }
+    //
+    //     if ($user->role === 'admin') {
+    //         return back()->withErrors(['password' => 'Akun admin tidak dapat dihapus dari sini.']);
+    //     }
+    //
+    //     $user->delete(); // soft delete
+    //     session()->forget('auth_user');
+    //     session()->invalidate();
+    //     session()->regenerateToken();
+    //
+    //     return redirect()->route('home')
+    //         ->with('status', 'Akun Anda telah dihapus. Hubungi admin jika ingin memulihkan akun. Terima kasih sudah berbelanja di Batik Penawuo.');
+    // }
+    */
 }
