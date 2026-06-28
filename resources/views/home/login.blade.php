@@ -32,6 +32,12 @@
 			<h2 class="auth-title">Masuk ke Batik Penawuo</h2>
 			<p class="auth-subtitle">Belanja koleksi batik Nusantara dengan mudah</p>
 
+			@if(session('status'))
+				<div style="background:#edf7ef; border:1px solid #cfe6d6; border-left:4px solid #56a676; color:#2f7a4c; padding:12px 14px; border-radius:4px; margin-bottom:20px; font-size:13px;">
+					<i class="fa fa-check-circle"></i> {{ session('status') }}
+				</div>
+			@endif
+
 			<form action="{{ route('login.submit') }}" method="POST">
 				@csrf
 
@@ -51,7 +57,7 @@
 					<label class="auth-remember">
 						<input type="checkbox" name="remember"> Ingat saya
 					</label>
-					<a href="#">Lupa kata sandi?</a>
+					<a href="{{ route('lupa-password') }}">Lupa kata sandi?</a>
 				</div>
 
 				<button type="submit" class="auth-submit">Masuk</button>

@@ -201,7 +201,9 @@
       "Bash(sed -n 1,12p /f/Project/toko-batik-penawo/resources/views/admin/laporan.blade.php)",
       "Bash(sed -n 468,482p /f/Project/toko-batik-penawo/resources/views/layouts/admin.blade.php)",
       "Bash(grep -n '\\\\$categories' /f/Project/toko-batik-penawo/resources/views/admin/cms.blade.php)",
-      "Bash(sed -n 330,365p /f/Project/toko-batik-penawo/resources/views/layouts/admin.blade.php)"
+      "Bash(sed -n 330,365p /f/Project/toko-batik-penawo/resources/views/layouts/admin.blade.php)",
+      "PowerShell(cd \"f:\\\\Project\\\\toko-batik-penawo\"; php artisan tinker --execute=\"Mail::raw\\('Test email dari Batik Penawuo', fn\\(\\\\$m\\) => \\\\$m->to\\('sofimalinda1@gmail.com'\\)->subject\\('Test SMTP'\\)\\); echo 'Terkirim.';\" 2>&1)",
+      "PowerShell(cd \"f:\\\\Project\\\\toko-batik-penawo\"; php artisan tinker --execute=\"use Illuminate\\\\Support\\\\Facades\\\\Mail; Mail::raw\\('Test email dari Batik Penawuo', function\\(\\\\$msg\\) { \\\\$msg->to\\('sofimalinda1@gmail.com'\\)->subject\\('Test SMTP'\\); }\\); echo 'OK';\" 2>&1)"
     ],
     "additionalDirectories": [
       "\\tmp"
